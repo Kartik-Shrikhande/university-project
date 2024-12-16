@@ -43,7 +43,7 @@ exports.loginStudent = async (req, res) => {
     // Find student by email
     const student = await Students.findOne({ email });
     if (!student) {
-      return res.status(400).json({ message: 'Invalid email' });
+      return res.status(400).json({ message: 'Invalid email.' });
     }
 
     // Compare passwords
@@ -52,10 +52,12 @@ exports.loginStudent = async (req, res) => {
       return res.status(400).json({ message: 'Invalid password.' });
     }
 
-    student.lastActivity = Date.now();
+    // Update login state and lastActivity
+    student.loginCompleted = true;
     await student.save();
+
     // Generate token
-    const token = jwt.sign({ id: student._id },process.env.SECRET_KEY, { expiresIn: '5h' });
+    const token = jwt.sign({ id: student._id }, process.env.SECRET_KEY, { expiresIn: '5h' });
 
     return res.status(200).json({ message: 'Login successful.', token });
   } catch (error) {
@@ -63,6 +65,7 @@ exports.loginStudent = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 
 // Update Student
 exports.updateStudent = async (req, res) => {
