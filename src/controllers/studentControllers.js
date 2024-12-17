@@ -110,14 +110,26 @@ exports.deleteStudent = async (req, res) => {
 exports.getUniversityById = async (req, res) => {
     try {
       const { universityId } = req.params;
+      const studentId = req.studentId; 
   
       // Fetch the university by ID
-      const university = await university.findById(universityId)
-      if (!university) {
+      const findUniversity = await university.findById(universityId)
+      if (!findUniversity) {
         return res.status(404).json({ message: 'University not found.' });
       }
+
+      const student = await Students.findById(studentId);
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found.' });
+      }
   
-      return res.status(200).json({ university });
+      // Check if the university is already enrolled
+      if (!student.enrolledUniversities.includes(universityId)) {
+        student.enrolledUniversities.push(universityId);
+        await student.save();
+      }
+  
+      return res.status(200).json({ findUniversity });
     } catch (error) {
       console.error('Error fetching university:', error);
       return res.status(500).json({ message: 'Internal server error.' });
@@ -189,15 +201,27 @@ exports.getAllCourses = async (req, res) => {
   }
 };
 
-
 exports.getCourseById = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const studentId = req.studentId; // Assuming `studentId` is provided via middleware/authentication
 
+    // Fetch the course and its associated university
     const course = await Course.findById(courseId).populate('university', 'name');
-
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Fetch the student record
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if the course is already in `enrolledCourses`
+    if (!student.enrolledCourses.includes(courseId)) {
+      student.enrolledCourses.push(courseId);
+      await student.save();
     }
 
     return res.status(200).json({ course });

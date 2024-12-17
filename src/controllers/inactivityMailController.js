@@ -1,15 +1,15 @@
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
-const Students = require('../models/StudentsModel'); 
+const Students = require('../models/StudentsModel');
 
 require('dotenv').config();
 
 // Nodemailer configuration
 const transporter = nodemailer.createTransport({
-  service: 'gmail', 
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS, 
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -52,33 +52,50 @@ const startCronJob = () => {
       // Users who have not purchased a paid course
       const notPaidStudents = await Students.find({
         isPaid: false,
-        loginCompleted: true, // Ensure they logged in but haven't purchased
+        loginCompleted: true,
         lastActivity: { $lt: now - inactivityLimit },
       });
 
       for (const student of notPaidStudents) {
-        const message = `Hi ${student.name},\n\nWe noticed you haven't purchased subscription yet.subscribe to us and Check out our universities and courses to unlock amazing learning opportunities!\n\nExplore now.\n\nTeam lexodd hypernova`;
+        const message = `Hi ${student.name},\n\nWe noticed you haven't purchased a subscription yet. Subscribe to us and check out our universities and courses to unlock amazing learning opportunities!\n\nExplore now.\n\nTeam lexodd hypernova`;
         await sendReminderEmail(student, message);
       }
 
-      // Users who purchased a course but haven’t returned
+      // Users who purchased a course but haven’t returned (not enrolled in any university)
       const paidInactiveStudents = await Students.find({
         isPaid: true,
         lastActivity: { $lt: now - inactivityLimit },
+        enrolledUniversities: { $size: 0 }, // Not enrolled in any universities
       });
 
-      //common triggered message after inactivity(eg 2days) of the user to bring him back on website 
       for (const student of paidInactiveStudents) {
-        const message = `Hi ${student.name},\n\nWe noticed you haven't been active recently. Revisit our platform to explore more universities and courses that match your interests!\n\nWe are here to support you.\n\nTeam lexodd hypernova`;
+        const message = `Hi ${student.name},\n\nWe noticed you've taken the first step by purchasing a course! Have you explored our partner universities and their amazing opportunities?\n\nDiscover more and enhance your learning journey.\n\nTeam lexodd hypernova`;
         await sendReminderEmail(student, message);
+      }
+
+      // Users who visited a university (only university-specific message)
+      const studentsWithUniversities = await Students.find({
+        enrolledUniversities: { $exists: true, $not: { $size: 0 } },
+        lastActivity: { $lt: now - inactivityLimit },
+      }).populate('enrolledUniversities', 'name');
+
+      for (const student of studentsWithUniversities) {
+        const lastUniversity =
+          student.enrolledUniversities[student.enrolledUniversities.length - 1];
+
+        if (lastUniversity) {
+          const message = `Hi ${student.name},\n\nWe noticed you visited ${lastUniversity.name} recently. Check out the exciting courses offered by ${lastUniversity.name} and take the next step in your learning journey!\n\nExplore now.\n\nTeam lexodd hypernova`;
+          await sendReminderEmail(student, message);
+        }
       }
 
       if (
         notLoggedInStudents.length === 0 &&
         notPaidStudents.length === 0 &&
-        paidInactiveStudents.length === 0
+        paidInactiveStudents.length === 0 &&
+        studentsWithUniversities.length === 0
       ) {
-        console.log('No inactive users found for any condition.');
+        console.log('No inactive or active users found for any condition.');
       }
     } catch (error) {
       console.error('Error checking inactive users:', error);
@@ -89,4 +106,3 @@ const startCronJob = () => {
 };
 
 module.exports = startCronJob;
-

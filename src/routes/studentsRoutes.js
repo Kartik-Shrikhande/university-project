@@ -44,6 +44,7 @@ router.get('/universities',
   userActivity.updateLastActivity,
   userControllers.getUniversities);
 
+  //get unniversity by id
 router.get('/:universityId',
   authenticationMiddleware.authentication, 
   userActivity.updateLastActivity,
