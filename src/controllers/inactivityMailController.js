@@ -38,6 +38,8 @@ const startCronJob = () => {
       const now = Date.now();
       const inactivityLimit = 1 * 60 * 1000; // 1 minute for testing
 
+
+
       // Users who registered but have not logged in
       const notLoggedInStudents = await Students.find({
         loginCompleted: false,
@@ -48,6 +50,10 @@ const startCronJob = () => {
         const message = `Hi ${student.name},\n\nWe noticed you haven't logged into your account yet. Don't miss out on the exciting opportunities waiting for you!\n\nLog in now and explore.\n\nTeam lexodd hypernova`;
         await sendReminderEmail(student, message);
       }
+
+
+
+
 
       // Users who have not purchased a paid course
       const notPaidStudents = await Students.find({
@@ -61,7 +67,8 @@ const startCronJob = () => {
         await sendReminderEmail(student, message);
       }
 
-      // Users who purchased a course but haven’t returned (not enrolled in any university)
+
+      // Users who purchased a course
       const paidInactiveStudents = await Students.find({
         isPaid: true,
         lastActivity: { $lt: now - inactivityLimit },
@@ -73,7 +80,10 @@ const startCronJob = () => {
         await sendReminderEmail(student, message);
       }
 
-      // Users who visited a university (only university-specific message)
+
+
+
+      // Users who visited a university 
       const studentsWithUniversities = await Students.find({
         enrolledUniversities: { $exists: true, $not: { $size: 0 } },
         lastActivity: { $lt: now - inactivityLimit },
