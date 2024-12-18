@@ -27,8 +27,6 @@ const authentication = async (req, res, next) => {
       }
     
       req.studentId = student._id;
-      req.student = student;
-
       next();
     });
   } catch (error) {

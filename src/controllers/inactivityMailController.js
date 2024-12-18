@@ -48,7 +48,7 @@ const startCronJob = () => {
 
       for (const student of notLoggedInStudents) {
         const message = `Hi ${student.name},\n\nWe noticed you haven't logged into your account yet. Don't miss out on the exciting opportunities waiting for you!\n\nLog in now and explore.\n\nTeam lexodd hypernova`;
-        await sendReminderEmail(student, message);
+        await sendReminderEmail(student,message);
       }
 
 
@@ -68,7 +68,7 @@ const startCronJob = () => {
       }
 
 
-      // Users who purchased a course
+      // Users who purchased subscription
       const paidInactiveStudents = await Students.find({
         isPaid: true,
         lastActivity: { $lt: now - inactivityLimit },
@@ -90,8 +90,7 @@ const startCronJob = () => {
       }).populate('enrolledUniversities', 'name');
 
       for (const student of studentsWithUniversities) {
-        const lastUniversity =
-          student.enrolledUniversities[student.enrolledUniversities.length - 1];
+        const lastUniversity = student.enrolledUniversities[student.enrolledUniversities.length - 1];
 
         if (lastUniversity) {
           const message = `Hi ${student.name},\n\nWe noticed you visited ${lastUniversity.name} recently. Check out the exciting courses offered by ${lastUniversity.name} and take the next step in your learning journey!\n\nExplore now.\n\nTeam lexodd hypernova`;

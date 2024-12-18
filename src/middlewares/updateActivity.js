@@ -11,7 +11,7 @@ exports.updateLastActivity = async (req, res, next) => {
       next();
     } catch (error) {
       console.error('Error updating last activity:', error);
-      next(); // Don't block the request even if there's an error
+      next(); 
     }
   };
   
