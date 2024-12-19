@@ -70,7 +70,7 @@ exports.loginStudent = async (req, res) => {
 // Update Student
 exports.updateStudent = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id  = req.studentId;
     const updates = req.body;
 
     // Prevent updating password directly
@@ -93,7 +93,7 @@ exports.updateStudent = async (req, res) => {
 // Delete Student
 exports.deleteStudent = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id  = req.studentId;
     const deletedStudent = await Students.findByIdAndDelete(id);
 
     if (!deletedStudent) {

@@ -27,14 +27,14 @@ router.post('/login',
    userActivity.updateLastActivity, 
    userControllers.loginStudent);
 
-router.put('/update/:id',
+router.put('/update',
   authenticationMiddleware.authentication,
   updateValidator, 
   validate,
   userActivity.updateLastActivity,
    userControllers.updateStudent);
 
-router.delete('/delete/:id',
+router.delete('/delete',
   userActivity.updateLastActivity,
   userControllers.deleteStudent);
 
