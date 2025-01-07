@@ -33,10 +33,10 @@ const sendReminderEmail = async (student, message) => {
 // Function to check inactivity and send appropriate emails
 const startCronJob = () => {
   // Cron Job: Check for inactive users every minute
-  cron.schedule('*/10 * * * *', async () => {
+  cron.schedule('0 0 * * *', async () => {
     try {
       const now = Date.now();
-      const inactivityLimit = 10 * 60 * 1000; // 10 minute for testing
+      const inactivityLimit = 24 * 60 * 60 * 1000; // 10 minute for testing
 
       // Users who registered but have not logged in
       const notLoggedInStudents = await Students.find({
