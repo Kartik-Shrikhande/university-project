@@ -12,7 +12,7 @@ const coursesRoutes = require('../src/routes/coursesRoutes')
 const agencyRoutes = require('../src/routes/agencyRoutes')
 const agentsRoutes = require('../src/routes/agentRoutes')
 const otpRoutes = require('../src/routes/otpRoutes')
-const googleAuthRoutes = require('../src/routes/GoogleloginRoutes')// New Google Auth routes
+const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
 
 const applicationRoutes = require('../src/routes/applicationRoutes');
 
