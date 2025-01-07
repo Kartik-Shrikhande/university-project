@@ -36,42 +36,42 @@ passport.use(
   )
 );
 
-// Apple Login Strategy
-passport.use(
-  new AppleStrategy(
-    {
-      clientID: process.env.APPLE_CLIENT_ID,
-      teamID: process.env.APPLE_TEAM_ID,
-      keyID: process.env.APPLE_KEY_ID,
-      privateKeyString: process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      callbackURL: `${process.env.SERVER_URL}/api/auth/apple/callback`,
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        // Extract email from Apple profile
-        const email = profile.email;
+// // Apple Login Strategy
+// passport.use(
+//   new AppleStrategy(
+//     {
+//       clientID: process.env.APPLE_CLIENT_ID,
+//       teamID: process.env.APPLE_TEAM_ID,
+//       keyID: process.env.APPLE_KEY_ID,
+//       privateKeyString: process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+//       callbackURL: `${process.env.SERVER_URL}/api/auth/apple/callback`,
+//     },
+//     async (accessToken, refreshToken, profile, done) => {
+//       try {
+//         // Extract email from Apple profile
+//         const email = profile.email;
 
-        // Check if student already exists
-        let student = await Students.findOne({ email });
+//         // Check if student already exists
+//         let student = await Students.findOne({ email });
 
-        // Create a new student if not found
-        if (!student) {
-          student = new Students({
-            firstName: profile.name?.givenName || 'Apple',
-            lastName: profile.name?.familyName || 'User',
-            email,
-            loginCompleted: true,
-          });
-          await student.save();
-        }
+//         // Create a new student if not found
+//         if (!student) {
+//           student = new Students({
+//             firstName: profile.name?.givenName || 'Apple',
+//             lastName: profile.name?.familyName || 'User',
+//             email,
+//             loginCompleted: true,
+//           });
+//           await student.save();
+//         }
 
-        return done(null, student);
-      } catch (error) {
-        return done(error, null);
-      }
-    }
-  )
-);
+//         return done(null, student);
+//       } catch (error) {
+//         return done(error, null);
+//       }
+//     }
+//   )
+// );
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
