@@ -1,4 +1,4 @@
-const studentModel = require('../models/StudentsModel')
+const studentModel = require('../models/studentsModel')
 
 
 exports.checkPaymentStatus = async (req, res, next) => {

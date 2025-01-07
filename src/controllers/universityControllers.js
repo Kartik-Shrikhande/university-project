@@ -3,18 +3,25 @@ const university = require('../models/universityModel');
 // Create a new university
 exports.createUniversity = async (req, res) => {
   try {
-    const { name, description, location, isPromoted } = req.body;
+    const { name, description, country, isPromoted, courses, ratings } = req.body;
 
+    // Create a new university instance
     const newUniversity = new university({
       name,
       description,
-      location,
-      isPromoted,
+      country,
+      isPromoted: isPromoted || 'NO', // Default value is 'NO' if not provided
+      courses: courses || [], // Default to an empty array if no courses are provided
+      ratings: ratings || [], // Default to an empty array if no ratings are provided
+      pendingApplications: [], // Initialize as an empty array
     });
 
+    // Save the new university to the database
     await newUniversity.save();
+
     return res.status(201).json({ message: 'University created successfully.', university: newUniversity });
-  } catch (error) {
+  } 
+  catch (error) {
     console.error('Error creating university:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
@@ -90,3 +97,6 @@ exports.promoteUniversity = async (req, res) => {
 };
 
 
+// exports.acceptApplication = async (req, res) => {
+
+//   exports.rejectApplication = async (req, res) => {

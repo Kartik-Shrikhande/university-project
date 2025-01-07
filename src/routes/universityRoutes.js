@@ -4,11 +4,7 @@ const router = express.Router();
 
 const universityController= require('../controllers/universityControllers');
 const authenticationMiddleware = require('../middlewares/authentication')
-
-const {
-  createUniversityValidator,
-  updateUniversityValidator,
-} = require('../validators/universityValidations');
+const {createUniversityValidator,updateUniversityValidator,} = require('../validators/universityValidations');
 
 const { validationResult } = require('express-validator');
 
@@ -22,7 +18,7 @@ const validate = (req, res, next) => {
 };
 
 // Routes
-
+// router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
 router.post('/create', createUniversityValidator, validate, universityController.createUniversity);
 router.put('/update/:id', updateUniversityValidator, validate, universityController.updateUniversity);
 router.delete('/delete/:id', universityController.deleteUniversity);

@@ -1,5 +1,5 @@
 
-const Students = require('../models/StudentsModel');
+const Students = require('../models/studentsModel');
 
 
 exports.updateLastActivity = async (req, res, next) => {

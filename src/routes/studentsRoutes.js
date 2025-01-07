@@ -19,11 +19,13 @@ const validate = (req, res, next) => {
 };
 
 // Routes
-router.post('/register', registerValidator, validate, userControllers.registerStudent);
+router.post('/register', registerValidator,
+  //  validate, 
+   userControllers.registerStudent);
 
 router.post('/login',
    loginValidator,
-   validate,
+  //  validate,
    userActivity.updateLastActivity, 
    userControllers.loginStudent);
 
@@ -34,9 +36,17 @@ router.put('/update',
   userActivity.updateLastActivity,
    userControllers.updateStudent);
 
+router.put('/update/password', 
+  authenticationMiddleware.authentication,
+  userActivity.updateLastActivity,
+  userControllers.updatePassword)
+   
 router.delete('/delete',
+  authenticationMiddleware.authentication,
   userActivity.updateLastActivity,
   userControllers.deleteStudent);
+
+
 
 router.get('/universities',
   authenticationMiddleware.authentication,
@@ -44,8 +54,9 @@ router.get('/universities',
   userActivity.updateLastActivity,
   userControllers.getUniversities);
 
+
   //get unniversity by id
-router.get('/:universityId',
+router.get('/university/:universityId',
   authenticationMiddleware.authentication, 
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
@@ -54,19 +65,43 @@ router.get('/:universityId',
 router.post('/create-payment',
   authenticationMiddleware.authentication,
   userActivity.updateLastActivity,
-    userControllers.createPayment);
+    userControllers.createPayment)
 
-// Get all courses (optionally filtered by university)
-router.get('/:universityId/courses',
+// Get all courses by uni id (optionally filtered by university)
+router.get('/courses/:universityId',
   authenticationMiddleware.authentication,
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
-   userControllers.getAllCourses);
+   userControllers.getAllUniversityCourses);
 
+
+   router.get('/filters/course',
+    authenticationMiddleware.authentication,
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+     userControllers.getCoursesWithFilters);
+
+//get course by Id
 router.get('/course/:courseId',authenticationMiddleware.authentication,
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
-   userControllers.getCourseById);
+   userControllers.getCourseById)
+
+
+   router.post('/enroll/:courseId',authenticationMiddleware.authentication,
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+     userControllers.enrollCourse)
+  
+
+  router.post('/application/:universityId',authenticationMiddleware.authentication,
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+      userControllers.universityApplication)
+
+//APPLICATION
+
+// router.get('/students/:studentId/applications', userControllers.getStudentAppliedUniversities);
 
 
 router.use('*', (req, res) => {

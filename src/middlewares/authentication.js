@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const studentModel = require('../models/StudentsModel')
+const studentModel = require('../models/studentsModel')
 
 
 const authentication = async (req, res, next) => {
@@ -36,4 +36,58 @@ const authentication = async (req, res, next) => {
 };
 
 
-module.exports = { authentication }
+
+const authorization = async(req, res, next) => {
+  try {
+
+    const studentId = req.studentId;
+    const student = await studentModel.findById(studentId);
+    //     if (!student) {
+    //       return res.status(404).json({ message: 'Student not found' });
+    //     }
+
+    // Check if the user has the 'Admin' role
+    if (student.isAdmin !== 'Admin') {
+      return res.status(401).json({
+        message: 'Unauthorized access.Students dont have access to this route.',
+      });
+    }
+
+    next(); // Proceed to the route handler if the user is an admin
+  } catch (error) {
+    console.error('Authorization Error:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+// ///API to check authorization for
+// const authorization = async (req, res, next) => {
+//   try {
+//     const studentId = req.studentId;
+
+//     if (!studentId) {
+//       return res.status(401).json({ message: 'Unauthorized: No student ID found in request' });
+//     }
+
+//     const student = await studentModel.findById(studentId);
+//     if (!student) {
+//       return res.status(404).json({ message: 'Student not found' });
+//     }
+
+//     // Check if the user has the 'Admin' role
+//     if (student.isAdmin !== 'Admin') {
+//       return res.status(403).json({ message: 'Access denied. Admins only.' });
+//     }
+
+//     next(); // Proceed if the user is an admin
+//   } catch (error) {
+//     console.error('Authorization Error:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
+
+
+
+module.exports = { authentication,authorization}
