@@ -13,7 +13,9 @@ const universitySchema = new mongoose.Schema(
         applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', required: true },
       },
     ],
+    payments:[],
     ratings: [{ type: Number }],
+    
   },
   { timestamps: true }
 );

@@ -101,7 +101,8 @@ router.get('/course/:courseId',authenticationMiddleware.authentication,
 
 //APPLICATION
 
-// router.get('/students/:studentId/applications', userControllers.getStudentAppliedUniversities);
+router.get('/students/applications',authenticationMiddleware.authentication,
+   userControllers.getStudentApplications);
 
 
 router.use('*', (req, res) => {

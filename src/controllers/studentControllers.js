@@ -44,16 +44,18 @@ exports.registerStudent = async (req, res) => {
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
+      presentAddress, 
+      permanentAddress, 
     } = req.body;
 
-    // Validation: Check required fields
+    // Basic Validation
     if (
       !firstName ||
       !lastName ||
       !dateOfBirth ||
       !gender ||
       !email ||
-      !confirmEmail || 
+      !confirmEmail ||
       !password ||
       !telephoneNumber ||
       !documentType ||
@@ -62,12 +64,14 @@ exports.registerStudent = async (req, res) => {
       !programType ||
       !countryApplyingFrom ||
       !courseStartTimeline ||
-      !preferredCommunicationMethod 
+      !preferredCommunicationMethod ||
+      !presentAddress || 
+      !permanentAddress 
     ) {
       return res.status(400).json({ message: 'Please fill all required fields.' });
     }
 
-    // // Check if email and confirm email match
+    // Email Validation
     if (email !== confirmEmail) {
       return res.status(400).json({ message: 'Email and Confirm Email do not match.' });
     }
@@ -79,7 +83,7 @@ exports.registerStudent = async (req, res) => {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10); 
 
     // Create student
     const newStudent = new Students({
@@ -112,8 +116,10 @@ exports.registerStudent = async (req, res) => {
       referralSource,
       agentName,
       preferredCommunicationMethod,
-      // termsAndConditionsAccepted,
-      // gdprAccepted,
+      termsAndConditionsAccepted,
+      gdprAccepted,
+      presentAddress, 
+      permanentAddress, 
     });
 
     await newStudent.save();
@@ -127,6 +133,153 @@ exports.registerStudent = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+// exports.registerStudent = async (req, res) => {
+//   try {
+//     const {
+//       firstName,
+//       middleName,
+//       lastName,
+//       dateOfBirth,
+//       gender,
+//       email,
+//       confirmEmail,
+//       password,
+//       telephoneNumber,
+//       presentAddress: {
+//         streetAddress,
+//         city: presentCity,
+//         state: presentState,
+//         postalCode: presentPostalCode,
+//         country: presentCountry,
+//       },
+//       permanentAddress: {
+//         streetAddress: permanentStreetAddress,
+//         city: permanentCity,
+//         state: permanentState,
+//         postalCode: permanentPostalCode,
+//         country: permanentCountry,
+//       },
+//       documentType,
+//       documentUpload,
+//       mostRecentEducation,
+//       otherEducationName,
+//       yearOfGraduation,
+//       collegeUniversity,
+//       programType,
+//       otherProgramName,
+//       discipline,
+//       otherDisciplineName,
+//       countryApplyingFrom,
+//       preferredUniversity,
+//       preferredCourse,
+//       courseStartTimeline,
+//       englishLanguageRequirement,
+//       languageTestName,
+//       languageTestScore,
+//       referralSource,
+//       preferredCommunicationMethod,
+//       termsAndConditionsAccepted,
+//       gdprAccepted,
+//     } = req.body;
+
+//     // Validation: Check required fields
+//     if (
+//       !firstName ||
+//       !lastName ||
+//       !dateOfBirth ||
+//       !gender ||
+//       !email ||
+//       !confirmEmail || 
+//       !password ||
+//       !telephoneNumber ||
+//       !presentAddress ||
+//       !permanentAddress ||
+//       !documentType ||
+//       !documentUpload ||
+//       !mostRecentEducation ||
+//       !programType ||
+//       !countryApplyingFrom ||
+//       !courseStartTimeline ||
+//       !preferredCommunicationMethod 
+//     ) {
+//       return res.status(400).json({ message: 'Please fill all required fields.' });
+//     }
+
+//     // // Check if email and confirm email match
+//     if (email !== confirmEmail) {
+//       return res.status(400).json({ message: 'Email and Confirm Email do not match.' });
+//     }
+
+//     // Check if student already exists
+//     const existingStudent = await Students.findOne({ email });
+//     if (existingStudent) {
+//       return res.status(400).json({ message: 'Email already in use.' });
+//     }
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create student
+//     const newStudent = new Students({
+//       firstName,
+//       middleName,
+//       lastName,
+//       dateOfBirth,
+//       gender,
+//       email,
+//       confirmEmail,
+//       password: hashedPassword,
+//       telephoneNumber,
+//       presentAddress: {
+//         streetAddress,
+//         city: presentCity,
+//         state: presentState,
+//         postalCode: presentPostalCode,
+//         country: presentCountry,
+//       },
+//       permanentAddress: {
+//         streetAddress: permanentStreetAddress,
+//         city: permanentCity,
+//         state: permanentState,
+//         postalCode: permanentPostalCode,
+//         country: permanentCountry,
+//       },
+//       documentType,
+//       documentUpload,
+//       mostRecentEducation,
+//       otherEducationName,
+//       yearOfGraduation,
+//       collegeUniversity,
+//       programType,
+//       otherProgramName,
+//       discipline,
+//       otherDisciplineName,
+//       countryApplyingFrom,
+//       preferredUniversity,
+//       preferredCourse,
+//       courseStartTimeline,
+//       englishLanguageRequirement,
+//       languageTestName,
+//       languageTestScore,
+//       referralSource,
+//       agentName,
+//       preferredCommunicationMethod,
+//       // termsAndConditionsAccepted,
+//       // gdprAccepted,
+//     });
+
+//     await newStudent.save();
+
+//     return res.status(201).json({
+//       message: 'Student registered successfully.',
+//       studentId: newStudent._id,
+//     });
+//   } catch (error) {
+//     console.error('Error registering student:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 // exports.registerStudent = async (req, res) => {
 //   try {
 //     const { name, email, password } = req.body;
@@ -503,7 +656,6 @@ exports.getCoursesWithFilters = async (req, res) => {
 
 
 
-
 exports.getCourseById = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -605,7 +757,132 @@ exports.universityApplication = async (req, res) => {
 };
 
 
+//Application 
 
+// exports.getStudentApplications = async (req, res) => {
+//   try {
+//     const studentId = req.studentId; // Retrieved from authentication middleware
+
+//     // Validate `studentId`
+//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+//       return res.status(400).json({ message: 'Invalid student ID provided.' });
+//     }
+
+//     // Fetch student applications with populated data
+//     const student = await Students.findById(studentId)
+//       .populate({
+//         path: 'applications.applicationId',
+//         select: 'university course status submissionDate financialAid',
+//         populate: [
+//           { path: 'university', select: 'name country' },
+//           { path: 'course', select: 'name fees' },
+//           { path: 'agency', select: 'name contactEmail' },
+//           { path: 'assignedAgent', select: 'name email' },
+//         ],
+//       })
+//       .select('firstName lastName email applications');
+
+//     if (!student) {
+//       return res.status(404).json({ message: 'Student not found.' });
+//     }
+
+//     // Check if applications exist
+//     if (!student.applications || student.applications.length === 0) {
+//       return res.status(404).json({ message: 'No applications found for this student.' });
+//     }
+
+//     // Directly return populated applications
+//     return res.status(200).json({
+//       message: 'Successfully fetched student applications.',
+//       total:student.applications.length,
+//       student: {
+//         id: student._id,
+//         name: `${student.firstName} ${student.lastName}`,
+//         email: student.email,
+//       },
+//       applications: student.applications.map((app) => app.applicationId), // Directly include the populated application data
+//     });
+//   } catch (error) {
+//     console.error('Error fetching student applications:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
+
+
+
+
+exports.getStudentApplications = async (req, res) => {
+  try {
+    const studentId = req.studentId; // Retrieved from authentication middleware
+
+    // Validate `studentId`
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID provided.' });
+    }
+
+    // Fetch the student and their applications
+    const student = await Students.findById(studentId)
+      .populate({
+        path: 'applications.applicationId',
+        populate: [
+          { path: 'university', select: 'name country' },
+          { path: 'course', select: 'name fees' },
+          { path: 'agency', select: 'name contactEmail' },
+          { path: 'assignedAgent', select: 'name email' },
+        ],
+      })
+      .select('applications firstName lastName email');
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Check if the student has any applications
+    if (!student.applications || student.applications.length === 0) {
+      return res.status(404).json({ message: 'No applications found for this student.' });
+    }
+
+    // Prepare the response data
+    const applications = student.applications
+      .filter((app) => app.applicationId) // Ensure applicationId exists before accessing its fields
+      .map((app) => ({
+        applicationId: app.applicationId._id,
+        university: app.applicationId.university ? app.applicationId.university.name : 'Unknown',
+        country : app.applicationId.university.country,
+        course: app.applicationId.course ? app.applicationId.course.name : 'Unknown',
+        status: app.applicationId.status,
+        submissionDate: app.applicationId.submissionDate ? app.applicationId.submissionDate.toLocaleDateString() : null,
+        submissionTime: app.applicationId.submissionDate ? app.applicationId.submissionDate.toISOString().slice(11, 19) : null, 
+        // reviewDate: app.applicationId.reviewDate || 'Not reviewed yet',
+        // notes: app.applicationId.notes || 'No notes provided',
+        // // documents: app.applicationId.documents || [],
+        // financialAid: app.applicationId.financialAid || 'Not specified',
+        // agency: app.applicationId.agency ? app.applicationId.agency.name : 'Default Agency',
+        // assignedAgent: app.applicationId.assignedAgent
+        //   ? { name: app.applicationId.assignedAgent.name, email: app.applicationId.assignedAgent.email }
+        //   : 'Not assigned',
+      }));
+
+    // If no valid applications are available
+    if (applications.length === 0) {
+      return res.status(404).json({ message: 'No valid application data found.' });
+    }
+
+    return res.status(200).json({
+      total:applications.length,
+      message: 'Successfully fetched student applications.',
+      student: {
+        id: student._id,
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+      },
+      applications,
+    });
+  } catch (error) {
+    console.error('Error fetching student applications:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 
 

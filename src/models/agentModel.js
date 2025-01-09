@@ -7,7 +7,11 @@ const agentSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ['Admin', 'Agent'], default: 'Agent' },
     assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // Students handled by the agent
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency', required: true }, // The agency they belong to
+   agency: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Agency', 
+        default: '677f6b7c701bc85481046b64', // Default agency ID
+      }, // The agency they belong to
   },
   { timestamps: true }
 );

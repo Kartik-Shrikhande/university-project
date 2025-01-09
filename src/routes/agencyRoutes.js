@@ -20,6 +20,8 @@ router.delete('/agencies/:id', agencyController.deleteAgencyById);
 
 //Application
 
+router.get('/pending-applications', agencyController.getPendingApplications);
+
 router.post('/send-application', agencyController.sendApplicationToUniversity);
 
 

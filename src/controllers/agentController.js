@@ -7,12 +7,11 @@ const bcrypt = require('bcrypt');
 exports.createAgent = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const { agencyId } = req.params; // Take agency ID from the URL parameters
 
-    // Check if the agency exists
-    const agencyExists = await Agency.findById(agencyId);
-    if (!agencyExists) {
-      return res.status(404).json({ message: 'Agency not found' });
+    // Fetch the default agency
+    const defaultAgency = await Agency.findById('677f6b7c701bc85481046b64');
+    if (!defaultAgency) {
+      return res.status(500).json({ message: 'Default agency not found.' });
     }
 
     // Hash the password
@@ -23,14 +22,14 @@ exports.createAgent = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      agency: agencyId,
+      agency: defaultAgency._id, // Use default agency ID
     });
 
     await newAgent.save();
 
-    // Add the new agent to the `agents` array of the agency
-    agencyExists.agents.push(newAgent._id);
-    await agencyExists.save();
+    // Add the new agent to the `agents` array of the default agency
+    defaultAgency.agents.push(newAgent._id);
+    await defaultAgency.save();
 
     return res.status(201).json({
       message: 'Agent created successfully',
@@ -43,11 +42,16 @@ exports.createAgent = async (req, res) => {
 };
 
 
-// Get all agents
 exports.getAllAgents = async (req, res) => {
   try {
-    const agents = await Agent.find().populate('agency', 'name').populate('assignedStudents', 'name');
-    return res.status(200).json({ totalAgents:agents.length,data: agents });
+    const agents = await Agent.find()
+      .populate('agency', 'name contactEmail')
+      .populate('assignedStudents', 'name email');
+
+    return res.status(200).json({
+      totalAgents: agents.length,
+      data: agents,
+    });
   } catch (error) {
     console.error('Error fetching agents:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -55,11 +59,13 @@ exports.getAllAgents = async (req, res) => {
 };
 
 
-// Get a single agent by ID
 exports.getAgentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const agent = await Agent.findById(id).populate('agency', 'name').populate('assignedStudents', 'name');
+
+    const agent = await Agent.findById(id)
+      .populate('agency', 'name contactEmail')
+      .populate('assignedStudents', 'name email');
 
     if (!agent) {
       return res.status(404).json({ message: 'Agent not found' });
@@ -88,7 +94,10 @@ exports.updateAgent = async (req, res) => {
       return res.status(404).json({ message: 'Agent not found' });
     }
 
-    return res.status(200).json({ message: 'Agent updated successfully', agent: updatedAgent });
+    return res.status(200).json({
+      message: 'Agent updated successfully',
+      agent: updatedAgent,
+    });
   } catch (error) {
     console.error('Error updating agent:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -102,10 +111,21 @@ exports.deleteAgent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedAgent = await Agent.findByIdAndDelete(id);
-    if (!deletedAgent) {
+    // Fetch the agent
+    const agent = await Agent.findById(id);
+    if (!agent) {
       return res.status(404).json({ message: 'Agent not found' });
     }
+
+    // Remove the agent from the agency's agent list
+    const defaultAgency = await Agency.findById(agent.agency);
+    if (defaultAgency) {
+      defaultAgency.agents = defaultAgency.agents.filter((agentId) => agentId.toString() !== id);
+      await defaultAgency.save();
+    }
+
+    // Delete the agent
+    await agent.remove();
 
     return res.status(200).json({ message: 'Agent deleted successfully' });
   } catch (error) {

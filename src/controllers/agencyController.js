@@ -81,28 +81,98 @@ exports.deleteAgencyById = async (req, res) => {
 
 //Application 
 
-exports.sendApplicationToUniversity = async (req, res) => {
-  try {
-    const { applicationId, agencyId } = req.body;
+//application 
 
-    // Validate IDs
-    if (!mongoose.Types.ObjectId.isValid(applicationId) || !mongoose.Types.ObjectId.isValid(agencyId)) {
-      return res.status(400).json({ message: 'Invalid IDs provided' });
+//see pending applications //get
+
+//assign agent 
+
+//agent will move forward the application to university
+
+exports.getPendingApplications = async (req, res) => {
+  try {
+    // Fetch the default agency
+    const agency = await Agency.findOne(); // Assuming there is only one agency
+
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found.' });
     }
 
-    // Fetch agency
-    const agency = await Agency.findById(agencyId);
-    if (!agency) {
-      return res.status(404).json({ message: 'Agency not found' });
+    // Check if there are any pending applications
+    if (!agency.pendingApplications || agency.pendingApplications.length === 0) {
+      return res.status(404).json({ message: 'No pending applications found for the default agency.' });
+    }
+
+    // Populate pending applications
+    await agency.populate({
+      path: 'pendingApplications',
+      select: 'student university course status submissionDate',
+      populate: [
+        { path: 'student', select: 'firstName lastName email' },
+        { path: 'university', select: 'name country' },
+        { path: 'course', select: 'name fees' },
+      ],
+    });
+
+    // Prepare the response data
+    const pendingApplications = agency.pendingApplications.map((app) => ({
+      applicationId: app._id,
+      student: app.student
+        ? { name: `${app.student.firstName} ${app.student.lastName}`, email: app.student.email }
+        : 'Unknown',
+      university: app.university ? app.university.name : 'Unknown',
+      course: app.course ? app.course.name : 'Unknown',
+      status: app.status,
+      submissionDate: app.submissionDate,
+    }));
+
+    return res.status(200).json({
+      message: 'Successfully fetched pending applications.',
+      total :pendingApplications.length,
+      agency: {
+        id: agency._id,
+        name: agency.name,
+      },
+      pendingApplications,
+    });
+  } catch (error) {
+    console.error('Error fetching pending applications:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
+//send selected applicaiton to university
+ //this api remaaninig:-
+ //(before this agent shoul able to see the pending ag=siigned applicaiton to him // so assign agent is next api in line)
+ // 1) it should check if first agent is assigned or not 
+ //  1)api should only ht by agent 
+// 3) move this api to agent controller
+
+exports.sendApplicationToUniversity = async (req, res) => {
+  try {
+    const { applicationId } = req.body; // No need to pass agencyId as it's always the default agency.
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+
+    // Fetch the default agency
+    const defaultAgency = await Agency.findOne({ _id: '677f6b7c701bc85481046b64' });
+    if (!defaultAgency) {
+      return res.status(404).json({ message: 'Default agency not found.' });
     }
 
     // Check if the agency has any pending applications
-    if (agency.pendingApplications.length === 0) {
-      return res.status(404).json({ message: 'No pending applications found for this agency.' });
+    if (!defaultAgency.pendingApplications.length) {
+      return res.status(404).json({ message: 'No pending applications found for the agency.' });
     }
 
     // Check if the application exists in agency's pendingApplications
-    const isPendingInAgency = agency.pendingApplications.includes(applicationId);
+    const isPendingInAgency = defaultAgency.pendingApplications.includes(applicationId);
     if (!isPendingInAgency) {
       return res.status(404).json({
         message: 'Application not found in agency\'s pending applications.',
@@ -134,15 +204,15 @@ exports.sendApplicationToUniversity = async (req, res) => {
     await university.save();
 
     // Remove application from agency's pendingApplications
-    agency.pendingApplications = agency.pendingApplications.filter(
+    defaultAgency.pendingApplications = defaultAgency.pendingApplications.filter(
       (id) => id.toString() !== applicationId
     );
 
     // Add application to agency's sentApplicationsToUniversities
-    agency.sentAppliactionsToUniversities.push(applicationId);
+    defaultAgency.sentAppliactionsToUniversities.push(applicationId);
 
     // Save updated agency
-    await agency.save();
+    await defaultAgency.save();
 
     return res.status(200).json({
       message: 'Application successfully sent to the university.',
@@ -159,4 +229,5 @@ exports.sendApplicationToUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 

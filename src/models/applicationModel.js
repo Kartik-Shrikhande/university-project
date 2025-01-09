@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const applicationSchema = new mongoose.Schema(
   {
     student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -7,8 +8,8 @@ const applicationSchema = new mongoose.Schema(
     course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
     status: { 
       type: String, 
-      enum: ['Pending', 'Under Review', 'Accepted', 'Rejected', 'Withdrawn'], 
-      default: 'Pending' 
+      enum: ['Processing', 'Accepted', 'Rejected', 'Withdrawn'], 
+      default: 'Processing' 
     },
     submissionDate: { type: Date, default: Date.now },
     reviewDate: { type: Date },
@@ -19,14 +20,33 @@ const applicationSchema = new mongoose.Schema(
       {
         fileName: { type: String }, // Name of the file
         fileType: { type: String }, // Type of the file (e.g., PDF, image)
-        fileUrl: { type: String, required: true }, // URL or path to the file
+        fileUrl: { 
+          type: String, 
+          required: true 
+        }, // URL or path to the file
       },
     ],
+
+    // Financial Aid field
+    financialAid: {
+      type: String,
+      enum: ['YES', 'NO'],
+      default: 'YES',
+    },
+    assignedAgent: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Agent' }],
+    agency: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'Agency', 
+      default: '677f6b7c701bc85481046b64', // Default agency ID
+    },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model('Application', applicationSchema);
+
+
+
 
 
 

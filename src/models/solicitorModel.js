@@ -11,6 +11,9 @@ const solicitorSchema = new mongoose.Schema(
       enum: ['Regular', 'Head'], // Defines the type of solicitor
       default: 'Regular', // Default value is 'Regular'
     },
+    currentVisa:[],
+    approvedVisa:[],
+    rejectedVisa:[]
   },
   { timestamps: true }
 );

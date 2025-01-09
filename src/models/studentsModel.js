@@ -21,6 +21,23 @@ const studentSchema = new mongoose.Schema(
     confirmEmail: { type: String, required: true },
     password: { type: String, required: true, minlength: 8 },
     telephoneNumber: { type: String, required: true, maxlength: 15 },
+    presentAddress: {
+      type: { type: String, default: 'present' }, // To distinguish between permanent and present
+      streetAddress: { type: String, maxlength: 100 },
+      city: { type: String, maxlength: 50 },
+      state: { type: String, maxlength: 50 },
+      postalCode: { type: String, maxlength: 15 },
+      country: { type: String, maxlength: 50 },
+    },
+    permanentAddress: {
+      type: { type: String, default: 'permanent' }, // To distinguish between permanent and present
+      streetAddress: { type: String, maxlength: 100 },
+      city: { type: String, maxlength: 50 },
+      state: { type: String, maxlength: 50 },
+      postalCode: { type: String, maxlength: 15 },
+      country: { type: String, maxlength: 50 },
+    },
+
     documentType: { type: String, enum: ['Passport'], required: true },
     documentUpload: { type: String }, // Path or URL to the document
 
@@ -55,8 +72,6 @@ const studentSchema = new mongoose.Schema(
 
     isPaid: { type: Boolean, default: false },
     referralSource: { type: String, enum: ['Google Search', 'Facebook', 'Instagram', 'Agent'] },
-    assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
     preferredCommunicationMethod: { type: String, enum: ['Email', 'Phone', 'WhatsApp', 'Video Call'],
       //  required: true 
       },
