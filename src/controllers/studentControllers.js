@@ -2,14 +2,55 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Students = require('../models/studentsModel');
 const university = require('../models/universityModel');
+const University = require('../models/universityModel');
+const Application = require('../models/applicationModel');
 const Course = require('../models/coursesModel');
 const { isValidObjectId } = require('mongoose');
+const uploadFileToS3 = require('../utils/s3Upload');
 const mongoose = require('mongoose');
-
 require('dotenv').config({ path: '.env' })
+// const s3 = require('../config/awsConfig');
+// const upload = require('../config/multerConfig');
 
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const multer = require('multer');
+
+const {uploadFile}=require("../middlewares/uploadMiddleware")
+// const multer = require('multer');
+
+
+
+
+
+const { v4: uuidv4 } = require('uuid');
+
+// Create S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+// Function to upload files to S3
+const uploadFilesToS3 = async (files) => {
+  const uploadPromises = files.map(async (file) => {
+    const uniqueFileName = `${uuidv4()}-${file.originalname}`;
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: uniqueFileName,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
+
+    await s3.send(new PutObjectCommand(params)); // Upload file
+    return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFileName}`;
+  });
+
+  return Promise.all(uploadPromises);
+};
 // Registration
-
 exports.registerStudent = async (req, res) => {
   try {
     const {
@@ -21,9 +62,11 @@ exports.registerStudent = async (req, res) => {
       email,
       confirmEmail,
       password,
+      countryCode,
       telephoneNumber,
+      presentAddress,
+      permanentAddress,
       documentType,
-      documentUpload,
       mostRecentEducation,
       otherEducationName,
       yearOfGraduation,
@@ -33,57 +76,44 @@ exports.registerStudent = async (req, res) => {
       discipline,
       otherDisciplineName,
       countryApplyingFrom,
+      countryName,
       preferredUniversity,
+      NameOfUniversity,
       preferredCourse,
+      NameOfCourse,
       courseStartTimeline,
       englishLanguageRequirement,
-      languageTestName,
-      languageTestScore,
+      testName,
+      score,
       referralSource,
-      agentName,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
-      presentAddress, 
-      permanentAddress, 
     } = req.body;
-
-    // Basic Validation
-    if (
-      !firstName ||
-      !lastName ||
-      !dateOfBirth ||
-      !gender ||
-      !email ||
-      !confirmEmail ||
-      !password ||
-      !telephoneNumber ||
-      !documentType ||
-      !documentUpload ||
-      !mostRecentEducation ||
-      !programType ||
-      !countryApplyingFrom ||
-      !courseStartTimeline ||
-      !preferredCommunicationMethod ||
-      !presentAddress || 
-      !permanentAddress 
-    ) {
-      return res.status(400).json({ message: 'Please fill all required fields.' });
-    }
-
-    // Email Validation
-    if (email !== confirmEmail) {
-      return res.status(400).json({ message: 'Email and Confirm Email do not match.' });
-    }
 
     // Check if student already exists
     const existingStudent = await Students.findOne({ email });
     if (existingStudent) {
-      return res.status(400).json({ message: 'Email already in use.' });
+      return res.status(400).json({ message: 'Email is already in use.' });
     }
 
+    if(!countryCode) return res.status(400).json({ message: 'Enter country code' });
+
+  // Handle document uploads
+  let uploadedDocuments = [];
+  if (req.files && req.files['document']) {
+    uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
+  }
+  // console.log(req.files); // Log the incoming file fields
+
+
+  let uploadedDocumentUploads = [];
+  if (req.files && req.files['documentUpload']) {
+    uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
+  }
+
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10); 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create student
     const newStudent = new Students({
@@ -95,9 +125,13 @@ exports.registerStudent = async (req, res) => {
       email,
       confirmEmail,
       password: hashedPassword,
+      countryCode,
       telephoneNumber,
+      presentAddress,
+      permanentAddress,
       documentType,
-      documentUpload,
+      documentUpload:uploadedDocumentUploads,
+      document: uploadedDocuments, // Save document URLs
       mostRecentEducation,
       otherEducationName,
       yearOfGraduation,
@@ -107,19 +141,19 @@ exports.registerStudent = async (req, res) => {
       discipline,
       otherDisciplineName,
       countryApplyingFrom,
+      countryName,
       preferredUniversity,
+      NameOfUniversity,
       preferredCourse,
+      NameOfCourse,
       courseStartTimeline,
       englishLanguageRequirement,
-      languageTestName,
-      languageTestScore,
+      testName,
+      score,
       referralSource,
-      agentName,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
-      presentAddress, 
-      permanentAddress, 
     });
 
     await newStudent.save();
@@ -133,6 +167,8 @@ exports.registerStudent = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
 
 // exports.registerStudent = async (req, res) => {
 //   try {
@@ -280,33 +316,6 @@ exports.registerStudent = async (req, res) => {
 //     return res.status(500).json({ message: 'Internal server error.' });
 //   }
 // };
-// exports.registerStudent = async (req, res) => {
-//   try {
-//     const { name, email, password } = req.body;
-
-//     // Check if student already exists
-//     const existingStudent = await Students.findOne({ email });
-//     if (existingStudent) {
-//       return res.status(400).json({ message: 'Email already in use.' });
-//     }
-
-//     // Hash password
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     // Create student
-//     const newStudent = new Students({
-//       name,
-//       email,
-//       password: hashedPassword,
-//     });
-//     await newStudent.save();
-
-//     return res.status(201).json({ message: 'Student registered successfully.' });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 // Login
@@ -344,31 +353,41 @@ exports.loginStudent = async (req, res) => {
 
 // Update Student
 exports.updateStudent = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const id = req.studentId; // Extracting student ID from the request context
+    const studentId = req.studentId;
     const updates = req.body;
 
-    // Prevent updates to certain fields
-    const restrictedFields = ['email', 'visitedUniversities', 'visitedCourses', 'enrolledCourses','password'];
+    // Disallow updates to restricted fields
+    const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
     for (const field of restrictedFields) {
       if (updates[field]) {
         return res.status(400).json({ message: `Field "${field}" cannot be updated directly.` });
       }
     }
 
-    // // If password is being updated, hash it before saving
-    // if (updates.password) {
-    //   return res.status(400).json({ message: `Password cannot be updated directly.` });
-    // }
+    // Update student details
+    const updatedStudent = await Students.findByIdAndUpdate(studentId, updates, {
+      new: true,
+      runValidators: true,
+      session,
+    });
 
-    // Find and update the student
-    const updatedStudent = await Students.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
     if (!updatedStudent) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    return res.status(200).json({message: 'Student updated successfully.', updatedStudent:updatedStudent});
+    // Commit transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Student updated successfully.', updatedStudent });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('Error updating student:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
@@ -377,55 +396,52 @@ exports.updateStudent = async (req, res) => {
 
 
 exports.updatePassword = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const studentId = req.studentId;  // Assuming the studentId is available in the request object
+    const studentId = req.studentId;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     // Validate request body
     if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ message: 'Please provide currentPassword, newPassword, and confirmPassword' });
+      return res.status(400).json({ message: 'Please provide currentPassword, newPassword, and confirmPassword.' });
     }
 
-    // Validate new password length
     if (newPassword.length < 8 || newPassword.length > 14) {
-      return res.status(400).json({  message: 'Password must be between 8 and 14 characters long' });
+      return res.status(400).json({ message: 'Password must be between 8 and 14 characters long.' });
     }
 
-    // Find the student in the database by studentId
-    const student = await Students.findById(studentId);
-    
-    // Check if student exists
+    // Fetch the student
+    const student = await Students.findById(studentId).session(session);
     if (!student) {
-      return res.status(404).json({  message: 'Student not found' });
+      return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Check if the current password matches the password stored in the database
+    // Verify current password
     const isPasswordMatch = await bcrypt.compare(currentPassword, student.password);
     if (!isPasswordMatch) {
-      return res.status(400).json({  message: 'Current password is incorrect' });
+      return res.status(400).json({ message: 'Current password is incorrect.' });
     }
 
-    // Check if the new password matches the confirm password
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({  message: 'New password and confirm password do not match' });
+      return res.status(400).json({ message: 'New password and confirm password do not match.' });
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Hash and update the password
+    student.password = await bcrypt.hash(newPassword, 10);
+    await student.save({ session });
 
-    // Update the student's password
-    student.password = hashedPassword;
-    await student.save();
+    await session.commitTransaction();
+    session.endSession();
 
-    // Return success response
-    return res.status(200).json({ message: 'Password updated successfully' });
-
+    return res.status(200).json({ message: 'Password updated successfully.' });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('Error updating password:', error);
-    return res.status(500).json({  message: error.message });
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 // exports.updateStudent = async (req, res) => {
 //   try {
@@ -476,71 +492,92 @@ exports.deleteStudent = async (req, res) => {
 
 
 
+// Get University by ID
 exports.getUniversityById = async (req, res) => {
-    try {
-      const { universityId } = req.params;
-      const studentId = req.studentId; 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { universityId } = req.params;
+    const studentId = req.studentId;
 
-     if(!isValidObjectId(universityId)) return res.status(400).json({message : 'Enter valid universityId'})
-
-      // Fetch the university by ID
-      const findUniversity = await university.findById(universityId)
-      if (!findUniversity) {
-        return res.status(404).json({ message: 'University not found.' });
-      }
-
-      const student = await Students.findById(studentId);
-      if (!student) {
-        return res.status(404).json({ message: 'Student not found.' });
-      }
-  
-      // Check if the university is already visited
-      if (!student.visitedUniversities.includes(universityId)) {
-        student.visitedUniversities.push(universityId);
-        await student.save();
-      }
-  
-      return res.status(200).json({University_Details: findUniversity })
-    } catch (error) {
-      console.error('Error fetching university:', error)
-      return res.status(500).json({ message: 'Internal server error.' })
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Enter valid universityId.' });
     }
-  };
 
+    // Fetch university
+    const findUniversity = await University.findById(universityId).session(session);
+    if (!findUniversity) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    const student = await Students.findById(studentId).session(session);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Add university to visitedUniversities if not already present
+    if (!student.visitedUniversities.includes(universityId)) {
+      student.visitedUniversities.push(universityId);
+      await student.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ University_Details: findUniversity });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error fetching university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+// Get All Universities
 exports.getUniversities = async (req, res) => {
-    try {
-      const universities = await university.find().sort({ isPromoted: -1 }) // `-1` ensures 'YES' comes before 'NO'
-      if (universities.length === 0) return res.status(404).json({ message: 'No universities found.' })
-      return res.status(200).json({Total:universities.length,universities: universities });
-    } 
-    catch (error) {
-      console.error('Error fetching universities:', error);
-      return res.status(500).json({ message: 'Internal server error.' })
+  try {
+    const universities = await University.find().sort({ isPromoted: -1 });
+    if (universities.length === 0) {
+      return res.status(404).json({ message: 'No universities found.' });
     }
-  };
+    return res.status(200).json({ Total: universities.length, universities });
+  } catch (error) {
+    console.error('Error fetching universities:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
-  
-  // Dummy payment API
-  exports.createPayment = async (req, res) => {
-    try {
-        const studentId  = req.studentId
-      // Find student by ID
-      const student = await Students.findById(studentId)
-      if (!student) return res.status(404).json({ message: 'Student not found.'})
-      
-      // Simulate payment (setting isPaid to true)
-      student.isPaid = true;
-      await student.save();
-  
-      return res.status(200).json({message: 'Payment successful, you can now access the dashboard.',student})
-    } 
-    catch (error) {
-      console.error('Error processing payment:', error);
-      return res.status(500).json({ message: 'Internal server error.' })
+// Create Payment
+exports.createPayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const studentId = req.studentId;
+
+    // Fetch the student
+    const student = await Students.findById(studentId).session(session);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
     }
-  };
-  
 
+    // Simulate payment (mark as paid)
+    student.isPaid = true;
+    await student.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: 'Payment successful, you can now access the dashboard.',
+      student,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error processing payment:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 //COURSES 
 
@@ -691,70 +728,63 @@ exports.getCourseById = async (req, res) => {
 
 
 exports.enrollCourse = async (req, res) => {
-  const { courseId } = req.params // Extract courseId from route parameters
-  const  studentId  = req.studentId       // Extract studentId from middleware (set in req object)
+  const { courseId } = req.params; // Extract courseId from route parameters
+  const studentId = req.studentId; // Extract studentId from middleware (set in req object)
 
-  if (!isValidObjectId(courseId)) return res.status(400).json({ message: 'Enter a valid courseId' });
+  if (!mongoose.Types.ObjectId.isValid(courseId)) {
+    return res.status(400).json({ message: 'Enter a valid courseId' });
+  }
+
+  // Start a session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     // Validate student existence
-    const student = await Students.findById(studentId);
+    const student = await Students.findById(studentId).session(session);
     if (!student) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Student not found' });
     }
 
     // Validate course existence
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).session(session);
     if (!course) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Course not found' });
     }
 
     // Check if already enrolled
     if (student.enrolledCourses.includes(courseId)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Already enrolled in this course' });
     }
 
     // Add course to enrolledCourses
     student.enrolledCourses.push(courseId);
-    await student.save();
+    await student.save({ session });
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       message: 'Successfully enrolled in the course',
-      CourseDetails:course
+      CourseDetails: course,
     });
-  } 
-  catch (error) {
-    console.error(error);
+  } catch (error) {
+    // Rollback the transaction in case of error
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error enrolling in course:', error);
     return res.status(500).json({ message: 'Internal server error', error });
   }
 };
 
 
-exports.universityApplication = async (req, res) => {
-  try {
-    const  studentId  =   req.studentId;
-    const {universityId } = req.params;
-
-    // // Validate IDs
-    // if (!isValidObjectId(universityId) || !isValidObjectId(studentId)) {
-    //   return res.status(400).json({ message: 'Invalid universityId or studentId' });
-    // }
-
-    // Find the university
-    const findUniversity = await university.findById(universityId);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found' });
-    }
-
-    // Add the new application
-    findUniversity.pendingApplications.push({ student: studentId });
-    await findUniversity.save();
-
-    return res.status(201).json({ message: 'Application added successfully', findUniversity });
-  } catch (error) {
-    console.error('Error adding application:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
 
 
 //Application 
@@ -811,6 +841,143 @@ exports.universityApplication = async (req, res) => {
 
 
 
+exports.applyForUniversity = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { universityId, courseId } = req.body;
+    const { documents } = req.files || {}; // Assuming file upload middleware is used
+    const studentId = req.studentId; // Retrieved from authentication middleware
+
+    // Validate IDs
+    if (
+      !mongoose.Types.ObjectId.isValid(studentId) ||
+      !mongoose.Types.ObjectId.isValid(universityId) ||
+      !mongoose.Types.ObjectId.isValid(courseId)
+    ) {
+      return res.status(400).json({ message: 'Invalid IDs provided.' });
+    }
+
+    // Fetch the student
+    const student = await Students.findById(studentId).session(session).select(
+      'firstName middleName lastName dateOfBirth gender email telephoneNumber presentAddress permanentAddress documentType ' +
+      'documentUpload mostRecentEducation otherEducationName yearOfGraduation collegeUniversity programType otherProgramName ' +
+      'discipline otherDisciplineName countryApplyingFrom applications isPaid referralSource assignedAgent preferredCommunicationMethod'
+    );
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Fetch the university
+    const getUniversity = await University.findById(universityId).session(session).select('courses');
+    if (!getUniversity) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if the course exists in the university
+    const courseExists = getUniversity.courses.some((course) =>
+      course.toString() === courseId
+    );
+    if (!courseExists) {
+      return res.status(400).json({ message: 'The selected course does not exist in the specified university.' });
+    }
+
+    // Check if the student already applied to the same course at the university
+    const existingApplication = await Application.findOne({
+      student: studentId,
+      university: universityId,
+      course: courseId,
+    }).session(session);
+    if (existingApplication) {
+      return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
+    }
+
+    // Fetch the default agency
+    const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
+    if (!defaultAgency) {
+      return res.status(500).json({ message: 'Default agency not found.' });
+    }
+
+    // Prepare document metadata if documents are uploaded
+    const uploadedDocuments = documents
+      ? documents.map((doc) => ({
+          fileName: doc.originalname,
+          fileType: doc.mimetype,
+          fileUrl: doc.path,
+        }))
+      : [];
+
+    // Create a new application
+    const newApplication = new Application({
+      student: studentId,
+      university: universityId,
+      course: courseId,
+      documents: uploadedDocuments,
+      agency: defaultAgency._id, // Assign default agency
+      assignedAgent: student.assignedAgent, // Retain assigned agent from student record
+    });
+
+    // Save the application
+    await newApplication.save({ session });
+
+    // Update the student's application list
+    student.applications.push({ applicationId: newApplication._id });
+    await student.save({ session });
+
+    // Update the agency's pending applications list
+    defaultAgency.pendingApplications.push(newApplication._id);
+    await defaultAgency.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: 'Application submitted successfully.',
+      application: {
+        id: newApplication._id,
+        status: newApplication.status,
+        submissionDate: newApplication.submissionDate,
+        university: newApplication.university,
+        course: newApplication.course,
+      },
+      student: {
+        firstName: student.firstName,
+        middleName: student.middleName,
+        lastName: student.lastName,
+        dateOfBirth: student.dateOfBirth,
+        gender: student.gender,
+        email: student.email,
+        telephoneNumber: student.telephoneNumber,
+        presentAddress: student.presentAddress,
+        permanentAddress: student.permanentAddress,
+        documentType: student.documentType,
+        documentUpload: student.documentUpload,
+        mostRecentEducation: student.mostRecentEducation,
+        otherEducationName: student.otherEducationName,
+        yearOfGraduation: student.yearOfGraduation,
+        collegeUniversity: student.collegeUniversity,
+        programType: student.programType,
+        otherProgramName: student.otherProgramName,
+        discipline: student.discipline,
+        otherDisciplineName: student.otherDisciplineName,
+        countryApplyingFrom: student.countryApplyingFrom,
+        referralSource: student.referralSource,
+        assignedAgent: student.assignedAgent,
+        preferredCommunicationMethod: student.preferredCommunicationMethod,
+        isPaid: student.isPaid,
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error applying for university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
 exports.getStudentApplications = async (req, res) => {
   try {
     const studentId = req.studentId; // Retrieved from authentication middleware
@@ -819,6 +986,7 @@ exports.getStudentApplications = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({ message: 'Invalid student ID provided.' });
     }
+
 
     // Fetch the student and their applications
     const student = await Students.findById(studentId)
@@ -854,7 +1022,7 @@ exports.getStudentApplications = async (req, res) => {
         submissionDate: app.applicationId.submissionDate ? app.applicationId.submissionDate.toLocaleDateString() : null,
         submissionTime: app.applicationId.submissionDate ? app.applicationId.submissionDate.toISOString().slice(11, 19) : null, 
         // reviewDate: app.applicationId.reviewDate || 'Not reviewed yet',
-        // notes: app.applicationId.notes || 'No notes provided',
+        notes: app.applicationId.notes || 'No notes provided',
         // // documents: app.applicationId.documents || [],
         // financialAid: app.applicationId.financialAid || 'Not specified',
         // agency: app.applicationId.agency ? app.applicationId.agency.name : 'Default Agency',
@@ -886,3 +1054,58 @@ exports.getStudentApplications = async (req, res) => {
 
 
 
+exports.getApplicationByIdForStudent = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const studentId = req.studentId; // Retrieved from authentication middleware
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+
+    const application = await Application.findById(applicationId)
+      .populate('university', 'name country')
+      .populate('course', 'name fees')
+      .populate('agency', 'name email')
+      .populate('assignedAgent', 'name email');
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found.' });
+    }
+
+    if (application.student.toString() !== studentId.toString()) {
+      return res.status(403).json({ message: 'Unauthorized: You do not have access to this application.' });
+    }
+
+    // Debugging: Log the populated data
+    console.log('Populated Application:', application);
+
+    const response = {
+      applicationId: application._id,
+      university: application.university ? application.university.name : 'Unknown',
+      country: application.university ? application.university.country : 'Unknown',
+      course: application.course ? application.course.name : 'Unknown',
+      courseFees: application.course ? application.course.fees : 'Unknown',
+      status: application.status,
+      submissionDate: application.submissionDate,
+      reviewDate: application.reviewDate || 'Not reviewed yet',
+      notes: application.notes || 'No notes provided',
+      documents: application.documents || [],
+      financialAid: application.financialAid || 'Not specified',
+      agency: application.agency
+        ? { name: application.agency.name, email: application.agency.email }
+        : { name: 'Default Agency', email: 'N/A' },
+      assignedAgent: application.assignedAgent
+        ? { name: application.assignedAgent.name, email: application.assignedAgent.email }
+        : { name: 'Not assigned', email: 'N/A' },
+    };
+
+    return res.status(200).json({
+      message: 'Application details fetched successfully.',
+      application: response,
+    });
+  } catch (error) {
+    console.error('Error fetching application details:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};

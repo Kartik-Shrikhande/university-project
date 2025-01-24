@@ -8,7 +8,7 @@ const authentication = async (req, res, next) => {
 
     // Check if token is present
     if (!token) {
-      return res.status(400).json({ message: 'Token is not present' });
+      return res.status(401).json({ message: 'Token is not present' });
     }
 
     // Remove 'Bearer' prefix if present

@@ -2,6 +2,13 @@ const express = require('express')
 const mongoose = require('mongoose')
 const session = require('express-session');
 const passport = require('./utils/passport');
+const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger/swagger-output.json');
+
+// Now, you can access your documentation at http://localhost:3000/api-docs
+
+
 const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport'); 
@@ -24,6 +31,12 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 
 app.use(express.json())
 
+
+// // Set up Swagger
+// setupSwagger(app);
+// Swagger route
+
+
 // Set up express-session
 app.use(
     session({
@@ -45,7 +58,10 @@ app.use('/agency', agencyRoutes)
 app.use('/agent', agentsRoutes)
 app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
-app.use('/application', applicationRoutes);
+// app.use('/application', applicationRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+
 
 mongoose.connect(process.env.MONGODB_URL)
     .then(() => { console.log('MongoDB is connected')

@@ -124,33 +124,45 @@ exports.verifyOtp = async (req, res) => {
   };
   
   
-
   exports.resetPassword = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
       const { email, newPassword } = req.body;
   
       // Check if a verified OTP exists
-      const otpRecord = await Otp.findOne({ email, isUsed: true });
+      const otpRecord = await Otp.findOne({ email, isUsed: true }).session(session);
       if (!otpRecord) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(400).json({ message: 'OTP verification is required before resetting the password.' });
       }
   
       // Find the student
-      const student = await Students.findOne({ email });
+      const student = await Students.findOne({ email }).session(session);
       if (!student) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(404).json({ message: 'Student not found.' });
       }
   
       // Hash the new password and update
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       student.password = hashedPassword;
-      await student.save();
+      await student.save({ session });
   
-      // Optionally delete all OTPs for this email to clean up
-      await Otp.deleteMany({ email });
+      // Delete all OTPs for this email to clean up
+      await Otp.deleteMany({ email }).session(session);
+  
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
   
       return res.status(200).json({ message: 'Password reset successfully.' });
     } catch (error) {
+      // Abort the transaction on error
+      await session.abortTransaction();
+      session.endSession();
       console.error('Error resetting password:', error);
       return res.status(500).json({ message: 'Internal server error.' });
     }

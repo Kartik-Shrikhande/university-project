@@ -13,7 +13,10 @@ const applicationSchema = new mongoose.Schema(
     },
     submissionDate: { type: Date, default: Date.now },
     reviewDate: { type: Date },
-    notes: { type: String }, // Comments by reviewers
+    notes: {
+       type: String,
+       default:'none'
+       }, // Comments by reviewers
     
     // New field for document uploads
     documents: [
@@ -37,7 +40,7 @@ const applicationSchema = new mongoose.Schema(
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'Agency', 
-      default: '677f6b7c701bc85481046b64', // Default agency ID
+      // default: '677f6b7c701bc85481046b64', // Default agency ID
     },
   },
   { timestamps: true }

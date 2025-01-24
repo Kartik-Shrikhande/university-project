@@ -18,11 +18,12 @@ const studentSchema = new mongoose.Schema(
         message: 'Invalid email format',
       },
     },
-    confirmEmail: { type: String, required: true },
+    confirmEmail: { type: String, required: true }, // Added from input model
     password: { type: String, required: true, minlength: 8 },
+    countryCode:{ type: String, required: true, maxlength: 10 },
     telephoneNumber: { type: String, required: true, maxlength: 15 },
     presentAddress: {
-      type: { type: String, default: 'present' }, // To distinguish between permanent and present
+      type: { type: String, default: 'present' },
       streetAddress: { type: String, maxlength: 100 },
       city: { type: String, maxlength: 50 },
       state: { type: String, maxlength: 50 },
@@ -30,16 +31,16 @@ const studentSchema = new mongoose.Schema(
       country: { type: String, maxlength: 50 },
     },
     permanentAddress: {
-      type: { type: String, default: 'permanent' }, // To distinguish between permanent and present
+      type: { type: String, default: 'permanent' },
       streetAddress: { type: String, maxlength: 100 },
       city: { type: String, maxlength: 50 },
       state: { type: String, maxlength: 50 },
       postalCode: { type: String, maxlength: 15 },
       country: { type: String, maxlength: 50 },
     },
-
+    profilePhoto: { type: String }, // Path or URL to the profile photo
     documentType: { type: String, enum: ['Passport'], required: true },
-    documentUpload: { type: String }, // Path or URL to the document
+    documentUpload: [{ type: String}], // Path or URL to the document
 
     // Education Details
     mostRecentEducation: {
@@ -58,10 +59,38 @@ const studentSchema = new mongoose.Schema(
     otherProgramName: { type: String },
     discipline: { type: String, enum: ['Computers', 'Business', 'Marketing', 'Other'] },
     otherDisciplineName: { type: String },
-    countryApplyingFrom: { 
-      type: String,
-      //  required: true
-       },
+    countryApplyingFrom: { type: String,
+      enum: ['India', 'UK', 'Other'],
+       required: true },
+    countryName: { type: String },
+    preferredUniversity: { type: String,
+      enum: ['Yes', 'No'],
+      required: true
+    }, 
+    NameOfUniversity:{ type: String },
+    // Added from input model
+    preferredCourse: { type: String,
+      enum: ['Yes', 'No'],
+      required: true
+     }, 
+    NameOfCourse:{ type: String },
+    courseStartTimeline: { type: String,
+      enum: ['3 months','6 months','9 months','1 year'],
+      required: true
+     }, 
+    englishLanguageRequirement: { type: String, 
+      enum: ['Yes', 'No'],
+      required: true
+    },
+    testName :{
+      type: String, enum: ['TOEFL', 'IELTS','Other'],
+    },
+    score :{
+      type: String
+    },
+    document:[{ type: String}],
+    // languageTestName: { type: String }, // Added from input model
+    // languageTestScore: { type: String }, // Added from input model
 
     // Application Details
     applications: [
@@ -71,20 +100,31 @@ const studentSchema = new mongoose.Schema(
     ],
 
     isPaid: { type: Boolean, default: false },
-    referralSource: { type: String, enum: ['Google Search', 'Facebook', 'Instagram', 'Agent'] },
-    preferredCommunicationMethod: { type: String, enum: ['Email', 'Phone', 'WhatsApp', 'Video Call'],
-      //  required: true 
+    referralSource: { type: String, enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
+       'Education fair/exhibition','Advertisement(online/offline)','Other'],
+       required: true
       },
-    termsAndConditionsAccepted: { 
+    assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
+    termsAndConditionsAccepted: {
       type: Boolean,
-      //  required: true 
+      required: true,
+      validate: {
+        validator: (v) => v === true,
+        message: 'Terms and Conditions must be accepted.',
       },
+    },
     gdprAccepted: {
-       type: Boolean, 
-      // required: true
-     },
+      type: Boolean,
+      required: true,
+      validate: {
+        validator: (v) => v === true,
+        message: 'GDPR regulations must be accepted.',
+      },
+    },
     loginCompleted: { type: Boolean, default: false },
     lastActivity: { type: Date, default: Date.now },
+    role:{type: String, default: 'student'}
   },
   { timestamps: true }
 );

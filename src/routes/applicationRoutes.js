@@ -1,11 +1,5 @@
-const express = require('express');
-const applicationController  = require('../controllers/applicationController'); // Assuming the API is in applicationController
-const authenticationMiddleware = require('../middlewares/authentication')
-const router = express.Router();
+// const express = require('express');
 
-// POST route for applying to a university
-router.post('/application', 
-     authenticationMiddleware.authentication,
-     applicationController.applyForUniversity);
+// const authenticationMiddleware = require('../middlewares/authentication')
+// const router = express.Router();
 
-module.exports = router;
