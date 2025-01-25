@@ -160,12 +160,12 @@ const validateRegisterStudent = [
     .withMessage('GDPR compliance must be explicitly accepted.'),
 
 
-  // Validate referralSource
-  body('referralSource')
-  .notEmpty()
-  .withMessage('Referral source is required. Choose one from: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other.')
-  .isIn(['Social Media', 'Online Search/Google', 'Referral from friend/family member', 'Education fair/exhibition', 'Advertisement(online/offline)', 'Other'])
-  .withMessage('Referral source must be one of the following: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other. Please choose one of these options.')
+  // // Validate referralSource
+  // body('referralSource')
+  // .notEmpty()
+  // .withMessage('Referral source is required. Choose one from: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other.')
+  // .isIn(['Social Media', 'Online Search/Google', 'Referral from friend/family member', 'Education fair/exhibition', 'Advertisement(online/offline)', 'Other'])
+  // .withMessage('Referral source must be one of the following: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other. Please choose one of these options.')
 ];
 
 module.exports = { validateRegisterStudent };

@@ -102,7 +102,7 @@ const studentSchema = new mongoose.Schema(
     isPaid: { type: Boolean, default: false },
     referralSource: { type: String, enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
        'Education fair/exhibition','Advertisement(online/offline)','Other'],
-       required: true
+      //  required: true
       },
     assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
