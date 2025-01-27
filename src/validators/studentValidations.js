@@ -168,31 +168,33 @@ const validateRegisterStudent = [
   // .withMessage('Referral source must be one of the following: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other. Please choose one of these options.')
 ];
 
-module.exports = { validateRegisterStudent };
+
+
+
+
+const validateLoginStudent = [
+  // Validate email
+  body('email')
+    .notEmpty()
+    .withMessage('Email is required.')
+    .isEmail()
+    .withMessage('Email must be a valid email address.'),
+
+  // Validate password
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required.')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long.'),
+];
+
+
+
+module.exports = { validateRegisterStudent,
+  validateLoginStudent
+};
 
 
 
 
 
-
-// const { body } = require('express-validator');
-
-// const validateRegisterStudent = [
-//   body('firstName').notEmpty().withMessage('First name is required.').isString(),
-//   body('lastName').notEmpty().withMessage('Last name is required.').isString(),
-//   body('dateOfBirth').notEmpty().withMessage('Date of birth is required.').isISO8601(),
-//   body('gender').notEmpty().withMessage('Gender is required.').isIn(['Male', 'Female', 'Other']),
-//   body('email').notEmpty().withMessage('Email is required.').isEmail(),
-//   body('confirmEmail')
-//     .notEmpty()
-//     .withMessage('Confirm email is required.')
-//     .custom((value, { req }) => value === req.body.email)
-//     .withMessage('Email and confirm email do not match.'),
-//   body('password').notEmpty().withMessage('Password is required.').isLength({ min: 8 }),
-//   body('termsAndConditionsAccepted')
-//     .equals('true')
-//     .withMessage('Terms and conditions must be accepted.'),
-//   body('gdprAccepted').equals('true').withMessage('GDPR regulations must be accepted.'),
-// ];
-
-// module.exports = { validateRegisterStudent };

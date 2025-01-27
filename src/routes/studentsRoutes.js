@@ -10,7 +10,7 @@ const { validationResult } = require('express-validator');
 
 const studentController = require('../controllers/studentControllers');
 
-const { validateRegisterStudent } = require('../validators/studentValidations');
+const studentValidations = require('../validators/studentValidations');
 // const upload = require('../middlewares/uploadMiddleware');
 const {uploadImage}=require("../middlewares/uploadMiddleware")
 
@@ -65,7 +65,7 @@ router.post(
     { name: 'document', maxCount: 5 },   // Uploads up to 5 PDF files for `documents`
     { name: 'documentUpload', maxCount: 5 }, // Uploads up to 5 PDF files for `documentUpload`
   ]),// Accept up to 5 PDF files
-  validateRegisterStudent,
+  studentValidations.validateRegisterStudent,
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -83,7 +83,8 @@ router.post(
 
 router.post('/login',
   //  loginValidator,
-  //  validate,
+ studentValidations.validateLoginStudent,
+   validate,
    userActivity.updateLastActivity, 
    userControllers.loginStudent);
 
