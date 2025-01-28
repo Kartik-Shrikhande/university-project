@@ -124,7 +124,8 @@ const studentSchema = new mongoose.Schema(
     },
     loginCompleted: { type: Boolean, default: false },
     lastActivity: { type: Date, default: Date.now },
-    role:{type: String, default: 'student'}
+    role:{type: String, default: 'student'},
+    isVerified:{type: Boolean, default: false}
   },
   { timestamps: true }
 );

@@ -16,7 +16,7 @@ exports.requestOtp = async (req, res) => {
 
     // Generate OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000)
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes
+    const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
 
     // Save OTP to the database
     const newOtp = new Otp({
@@ -40,7 +40,7 @@ exports.requestOtp = async (req, res) => {
      from: process.env.EMAIL_USER,
      to:email,
      subject: 'Password Reset OTP',
-     text: `Your OTP for password reset is: ${otpCode}. It is valid for 5 minutes.`,
+     text: `Your OTP for password reset is: ${otpCode}. It is valid for 1 minutes.`,
    };
  
    await transporter.sendMail(mailOptions);

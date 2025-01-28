@@ -76,6 +76,14 @@ router.post(
   studentController.registerStudent
 );
 
+
+router.post(
+  '/verify/registration/otp',
+  studentValidations.validateVerifyOtpForRegistration,
+  validate,
+  studentController.verifyOtpForRegistration
+);
+
 // // Routes
 // router.post('/register', validateStudentRegistration,
 //    validate, 
@@ -87,6 +95,24 @@ router.post('/login',
    validate,
    userActivity.updateLastActivity, 
    userControllers.loginStudent);
+
+
+   router.post('/verify/otp',
+    //  loginValidator,
+   studentValidations.validateVerifyOtpForLogin,
+     validate,
+     userActivity.updateLastActivity, 
+     userControllers.verifyOtpforLogin);
+
+
+   router.post(
+    '/resend/otp',
+    studentValidations.validateResendOtpForLogin,
+    validate,
+    userControllers.resendOtpForLogin
+  );
+
+
 
 router.put('/update',
   authenticationMiddleware.authentication,

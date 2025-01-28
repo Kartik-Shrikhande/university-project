@@ -190,8 +190,60 @@ const validateLoginStudent = [
 
 
 
-module.exports = { validateRegisterStudent,
-  validateLoginStudent
+const validateVerifyOtpForLogin = [
+  // Validate email
+  body('email')
+    .notEmpty()
+    .withMessage('Email is required.')
+    .isEmail()
+    .withMessage('Invalid email format.'),
+
+  // Validate OTP
+  body('otp')
+    .notEmpty()
+    .withMessage('OTP is required.')
+    .isNumeric()
+    .withMessage('OTP must be a numeric value.')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be a 6-digit number.'),
+];
+
+const validateResendOtpForLogin = [
+  // Validate email
+  body('email')
+    .notEmpty()
+    .withMessage('Email is required.')
+    .isEmail()
+    .withMessage('Invalid email format.'),
+];
+
+
+
+
+const validateVerifyOtpForRegistration = [
+  body('email')
+    .notEmpty()
+    .withMessage('Email is required.')
+    .isEmail()
+    .withMessage('Invalid email format.'),
+  body('otp')
+    .notEmpty()
+    .withMessage('OTP is required.')
+    .isNumeric()
+    .withMessage('OTP must be numeric.')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be a 6-digit code.'),
+];
+
+
+
+
+module.exports = { 
+  validateRegisterStudent,
+  validateLoginStudent,
+  validateVerifyOtpForLogin,
+  validateResendOtpForLogin,
+  validateVerifyOtpForRegistration
 };
 
 
