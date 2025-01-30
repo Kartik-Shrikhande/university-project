@@ -241,7 +241,8 @@ const validateVerifyOtpForRegistration = [
 module.exports = { 
   validateRegisterStudent,
   validateLoginStudent,
-  validateVerifyOtpForLogin,
+  
+  // validateVerifyOtpForLogin,
   validateResendOtpForLogin,
   validateVerifyOtpForRegistration
 };

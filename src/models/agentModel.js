@@ -5,7 +5,7 @@ const agentSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['Admin', 'Agent'], default: 'Agent' },
+    role: { type: String, enum: ['Admin', 'agent'], default: 'agent' },
     assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // Students handled by the agent
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 

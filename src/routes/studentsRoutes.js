@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+const authenticationMiddleware1 = require('../middlewares/authenticationRoleBased')
 const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
 const userControllers = require('../controllers/studentControllers');
@@ -92,17 +93,17 @@ router.post(
 router.post('/login',
   //  loginValidator,
  studentValidations.validateLoginStudent,
-   validate,
    userActivity.updateLastActivity, 
-   userControllers.loginStudent);
+   validate,
+   userControllers.login);
 
 
-   router.post('/verify/otp',
-    //  loginValidator,
-   studentValidations.validateVerifyOtpForLogin,
-     validate,
-     userActivity.updateLastActivity, 
-     userControllers.verifyOtpforLogin);
+  //  router.post('/verify/otp',
+  //   //  loginValidator,
+  //  studentValidations.validateVerifyOtpForLogin,
+  //    validate,
+  //    userActivity.updateLastActivity, 
+  //    userControllers.verifyOtpforLogin);
 
 
    router.post(
@@ -113,7 +114,14 @@ router.post('/login',
   );
 
 
+  router.get('/get/universities',
+    authenticationMiddleware1.authenticateUser,
+    authenticationMiddleware1.authorizeRoles(['student']),
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+    userControllers.getUniversities);
 
+    
 router.put('/update',
   authenticationMiddleware.authentication,
   // updateValidator, 
@@ -131,13 +139,6 @@ router.delete('/delete',
   userActivity.updateLastActivity,
   userControllers.deleteStudent);
 
-
-
-router.get('/universities',
-  authenticationMiddleware.authentication,
-  paymentMiddleware.checkPaymentStatus,
-  userActivity.updateLastActivity,
-  userControllers.getUniversities);
 
 
   //get unniversity by id

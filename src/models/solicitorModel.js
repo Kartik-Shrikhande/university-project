@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const solicitorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    role:{type: String, default: 'solicitor'},
     email: { type: String, required: true, unique: true },
     contactNumber: { type: String, required: true },
     assignedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],

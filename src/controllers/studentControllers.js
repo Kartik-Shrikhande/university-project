@@ -17,7 +17,9 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const {uploadFile}=require("../middlewares/uploadMiddleware")
 // const multer = require('multer');
-
+const Agents = require('../models/agentModel');
+const Solicitors = require('../models/solicitorModel');
+const Agencies = require('../models/agencyModel');
 
 
 
@@ -274,58 +276,112 @@ exports.verifyOtpForRegistration = async (req, res) => {
 
 // Login
 
-exports.loginStudent = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find student by email
-    const student = await Students.findOne({ email });
-    if (!student) {
-      return res.status(400).json({ message: 'Invalid email.' });
+    let user = null;
+    let role = null;
+
+
+     // Check each role collection
+     user = await University.findOne({ email });
+     if (user) role = 'University';
+
+
+    // Check each role collection
+    user = await Students.findOne({ email });
+    if (user) role = 'student';
+
+    if (!user) {
+      user = await Agents.findOne({ email });
+      if (user) role = 'agent';
     }
 
-    // Compare passwords
-    const isPasswordValid = await bcrypt.compare(password, student.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Invalid password.' });
+    if (!user) {
+      user = await Solicitors.findOne({ email });
+      if (user) role = 'solicitor';
     }
 
-    // Generate OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000);
-    const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
-    // Save OTP to the database
-    const newOtp = new Otp({
-      email,
-      otp: otpCode,
-      expiry: otpExpiry,
-    });
+    if (!user) {
+      user = await Agencies.findOne({ email });
+      if (user) role = 'admin'; // Assuming Admins are stored in the Agencies collection
+    }
 
-    await newOtp.save();
 
-    // Send OTP email
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+   // If user is not found, return error message for invalid email
+   if (!user) {
+    return res.status(400).json({ message: 'Invalid email.' });
+  }
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Login OTP',
-      text: `Your OTP for login is: ${otpCode}. It is valid for 1 minutes.`,
-    };
+  // Compare password if user is found
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return res.status(400).json({ message: 'Invalid password.' });
+  }
+    // Generate JWT Token
+    const token = jwt.sign({ id: user._id, role }, process.env.SECRET_KEY, { expiresIn: '5h' });
 
-    await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({ message: 'OTP sent to your email. Please verify OTP to complete login.' });
+    return res.status(200).json({ message: 'Login successful.', role, token });
   } catch (error) {
-    console.error('Error logging in student:', error);
+    console.error('Login error:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+// exports.loginStudent = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // Find student by email
+//     const student = await Students.findOne({ email });
+//     if (!student) {
+//       return res.status(400).json({ message: 'Invalid email.' });
+//     }
+
+//     // Compare passwords
+//     const isPasswordValid = await bcrypt.compare(password, student.password);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ message: 'Invalid password.' });
+//     }
+
+//     // Generate OTP
+//     const otpCode = Math.floor(100000 + Math.random() * 900000);
+//     const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
+//     // Save OTP to the database
+//     const newOtp = new Otp({
+//       email,
+//       otp: otpCode,
+//       expiry: otpExpiry,
+//     });
+
+//     await newOtp.save();
+
+//     // Send OTP email
+//     const transporter = nodemailer.createTransport({
+//       service: 'Gmail',
+//       auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS,
+//       },
+//     });
+
+//     const mailOptions = {
+//       from: process.env.EMAIL_USER,
+//       to: email,
+//       subject: 'Login OTP',
+//       text: `Your OTP for login is: ${otpCode}. It is valid for 1 minutes.`,
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+//     return res.status(200).json({ message: 'OTP sent to your email. Please verify OTP to complete login.' });
+//   } catch (error) {
+//     console.error('Error logging in student:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 exports.resendOtpForLogin = async (req, res) => {
@@ -380,45 +436,45 @@ exports.resendOtpForLogin = async (req, res) => {
 
 
 
-exports.verifyOtpforLogin = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+// exports.verifyOtpforLogin = async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
 
-    // Find student by email
-    const student = await Students.findOne({ email });
-    if (!student) {
-      return res.status(400).json({ message: 'Invalid email.' });
-    }
+//     // Find student by email
+//     const student = await Students.findOne({ email });
+//     if (!student) {
+//       return res.status(400).json({ message: 'Invalid email.' });
+//     }
 
-    // Check if student is verified
-    if (!student.isVerified) {
-      return res.status(400).json({ message: 'Account is not verified. Please complete registration first.' });
-    }
+//     // Check if student is verified
+//     if (!student.isVerified) {
+//       return res.status(400).json({ message: 'Account is not verified. Please complete registration first.' });
+//     }
 
-    // Find OTP record
-    const otpRecord = await Otp.findOne({ email, otp });
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'Invalid OTP.' });
-    }
+//     // Find OTP record
+//     const otpRecord = await Otp.findOne({ email, otp });
+//     if (!otpRecord) {
+//       return res.status(400).json({ message: 'Invalid OTP.' });
+//     }
 
-    // Check if OTP is expired
-    if (new Date() > otpRecord.expiry) {
-      return res.status(400).json({ message: 'OTP has expired.' });
-    }
+//     // Check if OTP is expired
+//     if (new Date() > otpRecord.expiry) {
+//       return res.status(400).json({ message: 'OTP has expired.' });
+//     }
 
-    // Mark OTP as used
-    otpRecord.isUsed = true;
-    await otpRecord.save();
+//     // Mark OTP as used
+//     otpRecord.isUsed = true;
+//     await otpRecord.save();
 
-    // Generate token
-    const token = jwt.sign({ id: student._id }, process.env.SECRET_KEY, { expiresIn: '5h' });
+//     // Generate token
+//     const token = jwt.sign({ id: student._id }, process.env.SECRET_KEY, { expiresIn: '5h' });
 
-    return res.status(200).json({ message: 'OTP verified successfully. Login completed.', token });
-  } catch (error) {
-    console.error('Error verifying OTP:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
+//     return res.status(200).json({ message: 'OTP verified successfully. Login completed.',role:student.role, token });
+//   } catch (error) {
+//     console.error('Error verifying OTP:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 
@@ -562,7 +618,6 @@ exports.deleteStudent = async (req, res) => {
 };
 
 
-
 // Get University by ID
 exports.getUniversityById = async (req, res) => {
   const session = await mongoose.startSession();
@@ -586,6 +641,9 @@ exports.getUniversityById = async (req, res) => {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
+    // Ensure visitedUniversities is initialized
+    student.visitedUniversities = student.visitedUniversities || [];
+
     // Add university to visitedUniversities if not already present
     if (!student.visitedUniversities.includes(universityId)) {
       student.visitedUniversities.push(universityId);
@@ -604,9 +662,15 @@ exports.getUniversityById = async (req, res) => {
   }
 };
 
+
 // Get All Universities
 exports.getUniversities = async (req, res) => {
   try {
+    const studentId = req.user;
+    const student = await Students.findById(studentId).session(session);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found from.' });
+    }
     const universities = await University.find().sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
