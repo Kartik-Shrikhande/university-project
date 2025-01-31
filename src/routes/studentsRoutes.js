@@ -123,18 +123,22 @@ router.post('/login',
   //   userControllers.getUniversities);
 
     
+
+  router.use(authenticationMiddleware1.authenticateUser,  authenticationMiddleware1.authorizeRoles(['student']))
+
 router.put('/update',
- 
   // updateValidator, 
   validate,
   userActivity.updateLastActivity,
    userControllers.updateStudent);
+
 
 router.put('/update/password', 
  
   userActivity.updateLastActivity,
   userControllers.updatePassword)
    
+
 router.delete('/delete',
  
   userActivity.updateLastActivity,
@@ -144,8 +148,8 @@ router.delete('/delete',
 
   router.get(
     '/api/universities/:universityId',
-    authenticationMiddleware1.authenticateUser, 
-    authenticationMiddleware1.authorizeRoles(['student']),
+    // authenticationMiddleware1.authenticateUser, 
+    // authenticationMiddleware1.authorizeRoles(['student']),
     paymentMiddleware.checkPaymentStatus,
     userActivity.updateLastActivity,
     userControllers.getUniversityById
@@ -154,8 +158,6 @@ router.delete('/delete',
 
 // Route to get universities (Only accessible to students)
 router.get('/get/universities',
-  authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
-  authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
   userActivity.updateLastActivity, // Update last activity
   userControllers.getUniversities
 );
@@ -171,8 +173,8 @@ router.get('/get/universities',
 //   userControllers.getUniversityById);
 
 router.post('/create-payment',
-  authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
-  authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
+  // authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
+  // authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
   userActivity.updateLastActivity,
     userControllers.createPayment)
 

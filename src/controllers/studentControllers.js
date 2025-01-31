@@ -311,7 +311,15 @@ exports.login = async (req, res) => {
     // Generate JWT Token
     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '5h' });
 
-    return res.status(200).json({ message: 'Login successful.', role, token });
+    res.cookie('refreshtoken', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      maxAge: 604800000, // 7 days in milliseconds
+      path: '/'
+  });
+
+    return res.status(200).json({ message: 'Login successful.', role, token });  
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ message: 'Internal server error.' });
@@ -665,19 +673,24 @@ exports.getUniversityById = async (req, res) => {
   session.startTransaction();
   try {
     const { universityId } = req.params;
-    const {studentId} = req.user.id; // Extract studentId from authenticated user
-    
-    const student = await Students.findById(studentId).session(session);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found m.' });
-    }
-console.log('from me');
+    const studentId = req.user.id; // Extract studentId from authenticated user
+//     const role =req.user.role
+  
 
+
+// if (role !== 'student') {
+//   return res.status(403).json({ message: 'Access denied. Unauthorized role fdg.' });
+// }
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
       return res.status(400).json({ message: 'Enter valid universityId.' });
     }
        console.log("Received universityId:", universityId);
     console.log("Received studentId:", studentId);
+
+const student = await Students.findById(studentId).session(session);
+    if (!student) {
+      return res.status(200).json({ message: 'Student not found.' });
+    }
 
     // Fetch university
     const findUniversity = await University.findById(universityId).session(session);

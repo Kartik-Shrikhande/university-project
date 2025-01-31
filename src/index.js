@@ -5,10 +5,10 @@ const passport = require('./utils/passport');
 const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger/swagger-output.json');
+const cookieParser = require('cookie-parser');
+
 
 // Now, you can access your documentation at http://localhost:3000/api-docs
-
-
 const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport'); 
@@ -30,7 +30,7 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 
 
 app.use(express.json())
-
+app.use(cookieParser());
 
 // // Set up Swagger
 // setupSwagger(app);

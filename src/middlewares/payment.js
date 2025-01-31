@@ -3,7 +3,7 @@ const studentModel = require('../models/studentsModel')
 
 exports.checkPaymentStatus = async (req, res, next) => {
   try {
-    const studentId = req.studentId; 
+    const studentId = req.user.id;
     const student = await studentModel.findById(studentId);
 
     if (!student) {
