@@ -14,7 +14,7 @@ router.put('/update/:id', agencyController.updateAgencyById);
 
 // Delete Agency by ID
 router.delete('/delete/:id', agencyController.deleteAgencyById);
-router.post('/login', agencyController.loginAgency);
+// router.post('/login', agencyController.loginAgency);
 
 
 

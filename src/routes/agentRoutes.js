@@ -13,17 +13,17 @@ router.post('/login', agentController.agentLogin); // Create a new agent
 //APPLICATION RELATED APIS 
 
 //get all assigned application
-router.get('/assigned/applications', agentAuth.authentication,agentController.getAllAssignedApplications);
+router.get('/assigned/applications', agentController.getAllAssignedApplications);
 
 
 // Route to get assigned application by ID // for review or to see application in details 
-router.get('/applications/:applicationId', agentAuth.authentication,agentController.getAssignedApplicationById);
+router.get('/applications/:applicationId', agentController.getAssignedApplicationById);
 
 
 // send application to university 
-router.post('/send-application', agentAuth.authentication,agentController.sendApplicationToUniversity);
+router.post('/send-application', agentController.sendApplicationToUniversity);
 
-router.post('/reject-application', agentAuth.authentication, agentController.rejectApplicationById);
+router.post('/reject-application',  agentController.rejectApplicationById);
 
 router.use('*', (req, res) => {
     res.status(404).json({

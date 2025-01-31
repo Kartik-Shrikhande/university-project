@@ -114,67 +114,89 @@ router.post('/login',
   );
 
 
-  router.get('/get/universities',
-    authenticationMiddleware1.authenticateUser,
-    authenticationMiddleware1.authorizeRoles(['student']),
-    paymentMiddleware.checkPaymentStatus,
-    userActivity.updateLastActivity,
-    userControllers.getUniversities);
+
+  // router.get('/get/universitiesss',
+  //   //authenticationMiddleware1.authenticateUser,
+  //   //authenticationMiddleware1.authorizeRoles('student'),
+  //   //paymentMiddleware.checkPaymentStatus,
+  //   userActivity.updateLastActivity,
+  //   userControllers.getUniversities);
 
     
 router.put('/update',
-  authenticationMiddleware.authentication,
+ 
   // updateValidator, 
   validate,
   userActivity.updateLastActivity,
    userControllers.updateStudent);
 
 router.put('/update/password', 
-  authenticationMiddleware.authentication,
+ 
   userActivity.updateLastActivity,
   userControllers.updatePassword)
    
 router.delete('/delete',
-  authenticationMiddleware.authentication,
+ 
   userActivity.updateLastActivity,
   userControllers.deleteStudent);
 
 
 
-  //get unniversity by id
-router.get('/university/:universityId',
-  authenticationMiddleware.authentication, 
-  paymentMiddleware.checkPaymentStatus,
-  userActivity.updateLastActivity,
-  userControllers.getUniversityById);
+  router.get(
+    '/api/universities/:universityId',
+    authenticationMiddleware1.authenticateUser, 
+    authenticationMiddleware1.authorizeRoles(['student']),
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+    userControllers.getUniversityById
+  );
+  
+
+// Route to get universities (Only accessible to students)
+router.get('/get/universities',
+  authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
+  authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
+  userActivity.updateLastActivity, // Update last activity
+  userControllers.getUniversities
+);
+
+
+
+//   //get unniversity by id
+// router.get('/get/university/:universityId',
+//   authenticationMiddleware1.authenticateUser, 
+//   authenticationMiddleware1.authorizeRoles(['student']),
+//   paymentMiddleware.checkPaymentStatus,
+//   userActivity.updateLastActivity,
+//   userControllers.getUniversityById);
 
 router.post('/create-payment',
-  authenticationMiddleware.authentication,
+  authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
+  authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
   userActivity.updateLastActivity,
     userControllers.createPayment)
 
 // Get all courses by uni id (optionally filtered by university)
 router.get('/courses/:universityId',
-  authenticationMiddleware.authentication,
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
    userControllers.getAllUniversityCourses);
 
 
    router.get('/filters/course',
-    authenticationMiddleware.authentication,
+   
     paymentMiddleware.checkPaymentStatus,
     userActivity.updateLastActivity,
      userControllers.getCoursesWithFilters);
 
 //get course by Id
-router.get('/course/:courseId',authenticationMiddleware.authentication,
+router.get('/course/:courseId',
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
    userControllers.getCourseById)
 
 
-   router.post('/enroll/:courseId',authenticationMiddleware.authentication,
+   router.post('/enroll/:courseId',
     paymentMiddleware.checkPaymentStatus,
     userActivity.updateLastActivity,
      userControllers.enrollCourse)
@@ -184,14 +206,14 @@ router.get('/course/:courseId',authenticationMiddleware.authentication,
 
 // POST route for applying to a university
 router.post('/application', 
-  authenticationMiddleware.authentication,
+ 
   userControllers.applyForUniversity);
 
 
-router.get('/students/applications',authenticationMiddleware.authentication,
+router.get('/students/applications',
    userControllers.getStudentApplications);
 
-   router.get('/get/application/:applicationId',authenticationMiddleware.authentication,
+   router.get('/get/application/:applicationId',
     userControllers.getApplicationByIdForStudent);
 
 router.use('*', (req, res) => {

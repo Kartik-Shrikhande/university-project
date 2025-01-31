@@ -275,52 +275,41 @@ exports.verifyOtpForRegistration = async (req, res) => {
 
 
 // Login
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     let user = null;
     let role = null;
 
-
-     // Check each role collection
-     user = await University.findOne({ email });
-     if (user) role = 'University';
-
-
     // Check each role collection
-    user = await Students.findOne({ email });
-    if (user) role = 'student';
+    const roleCollections = [
+      { model: University, roleName: 'University' },
+      { model: Students, roleName: 'student' },
+      { model: Agents, roleName: 'agent' },
+      { model: Solicitors, roleName: 'solicitor' },
+      { model: Agencies, roleName: 'admin' }
+    ];
 
-    if (!user) {
-      user = await Agents.findOne({ email });
-      if (user) role = 'agent';
+    for (const { model, roleName } of roleCollections) {
+      user = await model.findOne({ email });
+      if (user) {
+        role = roleName;
+        break;
+      }
     }
 
     if (!user) {
-      user = await Solicitors.findOne({ email });
-      if (user) role = 'solicitor';
+      return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-    if (!user) {
-      user = await Agencies.findOne({ email });
-      if (user) role = 'admin'; // Assuming Admins are stored in the Agencies collection
+    // Compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-
-   // If user is not found, return error message for invalid email
-   if (!user) {
-    return res.status(400).json({ message: 'Invalid email.' });
-  }
-
-  // Compare password if user is found
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(400).json({ message: 'Invalid password.' });
-  }
     // Generate JWT Token
-    const token = jwt.sign({ id: user._id, role }, process.env.SECRET_KEY, { expiresIn: '5h' });
+    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '5h' });
 
     return res.status(200).json({ message: 'Login successful.', role, token });
   } catch (error) {
@@ -328,6 +317,58 @@ exports.login = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     let user = null;
+//     let role = null;
+
+
+//      // Check each role collection
+//      user = await University.findOne({ email });
+//      if (user) role = 'University';
+
+
+//     // Check each role collection
+//     user = await Students.findOne({ email });
+//     if (user) role = 'student';
+
+//     if (!user) {
+//       user = await Agents.findOne({ email });
+//       if (user) role = 'agent';
+//     }
+
+//     if (!user) {
+//       user = await Solicitors.findOne({ email });
+//       if (user) role = 'solicitor';
+//     }
+
+//     if (!user) {
+//       user = await Agencies.findOne({ email });
+//       if (user) role = 'admin'; // Assuming Admins are stored in the Agencies collection
+//     }
+
+
+//    // If user is not found, return error message for invalid email
+//    if (!user) {
+//     return res.status(400).json({ message: 'Invalid email.' });
+//   }
+
+//   // Compare password if user is found
+//   const isPasswordValid = await bcrypt.compare(password, user.password);
+//   if (!isPasswordValid) {
+//     return res.status(400).json({ message: 'Invalid password.' });
+//   }
+//     // Generate JWT Token
+//     const token = jwt.sign({ id: user._id,role: user.role }, process.env.SECRET_KEY, { expiresIn: '5h' });
+
+//     return res.status(200).json({ message: 'Login successful.', role, token });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 // exports.loginStudent = async (req, res) => {
@@ -624,11 +665,19 @@ exports.getUniversityById = async (req, res) => {
   session.startTransaction();
   try {
     const { universityId } = req.params;
-    const studentId = req.studentId;
+    const {studentId} = req.user.id; // Extract studentId from authenticated user
+    
+    const student = await Students.findById(studentId).session(session);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found m.' });
+    }
+console.log('from me');
 
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
       return res.status(400).json({ message: 'Enter valid universityId.' });
     }
+       console.log("Received universityId:", universityId);
+    console.log("Received studentId:", studentId);
 
     // Fetch university
     const findUniversity = await University.findById(universityId).session(session);
@@ -636,10 +685,7 @@ exports.getUniversityById = async (req, res) => {
       return res.status(404).json({ message: 'University not found.' });
     }
 
-    const student = await Students.findById(studentId).session(session);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
+
 
     // Ensure visitedUniversities is initialized
     student.visitedUniversities = student.visitedUniversities || [];
@@ -666,11 +712,11 @@ exports.getUniversityById = async (req, res) => {
 // Get All Universities
 exports.getUniversities = async (req, res) => {
   try {
-    const studentId = req.user;
-    const student = await Students.findById(studentId).session(session);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found from.' });
-    }
+    // const studentId = req.user.id;
+    // const student = await Students.findById(studentId).session(session);
+    // if (!student) {
+    //   return res.status(404).json({ message: 'Student not found from.' });
+    // }
     const universities = await University.find().sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
