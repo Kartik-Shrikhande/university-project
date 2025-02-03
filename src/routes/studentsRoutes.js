@@ -123,6 +123,12 @@ router.post('/login',
   //   userControllers.getUniversities);
 
     
+// 🔹 Refresh Token Route (Generates new access token using refresh token)
+router.post('/refresh-token', authenticationMiddleware.refreshToken);
+
+// 🔹 Verify Token Route (Checks if access token is valid)
+router.get('/verify-token', authenticationMiddleware.verifyToken);
+
 
   router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
@@ -158,6 +164,7 @@ router.delete('/delete',
 
 // Route to get universities (Only accessible to students)
 router.get('/get/universities',
+  paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity, // Update last activity
   userControllers.getUniversities
 );
