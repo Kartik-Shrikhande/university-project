@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const agentController = require('../controllers/agentController');
 const agentAuth = require('../middlewares/agentAuthentication');
-
+const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 // Routes for Agent CRUD
 
 
@@ -10,6 +10,8 @@ router.post('/login', agentController.agentLogin); // Create a new agent
 
 
 
+
+router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['agent']))
 //APPLICATION RELATED APIS 
 
 //get all assigned application

@@ -125,9 +125,51 @@ const studentSchema = new mongoose.Schema(
     loginCompleted: { type: Boolean, default: false },
     lastActivity: { type: Date, default: Date.now },
     role:{type: String, default: 'student'},
-    isVerified:{type: Boolean, default: false}
+    isVerified:{type: Boolean, default: false},
+     // **New Fields for Response Structure**
+
+    // Documents to track status
+    documents: {
+      passport: {
+        url: { type: String },  // URL for passport file
+        status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
+      },
+      english_test: {
+        url: { type: String },  // URL for English test file
+        status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
+      }
+    },
+
+    // Payment status
+    payment_status: {
+      platform_fee: {
+        amount: { type: Number, default: 100.00 },
+        currency: { type: String, default: 'GBP' },
+        description: { type: String, default: 'One-time platform access fee' },
+        payment_url: { type: String, default: '/api/payments/platform-fee' },
+        deadline: { type: Date, default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }  // 7 days deadline
+      }
+    },
+
+    // Platform access controls
+    platform_access: {
+      courses_visible: { type: Boolean, default: false },
+      allowed_actions: [{ type: String, enum: ['view_profile', 'pay_platform_fee'] }],
+      blocked_actions: [{ type: String, enum: ['edit_profile', 'apply_to_courses'] }]
+    },
+
+    // Additional metadata fields
+    metadata: {
+      profile_completeness: { type: Number, default: 100 },
+      risk_flags: {
+        multiple_devices: { type: Boolean, default: false },
+        suspicious_activity: { type: Boolean, default: false }
+      }
+    }
+
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model('Student', studentSchema);

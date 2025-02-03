@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const universityController= require('../controllers/universityControllers')
-const authenticationMiddleware = require('../middlewares/universityAuthentication');
+
+const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;
 
 const { validationResult } = require('express-validator');
@@ -21,7 +22,8 @@ const {
 router.post('/create', validateCreateUniversity, universityController.createUniversity);
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
 
-router.use(authenticateUniversity, authorizeUniversityRole);
+router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
+
 
 router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);

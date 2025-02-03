@@ -1,22 +1,18 @@
 const jwt = require('jsonwebtoken');
 
 
-
-
 exports.authenticateUser = (req, res, next) => {
   try {
-    const token = req.cookies.refreshtoken
+    const token = req.cookies.refreshtoken; // Extract token from cookies
 
     if (!token) {
-      return res.status(401).json({ message: 'Access denied. No token provided.' });
+      return res.status(401).json({ message: 'No token provided.' });
     }
 
-    // const tokenWithoutBearer = token.split(' ')[1]; // Remove "Bearer" prefix
+    // Verify the token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
-    // console.log("Decoded Token:", decoded);  // Debugging: See decoded payload
-
-    // Attach user details (ID & role) to request object for further processing
+    // Attach user details (ID & role) to request object
     req.user = {
       id: decoded.id,       // Extract user ID
       role: decoded.role,   // Extract user role
@@ -24,12 +20,52 @@ exports.authenticateUser = (req, res, next) => {
       iat: decoded.iat      // Token issued time
     };
 
-    next();
+    next(); // Proceed to the next middleware
   } catch (error) {
-    console.error('Token verification error:', error);
+    // console.error('Token verification error:', error);
+
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired. Please log in again.' });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(400).json({ message: 'Invalid token. Please log in again.' });
+    }
+    if (error.name === 'NotBeforeError') {
+      return res.status(401).json({ message: 'Token is not active yet. Please try again later.' });
+    }
+
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+// exports.authenticateUser = (req, res, next) => {
+//   try {
+//     const token = req.cookies.refreshtoken
+
+//     if (!token) {
+//       return res.status(401).json({ message: 'Access denied. No token provided.' });
+//     }
+
+//     // const tokenWithoutBearer = token.split(' ')[1]; // Remove "Bearer" prefix
+//     const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+//     // console.log("Decoded Token:", decoded);  // Debugging: See decoded payload
+
+//     // Attach user details (ID & role) to request object for further processing
+//     req.user = {
+//       id: decoded.id,       // Extract user ID
+//       role: decoded.role,   // Extract user role
+//       exp: decoded.exp,     // Token expiration time
+//       iat: decoded.iat      // Token issued time
+//     };
+
+//     next();
+//   } catch (error) {
+//     console.error('Token verification error:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 // exports.authenticateUser = (req, res, next) => {
 //     const token = req.header('Authorization');

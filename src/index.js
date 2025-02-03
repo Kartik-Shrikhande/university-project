@@ -27,7 +27,13 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 
 // Start the cron job
 
-
+// // Check each role collection
+//     const roleCollections = [
+//       { model: University, roleName: 'University' },
+//       { model: Students, roleName: 'student' },
+//       { model: Agents, roleName: 'agent' },
+//       { model: Solicitors, roleName: 'solicitor' },
+//       { model: Agencies, roleName: 'admin' }
 
 app.use(express.json())
 app.use(cookieParser());

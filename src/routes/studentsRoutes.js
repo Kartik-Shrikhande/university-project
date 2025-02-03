@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
-const authenticationMiddleware1 = require('../middlewares/authenticationRoleBased')
-const authenticationMiddleware = require('../middlewares/authentication')
+const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+// const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
 const userControllers = require('../controllers/studentControllers');
 const userActivity = require('../middlewares/updateActivity')
@@ -124,7 +124,7 @@ router.post('/login',
 
     
 
-  router.use(authenticationMiddleware1.authenticateUser,  authenticationMiddleware1.authorizeRoles(['student']))
+  router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
 router.put('/update',
   // updateValidator, 

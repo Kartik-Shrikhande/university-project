@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const agencyController = require('../controllers/agencyController');
+const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 
 // Create Agency
 router.post('/create', agencyController.createAgency);
 // Get All Agencies
 // router.get('/agencies', agencyController.getAllAgencies);
 
+
+
+router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 // Get Agency by ID
 router.get('/agencies/:id', agencyController.getAgencyById);
 // Update Agency by ID

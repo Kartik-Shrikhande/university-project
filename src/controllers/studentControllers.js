@@ -273,15 +273,13 @@ exports.verifyOtpForRegistration = async (req, res) => {
 };
 
 
-
-// Login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     let user = null;
     let role = null;
 
-    // Check each role collection
+    // Role collections for login
     const roleCollections = [
       { model: University, roleName: 'University' },
       { model: Students, roleName: 'student' },
@@ -290,6 +288,7 @@ exports.login = async (req, res) => {
       { model: Agencies, roleName: 'admin' }
     ];
 
+    // Check each role collection
     for (const { model, roleName } of roleCollections) {
       user = await model.findOne({ email });
       if (user) {
@@ -309,69 +308,233 @@ exports.login = async (req, res) => {
     }
 
     // Generate JWT Token
-    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '5h' });
+    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
 
+    // Set token in HTTP-only cookie
     res.cookie('refreshtoken', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'None',
       maxAge: 604800000, // 7 days in milliseconds
       path: '/'
-  });
+    });
 
-    return res.status(200).json({ message: 'Login successful.', role, token });  
+    // **Response for Students**
+    if (role === "student") {
+      const notifications = [];
+
+      // **Send Notifications based on Payment Status**
+      if (!user.isPaid) {
+        notifications.push({
+          id: "NOTIF-001",
+          type: "system",
+          title: "Welcome! Verify & Pay to Continue",
+          content: "Your profile is locked. Pay the £100 platform fee to access courses.",
+          is_read: false,
+          timestamp: new Date().toISOString()
+        });
+      }
+      if (user.isPaid) {
+        notifications.push({
+          id: "NOTIF-001",
+          type: "system",
+          title: "Welcome!you have access to dashboard",
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // **Send Custom Response**
+      return res.status(200).json({
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          middleName: user.middleName,
+          lastName: user.lastName,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          email: user.email,
+          countryCode: user.countryCode,
+          telephoneNumber: user.telephoneNumber,
+          mostRecentEducation: user.mostRecentEducation,
+          otherEducationName: user.otherEducationName,
+          yearOfGraduation: user.yearOfGraduation,
+          collegeUniversity: user.collegeUniversity,
+          programType: user.programType,
+          otherProgramName: user.otherProgramName,
+          discipline: user.discipline,
+          otherDisciplineName: user.otherDisciplineName,
+          countryApplyingFrom: user.countryApplyingFrom,
+          countryName: user.countryName,
+          preferredUniversity: user.preferredUniversity,
+          NameOfUniversity: user.NameOfUniversity,
+          preferredCourse: user.preferredCourse,
+          NameOfCourse: user.NameOfCourse,
+          courseStartTimeline: user.courseStartTimeline,
+          englishLanguageRequirement: user.englishLanguageRequirement,
+          testName: user.testName,
+          score: user.score,
+          referralSource: user.referralSource,
+          gdprAccepted: user.gdprAccepted,
+          email_verified: user.isVerified,
+          platform_fee_paid: user.isPaid,
+          profile_editable: !user.isPaid, // Profile edit blocked if fee not paid
+          created_at: user.createdAt
+        },
+        platform_access: {
+          courses_visible: user.isPaid, // Courses visible if fee is paid
+          allowed_actions: user.isPaid ? ["view_profile", "apply_to_courses"] : ["view_profile", "pay_platform_fee"],
+          blocked_actions: user.isPaid ? [] : ["edit_profile", "apply_to_courses"]
+        },
+        documents: {
+          passport: {
+            url: user.documentUpload.find(doc => doc.includes('passport')),
+            status: user.isVerified ? "verified" : "pending_verification"
+          },
+          english_test: {
+            url: user.documentUpload.find(doc => doc.includes('ielts')),
+            status: user.isVerified ? "verified" : "pending_verification"
+          }
+        },
+        notifications,
+        payment_status: {
+          platform_fee: user.isPaid ? 'paid' : {
+            amount: 100.00,
+            currency: "GBP",
+            description: "One-time platform access fee",
+            payment_url: "/api/payments/platform-fee",
+            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()  // 7-day payment deadline
+          }
+        },
+        metadata: {
+          profile_completeness: 100, // Based on registration steps
+          risk_flags: {
+            multiple_devices: false,
+            suspicious_activity: false
+          }
+        }
+      });
+    }
+
+    // **For Other Roles (University, Agent, Solicitor, Admin)**
+    return res.status(200).json({
+      message: 'Login successful.',
+      user: {
+        id: user._id,
+        email: user.email,
+        role: role
+      },
+      token
+    });
+
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+
+
+
 // exports.login = async (req, res) => {
 //   try {
 //     const { email, password } = req.body;
-
 //     let user = null;
 //     let role = null;
 
-
-//      // Check each role collection
-//      user = await University.findOne({ email });
-//      if (user) role = 'University';
-
+//     // Role collections for login
+//     const roleCollections = [
+//       { model: University, roleName: 'University' },
+//       { model: Students, roleName: 'student' },
+//       { model: Agents, roleName: 'agent' },
+//       { model: Solicitors, roleName: 'solicitor' },
+//       { model: Agencies, roleName: 'admin' }
+//     ];
 
 //     // Check each role collection
-//     user = await Students.findOne({ email });
-//     if (user) role = 'student';
-
-//     if (!user) {
-//       user = await Agents.findOne({ email });
-//       if (user) role = 'agent';
+//     for (const { model, roleName } of roleCollections) {
+//       user = await model.findOne({ email });
+//       if (user) {
+//         role = roleName;
+//         break;
+//       }
 //     }
 
 //     if (!user) {
-//       user = await Solicitors.findOne({ email });
-//       if (user) role = 'solicitor';
+//       return res.status(400).json({ message: 'Invalid email or password.' });
 //     }
 
-//     if (!user) {
-//       user = await Agencies.findOne({ email });
-//       if (user) role = 'admin'; // Assuming Admins are stored in the Agencies collection
+//     // Compare password
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ message: 'Invalid email or password.' });
 //     }
 
-
-//    // If user is not found, return error message for invalid email
-//    if (!user) {
-//     return res.status(400).json({ message: 'Invalid email.' });
-//   }
-
-//   // Compare password if user is found
-//   const isPasswordValid = await bcrypt.compare(password, user.password);
-//   if (!isPasswordValid) {
-//     return res.status(400).json({ message: 'Invalid password.' });
-//   }
 //     // Generate JWT Token
-//     const token = jwt.sign({ id: user._id,role: user.role }, process.env.SECRET_KEY, { expiresIn: '5h' });
+//     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
 
-//     return res.status(200).json({ message: 'Login successful.', role, token });
+//     // Set token in HTTP-only cookie
+//     res.cookie('refreshtoken', token, {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: 'None',
+//       maxAge: 604800000, // 7 days in milliseconds
+//       path: '/'
+//     });
+
+//     // **Custom Response for Students**
+//     if (role === "student") {
+//       return res.status(200).json({
+//         user: {
+//           id: user._id,
+//           email: user.email,
+//           role: role,
+//           is_active: true, // Assuming all logged-in users are active
+//           email_verified: user.isVerified || false,
+//           platform_fee_paid: user.isPaid || false,
+//           created_at: user.createdAt
+//         },
+//         platform_access: {
+//           courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
+//           payment_required: !user.isPaid, // If not paid, payment is required
+//           message: user.isPaid
+//             ? "You have access to all platform features."
+//             : "Pay the platform fee to view universities and courses."
+//         },
+//         notifications: [
+//           {
+//             id: "NOTIF-001",
+//             type: "system",
+//             title: "Welcome to Connect2Uni!",
+//             content: "Complete your profile and pay the platform fee to proceed.",
+//             is_read: false,
+//             timestamp: new Date().toISOString()
+//           }
+//         ],
+//         applications: user.applications || [],
+//         visa_status: null, // You can modify this based on actual visa status logic
+//         payment_prompt: !user.isPaid
+//           ? {
+//               type: "platform_fee",
+//               amount: 100.0,
+//               currency: "GBP",
+//               payment_url: "/api/payments/platform-fee"
+//             }
+//           : null
+//       });
+//     }
+
+//     // **For Other Roles (University, Agent, Solicitor, Admin)**
+//     return res.status(200).json({
+//       message: 'Login successful.',
+//       user: {
+//         id: user._id,
+//         email: user.email,
+//         role: role
+//       },
+//       token
+//     });
+
 //   } catch (error) {
 //     console.error('Login error:', error);
 //     return res.status(500).json({ message: 'Internal server error.' });
@@ -379,58 +542,6 @@ exports.login = async (req, res) => {
 // };
 
 
-// exports.loginStudent = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // Find student by email
-//     const student = await Students.findOne({ email });
-//     if (!student) {
-//       return res.status(400).json({ message: 'Invalid email.' });
-//     }
-
-//     // Compare passwords
-//     const isPasswordValid = await bcrypt.compare(password, student.password);
-//     if (!isPasswordValid) {
-//       return res.status(400).json({ message: 'Invalid password.' });
-//     }
-
-//     // Generate OTP
-//     const otpCode = Math.floor(100000 + Math.random() * 900000);
-//     const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
-//     // Save OTP to the database
-//     const newOtp = new Otp({
-//       email,
-//       otp: otpCode,
-//       expiry: otpExpiry,
-//     });
-
-//     await newOtp.save();
-
-//     // Send OTP email
-//     const transporter = nodemailer.createTransport({
-//       service: 'Gmail',
-//       auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASS,
-//       },
-//     });
-
-//     const mailOptions = {
-//       from: process.env.EMAIL_USER,
-//       to: email,
-//       subject: 'Login OTP',
-//       text: `Your OTP for login is: ${otpCode}. It is valid for 1 minutes.`,
-//     };
-
-//     await transporter.sendMail(mailOptions);
-
-//     return res.status(200).json({ message: 'OTP sent to your email. Please verify OTP to complete login.' });
-//   } catch (error) {
-//     console.error('Error logging in student:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 exports.resendOtpForLogin = async (req, res) => {
@@ -684,9 +795,7 @@ exports.getUniversityById = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
       return res.status(400).json({ message: 'Enter valid universityId.' });
     }
-       console.log("Received universityId:", universityId);
-    console.log("Received studentId:", studentId);
-
+     
 const student = await Students.findById(studentId).session(session);
     if (!student) {
       return res.status(200).json({ message: 'Student not found.' });
