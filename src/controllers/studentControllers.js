@@ -345,6 +345,8 @@ exports.login = async (req, res) => {
 
       // **Send Custom Response**
       return res.status(200).json({
+        message: 'Login successful.',
+        role: role,
         user: {
           id: user._id,
           firstName: user.firstName,
@@ -411,7 +413,8 @@ exports.login = async (req, res) => {
             multiple_devices: false,
             suspicious_activity: false
           }
-        }
+        },
+        token:token
       });
     }
 
