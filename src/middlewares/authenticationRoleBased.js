@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-
+const Students = require('../models/studentsModel');
 
 exports.authenticateUser = (req, res, next) => {
   try {
@@ -174,6 +174,7 @@ exports.refreshToken = async (req, res) => {
 };
 
 
+
 exports.verifyToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -182,15 +183,86 @@ exports.verifyToken = async (req, res) => {
       return res.status(401).json({ message: 'No token provided.' });
     }
 
-    jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+    jwt.verify(token, process.env.SECRET_KEY, async (err, decoded) => {
       if (err) {
         return res.status(403).json({ message: 'Invalid or expired token.' });
       }
 
+      const { id, role } = decoded;
+
+      // **Check if the role is student, and fetch additional student details**
+      let userDetails = null;
+      let platformAccess = null;
+      let notifications = [];
+      let paymentStatus = null;
+
+      if (role === "student") {
+        const student = await Students.findById(id);
+
+        if (!student) {
+          return res.status(404).json({ message: "Student not found." });
+        }
+
+        // **Notifications Based on Payment Status**
+        if (!student.isPaid) {
+          notifications.push({
+            id: "NOTIF-001",
+            type: "system",
+            title: "Welcome! Verify & Pay to Continue",
+            content: "Your profile is locked. Pay the £100 platform fee to access courses.",
+            is_read: false,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        if (student.isPaid) {
+          notifications.push({
+            id: "NOTIF-001",
+            type: "system",
+            title: "Welcome!you have access to dashboard",
+            timestamp: new Date().toISOString()
+          });
+        }
+        // **Student Response Data**
+        userDetails = {
+          id: student._id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          email: student.email,
+          platform_fee_paid: student.isPaid,
+          profile_editable: !student.isPaid, // If not paid, profile cannot be edited
+        };
+
+        // **Platform Access Information**
+        platformAccess = {
+          courses_visible: student.isPaid, // Courses visible only if fee is paid
+          allowed_actions: student.isPaid ? ["view_profile", "apply_to_courses"] : ["view_profile", "pay_platform_fee"],
+          blocked_actions: student.isPaid ? [] : ["edit_profile", "apply_to_courses"]
+        };
+
+        // **Payment Status**
+        paymentStatus = student.isPaid
+          ? { platform_fee: "paid" }
+          : {
+              platform_fee: {
+                amount: 100,
+                currency: "GBP",
+                description: "One-time platform access fee",
+                payment_url: "/api/payments/platform-fee",
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7-day deadline
+              }
+            };
+      }
+
+      // **Final Response**
       return res.status(200).json({
         message: 'Token is valid.',
-        userId: decoded.id,
-        role: decoded.role
+        userId: id,
+        role: role,
+        ...(userDetails && { user: userDetails }), // Include user details if student
+        ...(platformAccess && { platform_access: platformAccess }), // Include platform access if student
+        ...(notifications.length > 0 && { notifications }), // Include notifications if any
+        ...(paymentStatus && { payment_status: paymentStatus }) // Include payment status if student
       });
     });
   } catch (error) {
@@ -198,6 +270,32 @@ exports.verifyToken = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+// exports.verifyToken = async (req, res) => {
+//   try {
+//     const token = req.headers.authorization?.split(' ')[1];
+
+//     if (!token) {
+//       return res.status(401).json({ message: 'No token provided.' });
+//     }
+
+//     jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+//       if (err) {
+//         return res.status(403).json({ message: 'Invalid or expired token.' });
+//       }
+
+//       return res.status(200).json({
+//         message: 'Token is valid.',
+//         userId: decoded.id,
+//         role: decoded.role
+//       });
+//     });
+//   } catch (error) {
+//     console.error('Verify token error:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 // module.exports = (req, res, next) => {
 //   const authHeader = req.headers.authorization;

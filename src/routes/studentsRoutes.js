@@ -127,7 +127,7 @@ router.post('/login',
 router.post('/refresh-token', authenticationMiddleware.refreshToken);
 
 // 🔹 Verify Token Route (Checks if access token is valid)
-router.get('/verify-token', authenticationMiddleware.verifyToken);
+router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 
   router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
