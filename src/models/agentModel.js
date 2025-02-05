@@ -7,6 +7,12 @@ const agentSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ['Admin', 'agent'], default: 'agent' },
     assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // Students handled by the agent
+    pendingApplications: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Pending applications
+    ],
+    approvedApplications: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Approved applications
+    ],
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'Agency', 

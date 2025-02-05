@@ -318,6 +318,8 @@ exports.login = async (req, res) => {
       maxAge: 604800000, // 7 days in milliseconds
       path: '/'
     });
+
+
   // **Custom Response for Students**
     if (role === "student") {
       return res.status(200).json({
@@ -359,6 +361,51 @@ exports.login = async (req, res) => {
           : null
       });
     }
+ // **Custom Response for Agent Role**
+ if (role === "agent") {
+  return res.status(200).json({
+    message: 'Login successful.',
+    role: role,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      contactNumber: user.contactPhone || '',
+      agencyId: user.agency || '', // Reference to agency (can be an ID)
+      created_at: user.createdAt
+    },
+    platform_access: {
+      allowed_actions: [
+        "view_student_applications",
+        "approve_applications",
+        "reject_applications",
+        "assign_associates"
+      ],
+      blocked_actions: [
+        "edit_profile",
+        "apply_to_courses" // Agents cannot apply to courses
+      ]
+    },
+    notifications: [
+      {
+        id: "NOTIF-001",
+        type: "system",
+        title: "New Application Received",
+        content: "A new application has been submitted by Jane Smith.",
+        is_read: false,
+        timestamp: new Date().toISOString()
+      }
+    ],
+    metadata: {
+      total_students: user.assignedStudents?.length || 0, // Number of students assigned to this agent
+      pending_applications: user.pendingApplications?.length || 0, // Pending applications (can be an array of IDs)
+      approved_applications: user.approvedApplications?.length || 0 // Approved applications (can be an array of IDs)
+    },
+    token: token
+  });
+}
+
 
     // **Custom Response for Agency Role**
     if (role === 'admin') {
