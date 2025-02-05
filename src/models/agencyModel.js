@@ -23,7 +23,9 @@ const agencySchema = new mongoose.Schema(
          },
     agents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Agent' }], // List of agents under the agency
     pendingApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // NEW: Tracks students associated with the agency
     sentAppliactionsToUniversities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    role:{type: String, default: 'admin'},
   },
   { timestamps: true }
 );

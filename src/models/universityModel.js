@@ -15,6 +15,10 @@ const universitySchema = new mongoose.Schema(
       },
     },
     role: { type: String, enum: ['Admin', 'University'], default: 'University' }, // Default role is 'University'
+     // ✅ Newly added fields for login response:
+     contactNumber: { type: String }, // Added field for university contact
+     address: { type: String }, // Added field for university address
+     website: { type: String }, // Added field for university website
     password: { type: String, required: true, minlength: 8 },
     description: { type: String },
     country: { type: String, required: true },
@@ -26,6 +30,7 @@ const universitySchema = new mongoose.Schema(
         applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', required: true },
       },
     ],
+    approvedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }], // ✅ Added field to track approved applications
     payments:[],
     ratings: [{ type: Number }],
   },

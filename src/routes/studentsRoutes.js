@@ -52,10 +52,27 @@ const upload = multer({ storage: storage });
 
 
 // Middleware to validate requests
+// const validate = (req, res, next) => {
+//   const errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     return res.status(400).json({ errors: errors.array()});
+//   }
+//   next();
+// };
+
+
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array()});
+    return res.status(400).json({
+      errors: errors.array().map(err => ({
+        type: err.type || "field",
+        value: err.value,
+        message: err.msg, // Rename "msg" to "message"
+        path: err.param,  // Use "param" instead of "path"
+        location: err.location
+      }))
+    });
   }
   next();
 };

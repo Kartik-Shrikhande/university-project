@@ -19,7 +19,7 @@ const {uploadFile}=require("../middlewares/uploadMiddleware")
 // const multer = require('multer');
 const Agents = require('../models/agentModel');
 const Solicitors = require('../models/solicitorModel');
-const Agencies = require('../models/agencyModel');
+const Agency = require('../models/agencyModel');
 
 
 
@@ -285,7 +285,7 @@ exports.login = async (req, res) => {
       { model: Students, roleName: 'student' },
       { model: Agents, roleName: 'agent' },
       { model: Solicitors, roleName: 'solicitor' },
-      { model: Agencies, roleName: 'admin' }
+      { model: Agency, roleName: 'admin' } // Updated to match Agency model
     ];
 
     // Check each role collection
@@ -318,124 +318,151 @@ exports.login = async (req, res) => {
       maxAge: 604800000, // 7 days in milliseconds
       path: '/'
     });
-
-    // **Response for Students**
+  // **Custom Response for Students**
     if (role === "student") {
-      const notifications = [];
-
-      // **Send Notifications based on Payment Status**
-      if (!user.isPaid) {
-        notifications.push({
-          id: "NOTIF-001",
-          type: "system",
-          title: "Welcome! Verify & Pay to Continue",
-          content: "Your profile is locked. Pay the £100 platform fee to access courses.",
-          is_read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
-      if (user.isPaid) {
-        notifications.push({
-          id: "NOTIF-001",
-          type: "system",
-          title: "Welcome!you have access to dashboard",
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // **Send Custom Response**
       return res.status(200).json({
+        user: {
+          id: user._id,
+          email: user.email,
+          role: role,
+          is_active: true, // Assuming all logged-in users are active
+          email_verified: user.isVerified || false,
+          platform_fee_paid: user.isPaid || false,
+          created_at: user.createdAt
+        },
+        platform_access: {
+          courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
+          payment_required: !user.isPaid, // If not paid, payment is required
+          message: user.isPaid
+            ? "You have access to all platform features."
+            : "Pay the platform fee to view universities and courses."
+        },
+        notifications: [
+          {
+            id: "NOTIF-001",
+            type: "system",
+            title: "Welcome to Connect2Uni!",
+            content: "Complete your profile and pay the platform fee to proceed.",
+            is_read: false,
+            timestamp: new Date().toISOString()
+          }
+        ],
+        applications: user.applications || [],
+        visa_status: null, // You can modify this based on actual visa status logic
+        payment_prompt: !user.isPaid
+          ? {
+              type: "platform_fee",
+              amount: 100.0,
+              currency: "GBP",
+              payment_url: "/api/payments/platform-fee"
+            }
+          : null
+      });
+    }
+
+    // **Custom Response for Agency Role**
+    if (role === 'admin') {
+      const agencyResponse = {
         message: 'Login successful.',
         role: role,
         user: {
           id: user._id,
-          firstName: user.firstName,
-          middleName: user.middleName,
-          lastName: user.lastName,
-          dateOfBirth: user.dateOfBirth,
-          gender: user.gender,
+          name: user.name,
           email: user.email,
-          countryCode: user.countryCode,
-          telephoneNumber: user.telephoneNumber,
-          mostRecentEducation: user.mostRecentEducation,
-          otherEducationName: user.otherEducationName,
-          yearOfGraduation: user.yearOfGraduation,
-          collegeUniversity: user.collegeUniversity,
-          programType: user.programType,
-          otherProgramName: user.otherProgramName,
-          discipline: user.discipline,
-          otherDisciplineName: user.otherDisciplineName,
-          countryApplyingFrom: user.countryApplyingFrom,
-          countryName: user.countryName,
-          preferredUniversity: user.preferredUniversity,
-          NameOfUniversity: user.NameOfUniversity,
-          preferredCourse: user.preferredCourse,
-          NameOfCourse: user.NameOfCourse,
-          courseStartTimeline: user.courseStartTimeline,
-          englishLanguageRequirement: user.englishLanguageRequirement,
-          testName: user.testName,
-          score: user.score,
-          referralSource: user.referralSource,
-          gdprAccepted: user.gdprAccepted,
-          email_verified: user.isVerified,
-          platform_fee_paid: user.isPaid,
-          profile_editable: !user.isPaid, // Profile edit blocked if fee not paid
+          contactNumber: user.contactPhone || '',
+          address: user.address || '',
           created_at: user.createdAt
         },
         platform_access: {
-          courses_visible: user.isPaid, // Courses visible if fee is paid
-          allowed_actions: user.isPaid ? ["view_profile", "apply_to_courses"] : ["view_profile", "pay_platform_fee"],
-          blocked_actions: user.isPaid ? [] : ["edit_profile", "apply_to_courses"]
+          allowed_actions: [
+            "create_agents",
+            "view_agents",
+            "view_student_applications",
+            "assign_associates"
+          ],
+          blocked_actions: [
+            "edit_profile",
+            "apply_to_courses" // Agencies cannot apply to courses
+          ]
         },
-        documents: {
-          passport: {
-            url: user.documentUpload.find(doc => doc.includes('passport')),
-            status: user.isVerified ? "verified" : "pending_verification"
-          },
-          english_test: {
-            url: user.documentUpload.find(doc => doc.includes('ielts')),
-            status: user.isVerified ? "verified" : "pending_verification"
-          }
-        },
-        notifications,
-        payment_status: {
-          platform_fee: user.isPaid ? 'paid' : {
-            amount: 100.00,
-            currency: "GBP",
-            description: "One-time platform access fee",
-            payment_url: "/api/payments/platform-fee",
-            deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()  // 7-day payment deadline
-          }
-        },
+        // notifications: [
+        //   {
+        //     id: "NOTIF-001",
+        //     type: "system",
+        //     title: "New Agent Created",
+        //     content: "A new agent has been created.",
+        //     is_read: false,
+        //     timestamp: new Date().toISOString()
+        //   }
+        // ],
         metadata: {
-          profile_completeness: 100, // Based on registration steps
-          risk_flags: {
-            multiple_devices: false,
-            suspicious_activity: false
-          }
+          total_agents: user?.agents?.length || 0,
+          total_students: user?.students?.length || 0,
+          pending_applications: user?.pendingApplications?.length || 0,
+          approved_applications: user?.sentApplicationsToUniversities?.length || 0
         },
-        token:token
-      });
+        token: token
+      };
+
+      return res.status(200).json(agencyResponse);
     }
 
-    // **For Other Roles (University, Agent, Solicitor, Admin)**
-    return res.status(200).json({
-      message: 'Login successful.',
-      user: {
-        id: user._id,
-        email: user.email,
-        role: role
-      },
-      token
-    });
+ // **Custom Response for University Role**
+ if (role === 'University') {
+  return res.status(200).json({
+    message: 'Login successful.',
+    role: role,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      contactNumber: user.contactPhone || '',
+      address: user.address || '',
+      created_at: user.createdAt
+    },
+  
+  
+    platform_access: {
+      allowed_actions: [
+        "view_applications",
+        "approve_applications",
+        "reject_applications",
+        "validate_payments"
+      ],
+      blocked_actions: [
+        "edit_profile",
+        "apply_to_courses"
+      ]
+    },
+    // "notifications": [
+    //   {
+    //     "id": "NOTIF-001",
+    //     "type": "system",
+    //     "title": "New Application Received",
+    //     "content": "A new application has been submitted by John Doe.",
+    //     "is_read": false,
+    //     "timestamp": "2025-02-04T09:34:29.082Z"
+    //   }],
+
+    metadata: {
+      total_applications: (user.pendingApplications?.length || 0) + (user.sentApplicationsToUniversities?.length || 0),
+      pending_applications: user.pendingApplications?.length || 0,
+      approved_applications: user.approvedApplications?.length || 0
+    },
+    token: token
+  });
+}
+
+
+
+    // **Default Response for Other Roles**
+    return res.status(200).json({ message: 'Login successful.', role: role, token });
 
   } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    console.error('Login Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
-
-
 
 
 

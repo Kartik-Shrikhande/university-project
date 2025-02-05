@@ -39,9 +39,16 @@ const studentSchema = new mongoose.Schema(
       country: { type: String, maxlength: 50 },
     },
     profilePhoto: { type: String }, // Path or URL to the profile photo
-    documentType: { type: String, enum: ['Passport'], required: true },
-    documentUpload: [{ type: String}], // Path or URL to the document
 
+    documentType: { type: String, 
+      enum: ['Passport'], 
+      required: true ,
+      status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+    },
+
+
+    documentUpload: [{ type: String}], // Path or URL to the document
+    english_test: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     // Education Details
     mostRecentEducation: {
       type: String,
