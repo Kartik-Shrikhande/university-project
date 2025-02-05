@@ -217,7 +217,7 @@ await transporter.sendMail(mailOptions);
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ message: 'mail has been sent to your email. Please verify to complete registration.' });
+    return res.status(200).json({ message: 'A verification email has been successfully sent to your inbox. Please follow the instructions in the email to verify your address and complete the registration process.' });
    
   
   } catch (error) {
