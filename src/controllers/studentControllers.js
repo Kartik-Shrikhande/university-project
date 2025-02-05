@@ -198,7 +198,7 @@ const mailOptions = {
   to: email,
   subject: 'Email Verification',
   text: `Click the following link to verify your email: 
-  http://localhost:3000/student/verify-email?token=${verificationToken}`,
+  https://university-project-m8o9.onrender.com/student/verify-email?token=${verificationToken}`,
 };
 
 await transporter.sendMail(mailOptions);
