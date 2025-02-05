@@ -84,13 +84,7 @@ router.post(
     { name: 'documentUpload', maxCount: 5 }, // Uploads up to 5 PDF files for `documentUpload`
   ]),// Accept up to 5 PDF files
   studentValidations.validateRegisterStudent,
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    next();
-  },
+  validate,
   studentController.registerStudent
 );
 
