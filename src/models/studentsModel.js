@@ -105,7 +105,7 @@ const studentSchema = new mongoose.Schema(
         applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' },
       },
     ],
-
+    verificationToken: { type: String, required: false },  // Add this field for email verification
     isPaid: { type: Boolean, default: false },
     referralSource: { type: String, enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
        'Education fair/exhibition','Advertisement(online/offline)','Other'],

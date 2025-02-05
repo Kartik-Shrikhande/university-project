@@ -20,8 +20,7 @@ const {uploadFile}=require("../middlewares/uploadMiddleware")
 const Agents = require('../models/agentModel');
 const Solicitors = require('../models/solicitorModel');
 const Agency = require('../models/agencyModel');
-
-
+const crypto = require('crypto');
 
 
 const { v4: uuidv4 } = require('uuid');
@@ -136,6 +135,7 @@ exports.registerStudent = async (req, res) => {
  });
  await newOtp.save({ session });
 
+ const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate a secure token
 
     // Create student
     const newStudent = new Students({
@@ -176,6 +176,7 @@ exports.registerStudent = async (req, res) => {
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
+      verificationToken,
     });
    
   
@@ -190,21 +191,35 @@ exports.registerStudent = async (req, res) => {
       },
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Registration OTP',
-      text: `Your OTP for registration is: ${otpCode}. It is valid for 1 minutes.`,
-    };
 
-    await transporter.sendMail(mailOptions);
+//LINK 
+const mailOptions = {
+  from: process.env.EMAIL_USER,
+  to: email,
+  subject: 'Email Verification',
+  text: `Click the following link to verify your email: 
+  http://localhost:3000/student/verify-email?token=${verificationToken}`,
+};
+
+await transporter.sendMail(mailOptions);
+
+    //OTP
+    // const mailOptions = {
+    //   from: process.env.EMAIL_USER,
+    //   to: email,
+    //   subject: 'Registration OTP',
+    //   text: `Your OTP for registration is: ${otpCode}. It is valid for 1 minutes.`,
+    // };
+
+    // await transporter.sendMail(mailOptions);
 
     // Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ message: 'OTP sent to your email. Please verify OTP to complete registration.' });
-
+    return res.status(200).json({ message: 'mail has been sent to your email. Please verify to complete registration.' });
+   
+  
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -213,6 +228,24 @@ exports.registerStudent = async (req, res) => {
   }
 };
 
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    const student = await Students.findOne({ verificationToken: token });
+
+    if (!student) {
+      return res.status(400).json({ error: 'Invalid token.' });
+    }
+
+    student.isVerified = true;
+    student.verificationToken = null;  // Clear the token after successful verification
+    await student.save();
+
+    res.status(200).json({ message: 'Email verified successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error verifying email.' });
+  }
+};
 
 exports.verifyOtpForRegistration = async (req, res) => {
   const session = await mongoose.startSession();
@@ -271,6 +304,7 @@ exports.verifyOtpForRegistration = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 
 
 exports.login = async (req, res) => {

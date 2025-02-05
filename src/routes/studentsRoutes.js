@@ -88,6 +88,9 @@ router.post(
   studentController.registerStudent
 );
 
+// Route to verify the email
+router.get('/verify-email', studentController.verifyEmail);
+
 
 router.post(
   '/verify/registration/otp',
