@@ -359,10 +359,11 @@ exports.login = async (req, res) => {
       return res.status(200).json({
         message: 'Login successful.',
         role: role,
+        token: token,
         user: {
           id: user._id,
           email: user.email,
-          role: role,
+          // role: role,
           is_active: true, // Assuming all logged-in users are active
           email_verified: user.isVerified || false,
           platform_fee_paid: user.isPaid || false,
@@ -394,8 +395,7 @@ exports.login = async (req, res) => {
               currency: "GBP",
               payment_url: "/api/payments/platform-fee"
             }
-          : null,
-          token: token
+          : null
       });
     }
  // **Custom Response for Agent Role**
@@ -403,6 +403,7 @@ exports.login = async (req, res) => {
   return res.status(200).json({
     message: 'Login successful.',
     role: role,
+    token: token,
     user: {
       id: user._id,
       firstName: user.firstName,
@@ -438,8 +439,7 @@ exports.login = async (req, res) => {
       total_students: user.assignedStudents?.length || 0, // Number of students assigned to this agent
       pending_applications: user.pendingApplications?.length || 0, // Pending applications (can be an array of IDs)
       approved_applications: user.approvedApplications?.length || 0 // Approved applications (can be an array of IDs)
-    },
-    token: token
+    }
   });
 }
 
@@ -449,6 +449,7 @@ exports.login = async (req, res) => {
       const agencyResponse = {
         message: 'Login successful.',
         role: role,
+        token: token,
         user: {
           id: user._id,
           name: user.name,
@@ -484,18 +485,18 @@ exports.login = async (req, res) => {
           total_students: user?.students?.length || 0,
           pending_applications: user?.pendingApplications?.length || 0,
           approved_applications: user?.sentApplicationsToUniversities?.length || 0
-        },
-        token: token
+        }
       };
-
       return res.status(200).json(agencyResponse);
     }
+
 
  // **Custom Response for University Role**
  if (role === 'University') {
   return res.status(200).json({
     message: 'Login successful.',
     role: role,
+    token: token,
     user: {
       id: user._id,
       name: user.name,
@@ -532,12 +533,9 @@ exports.login = async (req, res) => {
       total_applications: (user.pendingApplications?.length || 0) + (user.sentApplicationsToUniversities?.length || 0),
       pending_applications: user.pendingApplications?.length || 0,
       approved_applications: user.approvedApplications?.length || 0
-    },
-    token: token
+    }
   });
 }
-
-
 
     // **Default Response for Other Roles**
     return res.status(200).json({ message: 'Login successful.', role: role, token });
