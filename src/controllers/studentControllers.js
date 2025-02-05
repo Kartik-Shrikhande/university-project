@@ -354,9 +354,11 @@ exports.login = async (req, res) => {
     });
 
 
-  // **Custom Response for Students**
+  //  **Custom Response for Students**
     if (role === "student") {
       return res.status(200).json({
+        message: 'Login successful.',
+        role: role,
         user: {
           id: user._id,
           email: user.email,
@@ -392,7 +394,8 @@ exports.login = async (req, res) => {
               currency: "GBP",
               payment_url: "/api/payments/platform-fee"
             }
-          : null
+          : null,
+          token: token
       });
     }
  // **Custom Response for Agent Role**
