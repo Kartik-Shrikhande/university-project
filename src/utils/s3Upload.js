@@ -1,35 +1,31 @@
-// const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-// const { v4: uuidv4 } = require('uuid');
-// const { Upload } = require('@aws-sdk/lib-storage');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { v4: uuidv4 } = require('uuid');
 
-// // AWS S3 client configuration
-// const s3Client = new S3Client({
-//   region: process.env.AWS_REGION,
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   },
-// });
+// Create S3 client
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
 
-// // Function to upload a file to S3
-// const uploadFileToS3 = async (file) => {
-//   const fileName = `${uuidv4()}-${file.originalname}`;
-//   const params = {
-//     Bucket: process.env.AWS_BUCKET_NAME,
-//     Key: `profilePhotos/${fileName}`,
-//     Body: file.buffer,
-//     ContentType: file.mimetype,
-//     ACL: 'public-read', // Allow public access to the uploaded file
-//   };
+// Function to upload files to S3
+const uploadFilesToS3 = async (files) => {
+  const uploadPromises = files.map(async (file) => {
+    const uniqueFileName = `${uuidv4()}-${file.originalname}`;
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: uniqueFileName,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
 
-//   // Upload the file using @aws-sdk/lib-storage for managed uploads
-//   const upload = new Upload({
-//     client: s3Client,
-//     params,
-//   });
+    await s3.send(new PutObjectCommand(params)); // Upload file
+    return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFileName}`;
+  });
 
-//   await upload.done();
-//   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/profilePhotos/${fileName}`;
-// };
+  return Promise.all(uploadPromises);
+};
 
-// module.exports = uploadFileToS3;
+module.exports = { uploadFilesToS3 };

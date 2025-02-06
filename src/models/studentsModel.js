@@ -164,7 +164,10 @@ const studentSchema = new mongoose.Schema(
       allowed_actions: [{ type: String, enum: ['view_profile', 'pay_platform_fee'] }],
       blocked_actions: [{ type: String, enum: ['edit_profile', 'apply_to_courses'] }]
     },
-
+    isDeleted: { 
+      type: Boolean, 
+      default: false,
+    },
     // Additional metadata fields
     metadata: {
       profile_completeness: { type: Number, default: 100 },

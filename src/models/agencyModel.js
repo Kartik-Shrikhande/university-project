@@ -26,6 +26,10 @@ const agencySchema = new mongoose.Schema(
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // NEW: Tracks students associated with the agency
     sentAppliactionsToUniversities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     role:{type: String, default: 'admin'},
+    isDeleted: { 
+      type: Boolean, 
+      default: false,
+    },
   },
   { timestamps: true }
 );

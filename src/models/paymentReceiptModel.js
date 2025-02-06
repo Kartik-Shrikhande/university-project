@@ -22,6 +22,10 @@ const paymentReceiptSchema = new mongoose.Schema(
       default: false 
     }, // Indicates if financial aid was applied
     notes: { type: String }, // Additional notes or comments on the payment
+    isDeleted: { 
+      type: Boolean, 
+      default: false,
+    },
   },
   { timestamps: true }
 );

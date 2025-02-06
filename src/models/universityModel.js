@@ -14,14 +14,22 @@ const universitySchema = new mongoose.Schema(
         message: 'Invalid email format',
       },
     },
-    role: { type: String, enum: ['Admin', 'University'], default: 'University' }, // Default role is 'University'
-     // ✅ Newly added fields for login response:
-     contactNumber: { type: String }, // Added field for university contact
-     address: { type: String }, // Added field for university address
-     website: { type: String }, // Added field for university website
     password: { type: String, required: true, minlength: 8 },
+    role: { type: String, enum: ['Admin', 'University'], default: 'University' }, // Default role is 'University'
     description: { type: String },
-    country: { type: String, required: true },
+     bannerImage: { type: String },
+       // 3. Official Website URL
+    website: { type: String, required: true },
+
+     // ✅ Newly added fields for login response:
+     phoneNumber: { type: String, required: true },
+     address: {
+      country: { type: String, required: true },
+      city: { type: String, required: true },
+      state: { type: String, required: true },
+      zipCode: { type: String, required: true },
+    },
+    institutionType: { type: String, enum: ['Public', 'Private'], required: true },
     isPromoted: { type: String, enum: ['YES', 'NO'], default: 'NO' },
     courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
     pendingApplications: [
@@ -33,8 +41,13 @@ const universitySchema = new mongoose.Schema(
     approvedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }], // ✅ Added field to track approved applications
     payments:[],
     ratings: [{ type: Number }],
+    isDeleted: { 
+      type: Boolean, 
+      default: false,
+    },
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model('University', universitySchema);

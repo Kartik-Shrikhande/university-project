@@ -1,15 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const agencyController = require('../controllers/agencyController');
+const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const {
-    validateCreateUniversity,
+validateUniversity,
     validateUniversityLogin,
     validateUpdateUniversity,
     validateDeleteUniversity,
     validateUniversityId, 
     validateCourseId, 
   } = require('../validators/universityValidations');
+
+
+  // Middleware to validate requests
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array()});
+  }
+  next();
+};
+
 
 // Create Agency
 router.post('/create', agencyController.createAgency);
@@ -18,6 +30,15 @@ router.post('/create', agencyController.createAgency);
 
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
+
+
+
+//UNIVERSITY
+router.post('/create/university',upload.single('bannerImage'),validateUniversity , agencyController.createUniversity);
+router.get('/get/universities',agencyController.getUniversities);
+router.get('/universities/:id', agencyController.getUniversityById);
+
+
 
 // Get Agency by ID
 router.get('/agencies/:id', agencyController.getAgencyById);
@@ -53,10 +74,6 @@ router.get('/students', agencyController.getAllStudents); // Get all students
 router.get('/students/:id', agencyController.getStudentById); // Get student by ID
 
 
-//UNIVERSITY
-router.post('/create/university', validateCreateUniversity, agencyController.createUniversity);
-router.get('/get/universities',agencyController.getUniversities);
-router.get('/universities/:id', agencyController.getUniversityById);
 
 router.use('*', (req, res) => {
     res.status(404).json({
