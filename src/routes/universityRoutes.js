@@ -19,11 +19,10 @@ const {
 
 // Routes
 // router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-router.post('/create', validateCreateUniversity, universityController.createUniversity);
+
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
-
 
 router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);

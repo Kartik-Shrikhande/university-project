@@ -335,6 +335,11 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
+     // Check if email is verified
+     if (!user.isVerified) {
+      return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+    }
+    
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -1389,7 +1394,6 @@ exports.applyForUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 
 

@@ -7,7 +7,7 @@ const Agent = require('../models/agentModel');
 const bcrypt = require('bcrypt');
 require('dotenv').config()
 
-
+//AGENCY APIs
 exports.createAgency = async (req, res) => {
   try {
     const { name, email, password, contactPhone, address } = req.body;
@@ -473,7 +473,6 @@ exports.getApplicationDetailsById = async (req, res) => {
 };
 
 //agent will move forward the application to university
-
 exports.assignAgentToApplication = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -589,6 +588,54 @@ exports.getStudentById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching student:', error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+//university 
+
+exports.createUniversity = async (req, res) => {
+  try {
+    const { name, email, password, description, country, isPromoted, ratings } = req.body;
+
+    // Check if the email is already in use
+    const existingUniversity = await University.findOne({ email });
+    if (existingUniversity) {
+      return res.status(400).json({ message: 'Email is already in use.' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new university instance
+    const newUniversity = new University({
+      name,
+      email,
+      password: hashedPassword,
+      description,
+      country,
+      isPromoted: isPromoted || 'NO', // Default to 'NO' if not provided
+      ratings: ratings || [], // Default to an empty array if not provided
+    });
+
+    // Save the new university to the database
+    await newUniversity.save();
+
+    return res.status(201).json({
+      message: 'University created successfully.',
+      university: {
+        id: newUniversity._id,
+        name: newUniversity.name,
+        email: newUniversity.email,
+        country: newUniversity.country,
+        role: newUniversity.role, // Default role is 'University'
+        isPromoted: newUniversity.isPromoted,
+        ratings: newUniversity.ratings,
+      },
+    });
+  } catch (error) {
+    console.error('Error creating university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 };
 

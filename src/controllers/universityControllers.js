@@ -5,6 +5,7 @@ const { isValidObjectId } = require('mongoose');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 
+
 exports.createUniversity = async (req, res) => {
   try {
     const { name, email, password, description, country, isPromoted, ratings } = req.body;

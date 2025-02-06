@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const agencyController = require('../controllers/agencyController');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const {
+    validateCreateUniversity,
+    validateUniversityLogin,
+    validateUpdateUniversity,
+    validateDeleteUniversity,
+    validateUniversityId, 
+    validateCourseId, 
+  } = require('../validators/universityValidations');
 
 // Create Agency
 router.post('/create', agencyController.createAgency);
@@ -11,11 +19,11 @@ router.post('/create', agencyController.createAgency);
 
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
+
 // Get Agency by ID
 router.get('/agencies/:id', agencyController.getAgencyById);
 // Update Agency by ID
 router.put('/update/:id', agencyController.updateAgencyById);
-
 // Delete Agency by ID
 router.delete('/delete/:id', agencyController.deleteAgencyById);
 // router.post('/login', agencyController.loginAgency);
@@ -33,7 +41,6 @@ router.delete('/agents/:id',  agencyController.deleteAgent); // Delete an agent
 
 
 //APPLICATION RELATED APIS 
-
 //get the list of all pending applications
 router.get('/pending-applications', agencyController.getPendingApplications);
 router.get('/application/:applicationId',agencyController.getApplicationDetailsById);
@@ -48,6 +55,9 @@ router.post('/assign-agent', agencyController.assignAgentToApplication);
 router.get('/students', agencyController.getAllStudents); // Get all students
 router.get('/students/:id', agencyController.getStudentById); // Get student by ID
 
+
+//UNIVERSITY
+router.post('/create/university', validateCreateUniversity, agencyController.createUniversity);
 
 
 router.use('*', (req, res) => {
