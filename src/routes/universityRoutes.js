@@ -2,11 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const universityController= require('../controllers/universityControllers')
-
+const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;
-
 const { validationResult } = require('express-validator');
+const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
 
 const {
   validateCreateUniversity,
@@ -17,40 +17,39 @@ const {
   validateCourseId, 
 } = require('../validators/universityValidations');
 
+
+
 // Routes
 // router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
 
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
-
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
+//router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
+router.post('/course/create',
+  //  validateCreateCourse,
+  // handleValidationErrors,
+  universityController.createCourse);
 router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 router.put('/promote', validateUniversityId,universityController.promoteUniversity);
 
 
-// Get all courses for a university
-router.get('/universities/courses', validateUniversityId, universityController.getAllCourses);
 
-// Get a specific course by ID for a university
-router.get('/universities/courses/:courseId', validateCourseId, universityController.getCourseById);
 
 
 
 //GET - ACTIVE/INACTIVE
 // Get all inactive courses for a university
 router.get('/:universityId/inactive-courses', universityController.getAllInactiveCourses);
-
 // Get an inactive course by ID
 router.get('/:universityId/inactive-course/:courseId', universityController.getInactiveCourseById);
 
 
 
 //POST - ACTIVE/INACTIVE
-
 // Inactivate an active course
 router.patch('/universities/:universityId/courses/:courseId/inactivate', universityController.inactivateCourse);
-
 // Activate an inactive course
 router.patch('/universities/:universityId/courses/:courseId/activate', universityController.activateCourse);
 

@@ -4,12 +4,6 @@ const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authentication')
 const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
 
-//router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-router.post('/:universityId/create', 
-    validateCreateCourse,
-    handleValidationErrors,
-     CourseController.createCourse);
-
 
 router.put('/course/:universityId/courses/:courseId', 
     validateUpdateCourse,

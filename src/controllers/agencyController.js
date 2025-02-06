@@ -639,3 +639,42 @@ exports.createUniversity = async (req, res) => {
   }
 };
 
+// Get All Universities
+exports.getUniversities = async (req, res) => {
+  try {
+    // const studentId = req.user.id;
+    // const student = await Students.findById(studentId).session(session);
+    // if (!student) {
+    //   return res.status(404).json({ message: 'Student not found from.' });
+    // }
+    const universities = await University.find().sort({ isPromoted: -1 });
+    if (universities.length === 0) {
+      return res.status(404).json({ message: 'No universities found.' });
+    }
+    return res.status(200).json({ Total: universities.length, universities });
+  } catch (error) {
+    console.error('Error fetching universities:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+// Get University by ID (For Agency/Admin)
+exports.getUniversityById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find university by ID
+    const university = await University.findById(id);
+    
+    // Check if university exists
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    return res.status(200).json({ university });
+  } catch (error) {
+    console.error('Error fetching university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+

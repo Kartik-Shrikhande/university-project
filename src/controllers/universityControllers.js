@@ -6,51 +6,52 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 
 
-exports.createUniversity = async (req, res) => {
-  try {
-    const { name, email, password, description, country, isPromoted, ratings } = req.body;
+// exports.createUniversity = async (req, res) => {
+//   try {
+//     const { name, email, password, description, country, isPromoted, ratings } = req.body;
 
-    // Check if the email is already in use
-    const existingUniversity = await University.findOne({ email });
-    if (existingUniversity) {
-      return res.status(400).json({ message: 'Email is already in use.' });
-    }
+//     // Check if the email is already in use
+//     const existingUniversity = await University.findOne({ email });
+//     if (existingUniversity) {
+//       return res.status(400).json({ message: 'Email is already in use.' });
+//     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+//     // Hash the password
+//     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new university instance
-    const newUniversity = new University({
-      name,
-      email,
-      password: hashedPassword,
-      description,
-      country,
-      isPromoted: isPromoted || 'NO', // Default to 'NO' if not provided
-      ratings: ratings || [], // Default to an empty array if not provided
-    });
+//     // Create a new university instance
+//     const newUniversity = new University({
+//       name,
+//       email,
+//       password: hashedPassword,
+//       description,
+//       country,
+//       isPromoted: isPromoted || 'NO', // Default to 'NO' if not provided
+//       ratings: ratings || [], // Default to an empty array if not provided
+//     });
 
-    // Save the new university to the database
-    await newUniversity.save();
+//     // Save the new university to the database
+//     await newUniversity.save();
 
-    return res.status(201).json({
-      message: 'University created successfully.',
-      university: {
-        id: newUniversity._id,
-        name: newUniversity.name,
-        email: newUniversity.email,
-        country: newUniversity.country,
-        role: newUniversity.role, // Default role is 'University'
-        isPromoted: newUniversity.isPromoted,
-        ratings: newUniversity.ratings,
-      },
-    });
-  } catch (error) {
-    console.error('Error creating university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
+//     return res.status(201).json({
+//       message: 'University created successfully.',
+//       university: {
+//         id: newUniversity._id,
+//         name: newUniversity.name,
+//         email: newUniversity.email,
+//         country: newUniversity.country,
+//         role: newUniversity.role, // Default role is 'University'
+//         isPromoted: newUniversity.isPromoted,
+//         ratings: newUniversity.ratings,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Error creating university:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
+//UNIVERSITY 
 
 exports.universityLogin = async (req, res) => {
   try {
@@ -130,7 +131,6 @@ exports.updateUniversity = async (req, res) => {
 };
 
 
-
 // Delete a university
 // Delete a university with cascading cleanup
 exports.deleteUniversity = async (req, res) => {
@@ -170,8 +170,6 @@ exports.deleteUniversity = async (req, res) => {
 
 
 
-
-
 // Promote a university
 exports.promoteUniversity = async (req, res) => {
   try {
@@ -204,6 +202,60 @@ exports.promoteUniversity = async (req, res) => {
   }
 };
 
+
+
+//COURSES
+
+exports.createCourse = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { name, description, fees, ratings } = req.body;
+    const  universityId  = req.user.id;; // Get universityId from URL parameters
+
+    const universityRecord = await University.findById(universityId).session(session);
+    if (!universityRecord) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'University not found' });
+    }
+
+    // Check if the course already exists in the same university
+    const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
+    if (existingCourse) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
+    }
+
+    // Create a new course
+    const course = new Course({
+      name,
+      description,
+      university: universityId,
+      fees,
+      ratings,
+    });
+    await course.save({ session });
+
+    // Add course to the university's course list
+    universityRecord.courses.push(course._id);
+    await universityRecord.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: 'Course created successfully',
+      course,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error creating course:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 
 // Get all courses for a university
@@ -274,8 +326,6 @@ exports.getCourseById = async (req, res) => {
 
  
  //req.params done
-
-
 
 ///inactive course details
 exports.getAllInactiveCourses = async (req, res) => {

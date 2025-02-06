@@ -17,7 +17,6 @@ router.post('/create', agencyController.createAgency);
 // router.get('/agencies', agencyController.getAllAgencies);
 
 
-
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 
 // Get Agency by ID
@@ -39,14 +38,12 @@ router.delete('/agents/:id',  agencyController.deleteAgent); // Delete an agent
 
 
 
-
 //APPLICATION RELATED APIS 
 //get the list of all pending applications
 router.get('/pending-applications', agencyController.getPendingApplications);
 router.get('/application/:applicationId',agencyController.getApplicationDetailsById);
 //allocate an agent to application
 router.post('/assign-agent', agencyController.assignAgentToApplication);
-
 
 
 
@@ -58,7 +55,8 @@ router.get('/students/:id', agencyController.getStudentById); // Get student by 
 
 //UNIVERSITY
 router.post('/create/university', validateCreateUniversity, agencyController.createUniversity);
-
+router.get('/get/universities',agencyController.getUniversities);
+router.get('/universities/:id', agencyController.getUniversityById);
 
 router.use('*', (req, res) => {
     res.status(404).json({
