@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { isValidObjectId } = require('mongoose');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
-
+const { uploadFilesToS3 } = require('../utils/s3Upload'); 
 
 // exports.createUniversity = async (req, res) => {
 //   try {
@@ -107,22 +107,65 @@ exports.universityLogin = async (req, res) => {
 
 exports.updateUniversity = async (req, res) => {
   try {
-    const universityId = req.universityId; // Retrieve university ID from middleware
-    const updates = req.body;
+    const universityId = req.user.id;
 
-    // Validate updates
-    if (!updates || Object.keys(updates).length === 0) {
-      return res.status(400).json({ message: 'No updates provided.' });
+    // Check if the university exists
+    let university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found' });
     }
 
-    const updatedUniversity = await University.findByIdAndUpdate(universityId, updates, { new: true });
-    if (!updatedUniversity) {
-      return res.status(404).json({ message: 'University not found.' });
+    // Extract fields from request body
+    const { name, description, website, phoneNumber, address, institutionType } = req.body;
+
+    // Prevent updating email, password, and isPromoted
+    if (req.body.email || req.body.password || req.body.isPromoted) {
+      return res.status(400).json({
+        message: 'Email, password, and isPromoted cannot be updated.',
+      });
     }
 
-    return res.status(200).json({ 
-      message: 'University updated successfully.', 
-      university: updatedUniversity 
+    // Handle Image Upload (if provided)
+   // Handle Image Upload (if provided)
+   let bannerImage = null;
+   if (req.file) {
+     const uploadedFiles = await uploadFilesToS3([req.file]); // Upload file to S3
+     bannerImage = uploadedFiles[0]; // Get the S3 URL
+   }
+   
+    // Update university fields
+    university.name = name || university.name;
+    university.description = description || university.description;
+    university.bannerImage = bannerImage;
+    university.website = website || university.website;
+    university.phoneNumber = phoneNumber || university.phoneNumber;
+    university.address = address
+      ? {
+          country: address.country || university.address.country,
+          city: address.city || university.address.city,
+          state: address.state || university.address.state,
+          zipCode: address.zipCode || university.address.zipCode,
+        }
+      : university.address;
+    university.institutionType = institutionType || university.institutionType;
+
+    // Save updated university
+    await university.save();
+
+    return res.status(200).json({
+      message: 'University updated successfully.',
+      university: {
+        id: university._id,
+        name: university.name,
+        description: university.description,
+        bannerImage: university.bannerImage,
+        website: university.website,
+        phoneNumber: university.phoneNumber,
+        address: university.address,
+        institutionType: university.institutionType,
+        role: university.role,
+        isPromoted: university.isPromoted, // No change allowed
+      },
     });
   } catch (error) {
     console.error('Error updating university:', error);
@@ -130,6 +173,82 @@ exports.updateUniversity = async (req, res) => {
   }
 };
 
+
+
+// exports.updateUniversity = async (req, res) => {
+//   try {
+//     const universityId = req.user.id; // Retrieve university ID from middleware
+//     const updates = req.body;
+
+//     // Validate updates
+//     if (!updates || Object.keys(updates).length === 0) {
+//       return res.status(400).json({ message: 'No updates provided.'});
+//     }
+
+//     const updatedUniversity = await University.findByIdAndUpdate(universityId, updates, { new: true });
+//     if (!updatedUniversity) {
+//       return res.status(404).json({ message: 'University not found.' });
+//     }
+
+//     return res.status(200).json({ 
+//       message: 'University updated successfully.', 
+//       university: updatedUniversity 
+//     });
+//   } catch (error) {
+//     console.error('Error updating university:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
+
+
+
+exports.universityUpdatePassword = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const  universityId  = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // Validate request body
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Please provide currentPassword, newPassword, and confirmPassword.' });
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 14) {
+      return res.status(400).json({ message: 'Password must be between 8 and 14 characters long.' });
+    }
+
+    // Fetch the student
+    const getUniversity = await University.findById(universityId).session(session);
+    if (!getUniversity) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Verify current password
+    const isPasswordMatch = await bcrypt.compare(currentPassword, getUniversity.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'New password and confirm password do not match.' });
+    }
+
+    // Hash and update the password
+    getUniversity.password = await bcrypt.hash(newPassword, 10);
+    await getUniversity.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error updating password:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 // Delete a university
 // Delete a university with cascading cleanup

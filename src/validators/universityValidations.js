@@ -2,6 +2,14 @@ const { check, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
 
+// Middleware to check if the request body is empty
+const checkEmptyBody = (req, res, next) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ message: 'No update data provided. Please enter at least one field to update.' });
+  }
+  next();
+}
+
 // Generic validation handler for all validation rules
 const validateResult = (req, res, next) => {
   const errors = validationResult(req);
@@ -48,12 +56,43 @@ const validateUniversityLogin = [
 ];
 
 // Validation rules for updating a university
-const validateUpdateUniversity = [
-  check('id').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
-  check('email').optional().isEmail().withMessage('Invalid email format'),
-  check('isPromoted').optional().isIn(['YES', 'NO']).withMessage('isPromoted must be either "YES" or "NO"'),
-  validateResult, // Call the generic validation handler
+// const validateUpdateUniversity = [
+//   check('id').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
+//   check('email').optional().isEmail().withMessage('Invalid email format'),
+//   check('isPromoted').optional().isIn(['YES', 'NO']).withMessage('isPromoted must be either "YES" or "NO"'),
+//   validateResult, // Call the generic validation handler
+// ];
+
+// Validation rules for updating a university
+const validateUniversityUpdate = [
+  checkEmptyBody,
+  check('email').not().exists().withMessage('Email cannot be updated.'),
+  check('password').not().exists().withMessage('Password cannot be updated.'),
+  check('isPromoted').not().exists().withMessage('isPromoted cannot be updated.'),
+
+  check('name').optional().trim().notEmpty().withMessage('Name cannot be empty.'),
+  check('website').optional().trim().isURL().withMessage('Invalid website URL.'),
+  check('phoneNumber').optional().trim().isMobilePhone().withMessage('Invalid phone number.'),
+
+  check('institutionType')
+    .optional()
+    .isIn(['Public', 'Private'])
+    .withMessage('Institution Type must be either Public or Private.'),
+
+  check('address.country').optional().trim().notEmpty().withMessage('Country cannot be empty.'),
+  check('address.city').optional().trim().notEmpty().withMessage('City cannot be empty.'),
+  check('address.state').optional().trim().notEmpty().withMessage('State cannot be empty.'),
+  check('address.zipCode')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Zip Code cannot be empty.')
+    .isPostalCode('any')
+    .withMessage('Invalid Zip Code.'),
+
+  validateResult, // Generic validation handler
 ];
+
 
 // Validation rules for university ID
 const validateUniversityId = [
@@ -76,7 +115,7 @@ const validateDeleteUniversity = [
 module.exports = {
   validateUniversity,
   validateUniversityLogin,
-  validateUpdateUniversity,
+  validateUniversityUpdate,
   validateUniversityId,
   validateCourseId,
   validateDeleteUniversity,

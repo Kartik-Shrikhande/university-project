@@ -4,6 +4,7 @@ const router = express.Router();
 const universityController= require('../controllers/universityControllers')
 const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;
 const { validationResult } = require('express-validator');
 const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
@@ -11,7 +12,7 @@ const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handle
 const {
   validateCreateUniversity,
   validateUniversityLogin,
-  validateUpdateUniversity,
+  validateUniversityUpdate,
   validateDeleteUniversity,
   validateUniversityId, 
   validateCourseId, 
@@ -31,7 +32,10 @@ router.post('/api/course/create',
   handleValidationErrors,
   universityController.createCourse);
 
-router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
+  router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);
+// router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
+router.put('/update/password', universityController.universityUpdatePassword)
+   
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 router.put('/promote', validateUniversityId,universityController.promoteUniversity);
 

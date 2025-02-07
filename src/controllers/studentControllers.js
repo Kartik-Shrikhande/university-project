@@ -808,7 +808,7 @@ exports.updatePassword = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const studentId = req.studentId;
+    const studentId = req.user.id;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     // Validate request body
