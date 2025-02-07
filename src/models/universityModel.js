@@ -26,7 +26,7 @@ const universitySchema = new mongoose.Schema(
      address: {
       country: { type: String, required: true },
       city: { type: String, required: true },
-      state: { type: String, required: true },
+      state: { type: String},
       zipCode: { type: String, required: true },
     },
     institutionType: { type: String, enum: ['Public', 'Private'], required: true },

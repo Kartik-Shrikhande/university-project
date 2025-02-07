@@ -31,10 +31,10 @@ const validateUniversity = [
   check('email').trim().notEmpty().withMessage('Email is required.').isEmail().withMessage('Invalid email format.'),
   // check('password').trim().notEmpty().withMessage('Password is required.').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.'),
   check('website').trim().notEmpty().withMessage('Website is required.').isURL().withMessage('Invalid website URL.'),
-  check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').matches(/^\+?[1-9]\d{1,14}$/).withMessage('Invalid phone number format.'),
+  check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').isNumeric().withMessage('Invalid phone number format.'),
   check('address.country').trim().notEmpty().withMessage('Country is required.'),
   check('address.city').trim().notEmpty().withMessage('City is required.'),
-  check('address.state').trim().notEmpty().withMessage('State is required.'),
+  check('address.state').trim().optional(),
   check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.').isPostalCode('any').withMessage('Invalid Zip Code.'),
   check('institutionType').trim().notEmpty().withMessage('Institution Type is required.').isIn(['Public', 'Private']).withMessage('Institution Type must be either Public or Private.'),
   validateResult, // Call the generic validation handler

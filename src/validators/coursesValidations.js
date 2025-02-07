@@ -2,11 +2,11 @@ const { check,body, param, validationResult } = require('express-validator');
 
 // Validation for creating a new course
 exports.validateCreateCourse = [
-  param('universityId')
-    .notEmpty()
-    .withMessage('University ID is required.')
-    .isMongoId()
-    .withMessage('Invalid University ID format.'),
+  // param('universityId')
+  //   .notEmpty()
+  //   .withMessage('University ID is required.')
+  //   .isMongoId()
+  //   .withMessage('Invalid University ID format.'),
   body('name')
     .notEmpty()
     .withMessage('Course name is required.')
@@ -14,7 +14,7 @@ exports.validateCreateCourse = [
     .withMessage('Course name must be a string.')
     .trim(),
   body('description')
-    .optional()
+  .notEmpty()
     .isString()
     .withMessage('Description must be a string.')
     .trim(),
