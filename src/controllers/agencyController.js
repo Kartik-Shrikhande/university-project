@@ -7,6 +7,7 @@ const University = require('../models/universityModel');
 const Agent = require('../models/agentModel');
 const bcrypt = require('bcrypt');
 const generator = require('generate-password');
+const nodemailer = require('nodemailer');
 require('dotenv').config()
 
 //AGENCY APIs
@@ -658,6 +659,28 @@ exports.createUniversity = async (req, res) => {
 
     // Save the new university to the database
     await newUniversity.save();
+
+// Send OTP email
+const transporter = nodemailer.createTransport({
+  service: 'Gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+
+//LINK 
+const mailOptions = {
+from: process.env.EMAIL_USER,
+to: email,
+subject: 'Credentials for University Account',
+text: `Your account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease change your password after logging in.`,
+};
+
+await transporter.sendMail(mailOptions);
+
+
 
     // Return the response with the auto-generated password (for testing purposes)
     return res.status(201).json({
