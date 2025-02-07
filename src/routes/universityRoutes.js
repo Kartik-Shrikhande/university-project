@@ -26,10 +26,11 @@ router.post('/login',validateUniversityLogin, universityController.universityLog
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
 //router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-router.post('/course/create',
+router.post('/api/course/create',
   //  validateCreateCourse,
   // handleValidationErrors,
   universityController.createCourse);
+
 router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 router.put('/promote', validateUniversityId,universityController.promoteUniversity);
