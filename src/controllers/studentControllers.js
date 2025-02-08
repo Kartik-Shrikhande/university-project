@@ -306,6 +306,7 @@ exports.verifyOtpForRegistration = async (req, res) => {
 };
 
 
+//previouse approach in use -08/02/2025
 
 exports.login = async (req, res) => {
   try {

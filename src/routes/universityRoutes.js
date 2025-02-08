@@ -37,7 +37,6 @@ router.post('/api/course/create',
 router.put('/update/password', universityController.universityUpdatePassword)
    
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
-router.put('/promote', validateUniversityId,universityController.promoteUniversity);
 
 
 
@@ -54,9 +53,9 @@ router.get('/:universityId/inactive-course/:courseId', universityController.getI
 
 //POST - ACTIVE/INACTIVE
 // Inactivate an active course
-router.patch('/universities/:universityId/courses/:courseId/inactivate', universityController.inactivateCourse);
+router.patch('/courses/inactivate/:courseId', universityController.inactivateCourse);
 // Activate an inactive course
-router.patch('/universities/:universityId/courses/:courseId/activate', universityController.activateCourse);
+router.patch('/courses/activate/:courseId', universityController.activateCourse);
 
 
 

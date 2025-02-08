@@ -31,15 +31,18 @@ router.post('/create', agencyController.createAgency);
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 
+//COURSES
+
 
 
 //UNIVERSITY
 router.post('/create/university',upload.single('bannerImage'),validateUniversity , agencyController.createUniversity);
 router.get('/get/universities',agencyController.getUniversities);
 router.get('/universities/:id', agencyController.getUniversityById);
+router.put('/promote/:universityId',agencyController.promoteUniversity);
+router.put('/demote/:universityId',agencyController.demoteUniversity);
 
-
-
+//AGENCY
 // Get Agency by ID
 router.get('/agencies/:id', agencyController.getAgencyById);
 // Update Agency by ID

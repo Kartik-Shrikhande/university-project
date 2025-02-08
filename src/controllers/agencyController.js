@@ -10,6 +10,68 @@ const generator = require('generate-password');
 const nodemailer = require('nodemailer');
 require('dotenv').config()
 
+//COURSES 
+
+// Promote a university
+exports.promoteUniversity = async (req, res) => {
+  try {
+    const {universityId} = req.params; // Retrieve university ID from middleware
+
+    // Find the university by ID
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if the university is already promoted
+    if (university.isPromoted === 'YES') {
+      return res.status(400).json({
+        message: `University "${university.name}" is already promoted.`,
+      });
+    }
+
+    // Update the `isPromoted` field
+    university.isPromoted = 'YES';
+    await university.save();
+
+    return res.status(200).json({
+      message: `University "${university.name}" has been promoted successfully.` });
+  } catch (error) {
+    console.error('Error promoting university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+exports.demoteUniversity = async (req, res) => {
+  try {
+    const {universityId} = req.params; // Retrieve university ID from middleware
+
+    // Find the university by ID
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if the university is already promoted
+    if (university.isPromoted === 'NO') {
+      return res.status(400).json({
+        message: `University "${university.name}" is already demoted.`,
+      });
+    }
+
+    // Update the `isPromoted` field
+    university.isPromoted = 'NO';
+    await university.save();
+
+    return res.status(200).json({
+      message: `University "${university.name}" has been demoted successfully.` });
+  } catch (error) {
+    console.error('Error promoting university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
 //AGENCY APIs
 exports.createAgency = async (req, res) => {
   try {
@@ -213,7 +275,6 @@ exports.createAgent = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 
 exports.getAllAgents = async (req, res) => {
@@ -553,7 +614,6 @@ exports.assignAgentToApplication = async (req, res) => {
   }
 };
 
-
 // Students
 
 exports.getAllStudents = async (req, res) => {
@@ -596,8 +656,6 @@ exports.getStudentById = async (req, res) => {
 
 
 //university 
-
-
 
 exports.createUniversity = async (req, res) => {
   try {

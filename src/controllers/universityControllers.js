@@ -289,38 +289,6 @@ exports.deleteUniversity = async (req, res) => {
 
 
 
-// Promote a university
-exports.promoteUniversity = async (req, res) => {
-  try {
-    const universityId = req.universityId; // Retrieve university ID from middleware
-
-    // Find the university by ID
-    const university = await University.findById(universityId);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found.' });
-    }
-
-    // Check if the university is already promoted
-    if (university.isPromoted === 'YES') {
-      return res.status(400).json({
-        message: `University "${university.name}" is already promoted.`,
-      });
-    }
-
-    // Update the `isPromoted` field
-    university.isPromoted = 'YES';
-    await university.save();
-
-    return res.status(200).json({
-      message: `University "${university.name}" has been promoted successfully.`,
-      university,
-    });
-  } catch (error) {
-    console.error('Error promoting university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
 
 
 //COURSES
@@ -380,7 +348,7 @@ exports.createCourse = async (req, res) => {
 // Get all courses for a university
 exports.getAllCourses = async (req, res) => {
   try {
-    const universityId = req.universityId; // Retrieve university ID from middleware
+    const universityId = req.user.id; // Retrieve university ID from middleware
 
     // Fetch the university and its courses
     const university = await University.findById(universityId).populate('courses', 'name fees description ratings');
@@ -449,7 +417,7 @@ exports.getCourseById = async (req, res) => {
 ///inactive course details
 exports.getAllInactiveCourses = async (req, res) => {
   try {
-    const { universityId } = req.params;
+   const { universityId} = req.user.id;
 
     // Validate university ID
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
@@ -543,7 +511,8 @@ exports.getInactiveCourseById = async (req, res) => {
 
 exports.activateCourse = async (req, res) => {
   try {
-    const { universityId, courseId } = req.params;
+    const universityId = req.user.id;
+    const {  courseId } = req.params;
 
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
@@ -591,7 +560,8 @@ exports.activateCourse = async (req, res) => {
 
 exports.inactivateCourse = async (req, res) => {
   try {
-    const { universityId, courseId } = req.params;
+    const universityId = req.user.id;
+    const {  courseId } = req.params;
 
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
