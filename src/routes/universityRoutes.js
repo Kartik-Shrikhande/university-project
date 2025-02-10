@@ -27,10 +27,7 @@ router.post('/login',validateUniversityLogin, universityController.universityLog
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
 //router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-router.post('/api/course/create',
-   validateCreateCourse,
-  handleValidationErrors,
-  universityController.createCourse);
+
 
   router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);
 // router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
@@ -39,15 +36,22 @@ router.put('/update/password', universityController.universityUpdatePassword)
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 
 
+//COURSES 
 
-
-
+router.post('/api/course/create',
+  validateCreateCourse,
+ handleValidationErrors,
+ universityController.createCourse);
 
 //GET - ACTIVE/INACTIVE
+//get all courses (Active)
+router.get('/get/all-courses', universityController.getAllCourses);
 // Get all inactive courses for a university
-router.get('/:universityId/inactive-courses', universityController.getAllInactiveCourses);
+router.get('/get/active-courses', universityController.getAllactiveCourses);
+// Get all inactive courses for a university
+router.get('/get/inactive-courses', universityController.getAllInactiveCourses);
 // Get an inactive course by ID
-router.get('/:universityId/inactive-course/:courseId', universityController.getInactiveCourseById);
+router.get('/get/course/:courseId', universityController.getCourseById);
 
 
 

@@ -88,6 +88,10 @@ router.post(
   studentController.registerStudent
 );
 
+
+router.get('/verify-status/:id', studentController.checkStudentVerificationStatus);
+
+
 // Route to verify the email
 router.get('/verify-email', studentController.verifyEmail);
 
@@ -144,7 +148,7 @@ router.post('/refresh-token', authenticationMiddleware.refreshToken);
 router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 
-  router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
+router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
 router.put('/update',
   // updateValidator, 
@@ -199,6 +203,18 @@ router.post('/create-payment',
   userActivity.updateLastActivity,
     userControllers.createPayment)
 
+
+
+
+
+
+
+   router.post('/enroll/:courseId',
+    paymentMiddleware.checkPaymentStatus,
+    userActivity.updateLastActivity,
+     userControllers.enrollCourse)
+
+//COURSES
 // Get all courses by uni id (optionally filtered by university)
 router.get('/courses/:universityId',
   paymentMiddleware.checkPaymentStatus,
@@ -206,23 +222,17 @@ router.get('/courses/:universityId',
    userControllers.getAllUniversityCourses);
 
 
-   router.get('/filters/course',
+router.get('/filters/course',
    
-    paymentMiddleware.checkPaymentStatus,
-    userActivity.updateLastActivity,
-     userControllers.getCoursesWithFilters);
+  paymentMiddleware.checkPaymentStatus,
+  userActivity.updateLastActivity,
+   userControllers.getCoursesWithFilters);
 
 //get course by Id
 router.get('/course/:courseId',
-  paymentMiddleware.checkPaymentStatus,
-  userActivity.updateLastActivity,
-   userControllers.getCourseById)
-
-
-   router.post('/enroll/:courseId',
-    paymentMiddleware.checkPaymentStatus,
-    userActivity.updateLastActivity,
-     userControllers.enrollCourse)
+paymentMiddleware.checkPaymentStatus,
+userActivity.updateLastActivity,
+ userControllers.getCourseById)
 
 
 //APPLICATION

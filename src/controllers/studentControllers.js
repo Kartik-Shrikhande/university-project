@@ -559,110 +559,57 @@ exports.login = async (req, res) => {
 
 
 
-// exports.login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-//     let user = null;
-//     let role = null;
+// @desc    Check if a student is verified
+// @route   GET /api/students/verify-status/:id
+// @access  Public
+exports.checkStudentVerificationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-//     // Role collections for login
-//     const roleCollections = [
-//       { model: University, roleName: 'University' },
-//       { model: Students, roleName: 'student' },
-//       { model: Agents, roleName: 'agent' },
-//       { model: Solicitors, roleName: 'solicitor' },
-//       { model: Agencies, roleName: 'admin' }
-//     ];
+    // Validate if ID is provided
+    if (!id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Student ID is required.'
+      });
+    }
 
-//     // Check each role collection
-//     for (const { model, roleName } of roleCollections) {
-//       user = await model.findOne({ email });
-//       if (user) {
-//         role = roleName;
-//         break;
-//       }
-//     }
+    // Check if ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid student ID format.'
+      });
+    }
 
-//     if (!user) {
-//       return res.status(400).json({ message: 'Invalid email or password.' });
-//     }
+    // Find student by ID
+    const student = await Students.findById(id);
 
-//     // Compare password
-//     const isPasswordValid = await bcrypt.compare(password, user.password);
-//     if (!isPasswordValid) {
-//       return res.status(400).json({ message: 'Invalid email or password.' });
-//     }
+    // If student not found
+    if (!student) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Student not found.'
+      });
+    }
 
-//     // Generate JWT Token
-//     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
+    // Check verification status
+    return res.status(200).json({
+      status: student.isVerified ? 'success' : 'pending',
+      message: student.isVerified ? 'Student is verified.' : 'Student is not verified.',
+      // studentId: student._id,
+      email: student.email,
+      isVerified: student.isVerified
+    });
 
-//     // Set token in HTTP-only cookie
-//     res.cookie('refreshtoken', token, {
-//       httpOnly: true,
-//       secure: true,
-//       sameSite: 'None',
-//       maxAge: 604800000, // 7 days in milliseconds
-//       path: '/'
-//     });
-
-//     // **Custom Response for Students**
-//     if (role === "student") {
-//       return res.status(200).json({
-//         user: {
-//           id: user._id,
-//           email: user.email,
-//           role: role,
-//           is_active: true, // Assuming all logged-in users are active
-//           email_verified: user.isVerified || false,
-//           platform_fee_paid: user.isPaid || false,
-//           created_at: user.createdAt
-//         },
-//         platform_access: {
-//           courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
-//           payment_required: !user.isPaid, // If not paid, payment is required
-//           message: user.isPaid
-//             ? "You have access to all platform features."
-//             : "Pay the platform fee to view universities and courses."
-//         },
-//         notifications: [
-//           {
-//             id: "NOTIF-001",
-//             type: "system",
-//             title: "Welcome to Connect2Uni!",
-//             content: "Complete your profile and pay the platform fee to proceed.",
-//             is_read: false,
-//             timestamp: new Date().toISOString()
-//           }
-//         ],
-//         applications: user.applications || [],
-//         visa_status: null, // You can modify this based on actual visa status logic
-//         payment_prompt: !user.isPaid
-//           ? {
-//               type: "platform_fee",
-//               amount: 100.0,
-//               currency: "GBP",
-//               payment_url: "/api/payments/platform-fee"
-//             }
-//           : null
-//       });
-//     }
-
-//     // **For Other Roles (University, Agent, Solicitor, Admin)**
-//     return res.status(200).json({
-//       message: 'Login successful.',
-//       user: {
-//         id: user._id,
-//         email: user.email,
-//         role: role
-//       },
-//       token
-//     });
-
-//   } catch (error) {
-//     console.error('Login error:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
+  } catch (error) {
+    console.error('Error checking verification status:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal Server Error'
+    });
+  }
+};
 
 
 
@@ -978,13 +925,14 @@ exports.createPayment = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const studentId = req.studentId;
+    const studentId = req.user.id;
 
     // Fetch the student
     const student = await Students.findById(studentId).session(session);
     if (!student) {
       return res.status(404).json({ message: 'Student not found.' });
     }
+    // if(student.isPaid) res.status(200).json({message: 'Payment already done for this user'});
 
     // Simulate payment (mark as paid)
     student.isPaid = true;
@@ -995,7 +943,7 @@ exports.createPayment = async (req, res) => {
 
     return res.status(200).json({
       message: 'Payment successful, you can now access the dashboard.',
-      student,
+      // student,
     });
   } catch (error) {
     await session.abortTransaction();

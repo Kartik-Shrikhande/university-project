@@ -381,7 +381,7 @@ exports.getAllCourses = async (req, res) => {
 // Get a specific course by ID for a university
 exports.getCourseById = async (req, res) => {
   try {
-    const universityId = req.universityId; // Retrieve university ID from middleware
+    const universityId = req.user.id; // Retrieve university ID from middleware
     const { courseId } = req.params; // Course ID is still retrieved from the request parameters
 
     // Validate course ID
@@ -411,13 +411,57 @@ exports.getCourseById = async (req, res) => {
   }
 };
 
+
+///active course details
+exports.getAllactiveCourses = async (req, res) => {
+  try {
+   const universityId = req.user.id;
+
+    // Validate university ID
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID.' });
+    }
+
+    // Fetch the university and its inactive courses
+    const university = await University.findById(universityId).populate({
+      path: 'courses',
+      match: { status: 'Active' }, // Match only inactive courses
+      select: 'name fees description ratings status',
+    });
+
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if there are any inactive courses
+    if (!university.courses || university.courses.length === 0) {
+      return res.status(404).json({ message: 'No active courses found for this university.' });
+    }
+
+    return res.status(200).json({
+      message: 'Active courses fetched successfully.',
+      total: university.courses.length,
+      university: {
+        id: university._id,
+        name: university.name,
+      },
+      courses: university.courses,
+    });
+  } catch (error) {
+    console.error('Error fetching inactive courses:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
  
  //req.params done
 
 ///inactive course details
 exports.getAllInactiveCourses = async (req, res) => {
   try {
-   const { universityId} = req.user.id;
+   const universityId = req.user.id;
 
     // Validate university ID
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
