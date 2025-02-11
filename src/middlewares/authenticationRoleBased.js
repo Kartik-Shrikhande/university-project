@@ -177,6 +177,7 @@ exports.refreshToken = async (req, res) => {
 
 
 
+
 exports.verifyToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -192,11 +193,61 @@ exports.verifyToken = async (req, res) => {
 
       const { id, role } = decoded;
 
-      // **Final Response**
+      // **Check if role is student**
+      if (role === 'student') {
+        const user = await Students.findById(id).select('-password'); // Fetch student data excluding password
+        if (!user) {
+          return res.status(404).json({ message: 'Student not found.' });
+        }
+
+        // **Custom Response for Student Role**
+        return res.status(200).json({
+          message: 'Token is valid.',
+          role: role,
+          token: token,
+          user: {
+            id: user._id,
+            email: user.email,
+            is_active: true, // Assuming all logged-in users are active
+            email_verified: user.isVerified || false,
+            platform_fee_paid: user.isPaid || false,
+            created_at: user.createdAt
+          },
+          platform_access: {
+            courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
+            payment_required: !user.isPaid, // If not paid, payment is required
+            message: user.isPaid
+              ? 'You have access to all platform features.'
+              : 'Pay the platform fee to view universities and courses.'
+          },
+          notifications: [
+            {
+              id: 'NOTIF-001',
+              type: 'system',
+              title: 'Welcome to Connect2Uni!',
+              content: 'Complete your profile and pay the platform fee to proceed.',
+              is_read: false,
+              timestamp: new Date().toISOString()
+            }
+          ],
+          applications: user.applications || [],
+          visa_status: null, // Modify this based on actual visa status logic
+          payment_prompt: !user.isPaid
+            ? {
+                type: 'platform_fee',
+                amount: 100.0,
+                currency: 'GBP',
+                payment_url: '/api/payments/platform-fee'
+              }
+            : null
+        });
+      }
+
+      // **Generic Response for Other Roles**
       return res.status(200).json({
         message: 'Token is valid.',
         userId: id,
-        role: role,
+        role: role
       });
     });
   } catch (error) {
