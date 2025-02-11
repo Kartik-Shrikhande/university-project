@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+const paymentController = require('../controllers/paymentController');
+
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 // const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
@@ -133,6 +135,12 @@ router.post('/login',
 
 
 
+
+
+
+
+
+
   // router.get('/get/universitiesss',
   //   //authenticationMiddleware1.authenticateUser,
   //   //authenticationMiddleware1.authorizeRoles('student'),
@@ -149,6 +157,11 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
+
+
+//PAYMENT
+router.post('/create-payment-intent', paymentController.createPaymentIntent);
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
 
 router.put('/update',
   // updateValidator, 
@@ -214,6 +227,8 @@ router.post('/create-payment',
     userActivity.updateLastActivity,
      userControllers.enrollCourse)
 
+
+
 //COURSES
 // Get all courses by uni id (optionally filtered by university)
 router.get('/courses/:universityId',
@@ -225,6 +240,8 @@ router.get('/courses/:universityId',
 router.get('/filters/course',
    
   paymentMiddleware.checkPaymentStatus,
+  // studentValidations.validateCourseFilters,
+  // validate,
   userActivity.updateLastActivity,
    userControllers.getCoursesWithFilters);
 

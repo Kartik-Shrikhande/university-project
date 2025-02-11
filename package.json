@@ -34,7 +34,7 @@
     "passport-apple": "^2.0.2",
     "passport-google-oauth20": "^2.0.0",
     "razorpay": "^2.9.5",
-    "stripe": "^17.5.0",
+    "stripe": "^17.6.0",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

@@ -384,7 +384,7 @@ exports.login = async (req, res) => {
           courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
           payment_required: !user.isPaid, // If not paid, payment is required
           message: user.isPaid
-            ? "You have access to all platform features."
+            ? "You have full access to to view universities and courses."
             : "Pay the platform fee to view universities and courses."
         },
         notifications: [
@@ -982,7 +982,7 @@ exports.getAllUniversityCourses = async (req, res) => {
     }
 
     // Send response
-    return res.status(200).json({total: courses.length,coursesList: courses});
+    return res.status(200).json({university_name:finduniversity.name,total: courses.length,coursesList: courses});
   } 
   catch (error) {
     console.error('Error fetching courses:', error);
@@ -991,70 +991,114 @@ exports.getAllUniversityCourses = async (req, res) => {
 };
 
 
+//get all courses for student + with filteration
 
 exports.getCoursesWithFilters = async (req, res) => {
   try {
     const { minPrice, maxPrice, country, courseName, universityName } = req.query;
 
     // Build the filter object dynamically
-    const filter = {};
+    const filter = {
+      status: 'Active', // Show only active courses
+      isDeleted: false, // Exclude soft-deleted courses
+    };
 
-    // Filter by fees (minPrice and maxPrice)
+    // // Validate and apply price filters
+    // if (minPrice || maxPrice) {
+    //   const min = Number(minPrice);
+    //   const max = Number(maxPrice);
+
+    //   if (min && max && min > max) {
+    //     return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+    //   }
+
+    //   filter.fees = {};
+    //   if (min) filter.fees.$gte = min;
+    //   if (max) filter.fees.$lte = max;
+    // }
+   // Validate and apply price filters
     if (minPrice || maxPrice) {
-      filter.fees = {};
-      if (minPrice) filter.fees.$gte = Number(minPrice);
-      if (maxPrice) filter.fees.$lte = Number(maxPrice);
-    }
+      // Convert minPrice and maxPrice to numbers
+      const min = Number(minPrice);
+      const max = Number(maxPrice);
 
-    // Filter by country (for universities)
+      // Validation 1: Check if minPrice and maxPrice are valid numbers
+      if (minPrice && isNaN(min)) {
+        return res.status(400).json({ message: 'minPrice must be a valid number.' });
+      }
+      if (maxPrice && isNaN(max)) {
+        return res.status(400).json({ message: 'maxPrice must be a valid number.' });
+      }
+
+      // Validation 2: Check if minPrice or maxPrice is negative
+      if ((minPrice && min < 0) || (maxPrice && max < 0)) {
+        return res.status(400).json({ message: 'Price values cannot be negative.' });
+      }
+
+      // Validation 3: Check if minPrice is greater than maxPrice
+      if (minPrice && maxPrice && min > max) {
+        return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+      }
+
+      // Apply price filters
+      filter.fees = {};
+      if (minPrice) filter.fees.$gte = min;
+      if (maxPrice) filter.fees.$lte = max;
+    }
+    // Fetch universities matching country filter
     if (country) {
-      const universitiesInCountry = await university
-        .find({ country: new RegExp(country, 'i') })
-        .select('_id');
-      
-      if (universitiesInCountry.length) {
-        filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
-      } else {
+      const universitiesInCountry = await University.find({
+        'address.country': new RegExp(country, 'i'),
+        isDeleted: false, // Exclude deleted universities
+      }).select('_id');
+
+      if (!universitiesInCountry.length) {
         return res.status(404).json({ message: 'No universities found in the specified country.' });
       }
+
+      filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
     }
 
-    // Filter by university name
+    // Fetch universities matching university name filter
     if (universityName) {
-      const universitiesWithName = await university
-        .find({ name: new RegExp(universityName, 'i') })
-        .select('_id');
-      
-      if (universitiesWithName.length) {
-        if (filter.university && filter.university.$in) {
-          filter.university.$in = filter.university.$in.filter((id) =>
-            universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
-          );
+      const universitiesWithName = await University.find({
+        name: new RegExp(universityName, 'i'),
+        isDeleted: false, // Exclude deleted universities
+      }).select('_id');
 
-          if (!filter.university.$in.length) {
-            return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
-          }
-        } else {
-          filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
+      if (!universitiesWithName.length) {
+        return res.status(404).json({ message: 'No universities found with the specified name.' });
+      }
+
+      // If both country and university name are provided, filter matching both
+      if (filter.university && filter.university.$in) {
+        filter.university.$in = filter.university.$in.filter((id) =>
+          universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
+        );
+
+        if (!filter.university.$in.length) {
+          return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
         }
       } else {
-        return res.status(404).json({ message: 'No universities found with the specified name.' });
+        filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
       }
     }
 
-    // Filter by course name
+    // Apply course name filter
     if (courseName) {
-      filter.name = new RegExp(courseName, 'i'); // Case-insensitive search for course name
+      filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
     }
 
     // Fetch the filtered courses
     const courses = await Course.find(filter)
-      .populate('university', 'name country') // Include university details
-      .sort({ applicationDate: -1 }); // Sort by application date (newest first)
+      .populate({
+        path: 'university',
+        select: 'name address.country', // Include university details
+      })
+      .sort({ applicationDate: -1 }); // Sort by latest application date
 
-    // Check if any courses are found
     if (!courses.length) {
-      return res.status(404).json({ message: 'No courses found matching the criteria.' });
+      return res.status(404).json({ message: 'No active courses found matching the criteria.' });
     }
 
     // Send response
@@ -1066,16 +1110,90 @@ exports.getCoursesWithFilters = async (req, res) => {
 };
 
 
+// exports.getCoursesWithFilters = async (req, res) => {
+//   try {
+//     const { minPrice, maxPrice, country, courseName, universityName } = req.query;
+
+//     // Build the filter object dynamically
+//     const filter = {};
+
+//     // Filter by fees (minPrice and maxPrice)
+//     if (minPrice || maxPrice) {
+//       filter.fees = {};
+//       if (minPrice) filter.fees.$gte = Number(minPrice);
+//       if (maxPrice) filter.fees.$lte = Number(maxPrice);
+//     }
+
+//     // Filter by country (for universities)
+//     if (country) {
+//       const universitiesInCountry = await university
+//         .find({ country: new RegExp(country, 'i') })
+//         .select('_id');
+      
+//       if (universitiesInCountry.length) {
+//         filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
+//       } else {
+//         return res.status(404).json({ message: 'No universities found in the specified country.' });
+//       }
+//     }
+
+//     // Filter by university name
+//     if (universityName) {
+//       const universitiesWithName = await university
+//         .find({ name: new RegExp(universityName, 'i') })
+//         .select('_id');
+      
+//       if (universitiesWithName.length) {
+//         if (filter.university && filter.university.$in) {
+//           filter.university.$in = filter.university.$in.filter((id) =>
+//             universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
+//           );
+
+//           if (!filter.university.$in.length) {
+//             return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
+//           }
+//         } else {
+//           filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
+//         }
+//       } else {
+//         return res.status(404).json({ message: 'No universities found with the specified name.' });
+//       }
+//     }
+
+//     // Filter by course name
+//     if (courseName) {
+//       filter.name = new RegExp(courseName, 'i'); // Case-insensitive search for course name
+//     }
+
+//     // Fetch the filtered courses
+//     const courses = await Course.find(filter)
+//       .populate('university', 'name country') // Include university details
+//       .sort({ applicationDate: -1 }); // Sort by application date (newest first)
+
+//     // Check if any courses are found
+//     if (!courses.length) {
+//       return res.status(404).json({ message: 'No courses found matching the criteria.' });
+//     }
+
+//     // Send response
+//     return res.status(200).json({ total: courses.length, coursesList: courses });
+//   } catch (error) {
+//     console.error('Error fetching courses with filters:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
+
+
 
 exports.getCourseById = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const studentId = req.studentId; // Assuming `studentId` is provided via middleware/authentication
+    const studentId = req.user.id; // Assuming `studentId` is provided via middleware/authentication
 
 
     if (!isValidObjectId(courseId)) return res.status(400).json({ message: 'Enter a valid courseId' });
     // Fetch the course and its associated university
-    const course = await Course.findById(courseId).populate('university', 'name');
+    const course = await Course.findOne({ _id: courseId, status:'Active' }).populate('university', 'name');
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }

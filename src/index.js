@@ -34,6 +34,16 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //       { model: Agents, roleName: 'agent' },
 //       { model: Solicitors, roleName: 'solicitor' },
 //       { model: Agencies, roleName: 'admin' }
+// app.use(
+//     express.json({
+//       verify: (req, res, buf) => {
+//         req.rawBody = buf.toString();
+//       },
+//     })
+//   );
+  
+
+app.use('/student/stripe-webhook', express.raw({ type: 'application/json' })); // ✅ Required for Stripe signature verification
 
 app.use(express.json())
 app.use(cookieParser());

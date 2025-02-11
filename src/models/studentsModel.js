@@ -107,10 +107,13 @@ const studentSchema = new mongoose.Schema(
     ],
     verificationToken: { type: String, required: false },  // Add this field for email verification
     isPaid: { type: Boolean, default: false },
+       // Payment Integration
+   payments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }], // Store payment history
     referralSource: { type: String, enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
        'Education fair/exhibition','Advertisement(online/offline)','Other'],
       //  required: true
       },
+    visitedCourses: { type: [mongoose.Schema.Types.ObjectId], ref: 'Course', default: [] },
     assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
     termsAndConditionsAccepted: {

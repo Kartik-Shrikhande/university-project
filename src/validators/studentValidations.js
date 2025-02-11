@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { check,body } = require('express-validator');
 
 const validateRegisterStudent = [
   // Validate firstName
@@ -217,7 +217,23 @@ const validateResendOtpForLogin = [
     .withMessage('Invalid email format.'),
 ];
 
-
+const validateCourseFilters = [
+  check('minPrice')
+    .optional()
+    .isNumeric().withMessage('minPrice must be a number'),
+  check('maxPrice')
+    .optional()
+    .isNumeric().withMessage('maxPrice must be a number'),
+  check('country')
+    .optional()
+    .isString().withMessage('Country must be a string'),
+  check('courseName')
+    .optional()
+    .isString().withMessage('Course name must be a string'),
+  check('universityName')
+    .optional()
+    .isString().withMessage('University name must be a string'),
+];
 
 
 const validateVerifyOtpForRegistration = [
@@ -244,7 +260,8 @@ module.exports = {
   
   // validateVerifyOtpForLogin,
   validateResendOtpForLogin,
-  validateVerifyOtpForRegistration
+  validateVerifyOtpForRegistration,
+  validateCourseFilters
 };
 
 
