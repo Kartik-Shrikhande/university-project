@@ -98,6 +98,10 @@ router.get('/verify-status/:id', studentController.checkStudentVerificationStatu
 router.get('/verify-email', studentController.verifyEmail);
 
 
+
+
+
+
 router.post(
   '/verify/registration/otp',
   studentValidations.validateVerifyOtpForRegistration,
@@ -159,9 +163,11 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
 
-//PAYMENT
+ //PAYMENT 
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
 router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
+
+// router.get('/profile',studentController.seeStudentProfile);
 
 router.put('/update',
   // updateValidator, 
@@ -234,7 +240,7 @@ router.post('/create-payment',
 router.get('/courses/:universityId',
   paymentMiddleware.checkPaymentStatus,
   userActivity.updateLastActivity,
-   userControllers.getAllUniversityCourses);
+   userControllers.getAllUniversityCourses); //n
 
 
 router.get('/filters/course',
@@ -243,14 +249,15 @@ router.get('/filters/course',
   // studentValidations.validateCourseFilters,
   // validate,
   userActivity.updateLastActivity,
-   userControllers.getCoursesWithFilters);
+   userControllers.getCoursesWithFilters); //n
 
 //get course by Id
 router.get('/course/:courseId',
 paymentMiddleware.checkPaymentStatus,
 userActivity.updateLastActivity,
- userControllers.getCourseById)
+ userControllers.getCourseById) //n
 
+ 
 
 //APPLICATION
 

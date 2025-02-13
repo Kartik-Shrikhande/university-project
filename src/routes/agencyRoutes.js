@@ -32,7 +32,11 @@ router.post('/create', agencyController.createAgency);
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 
 //COURSES
+router.get('/courses/:universityId',agencyController.getAllUniversityCoursesforAgency); //n
 
+router.get('/filters/course',agencyController.getallCoursesWithFiltersforAgency); //n
+//get course by Id
+router.get('/course/:courseId',agencyController.getCourseByIdforAgency) //n
 
 
 //UNIVERSITY

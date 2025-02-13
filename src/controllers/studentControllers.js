@@ -612,6 +612,32 @@ exports.checkStudentVerificationStatus = async (req, res) => {
 };
 
 
+//P
+// exports.seeStudentProfile = async (req, res) => {
+//   try {
+
+//     const studentId = req.user.id;
+
+//     if (!mongoose.isValidObjectId(studentId)) {
+//       return res.status(400).json({ success: false, message: 'Invalid Student ID' });
+//     }
+
+//     // Fetch student profile, excluding sensitive & unnecessary fields
+//     const student = await Students.findById(studentId)
+//       .select('-password -verificationToken -createdAt -updatedAt -isDeleted -__v');
+
+//     if (!student) {
+//       return res.status(404).json({ success: false, message: 'Student not found' });
+//     }
+
+//     return res.status(200).json({ success: true, student });
+
+//   } catch (error) {
+//     console.error('Error fetching student profile:', error);
+//     return res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// };
+
 
 
 exports.resendOtpForLogin = async (req, res) => {
@@ -665,7 +691,7 @@ exports.resendOtpForLogin = async (req, res) => {
 };
 
 
-
+//
 // exports.verifyOtpforLogin = async (req, res) => {
 //   try {
 //     const { email, otp } = req.body;

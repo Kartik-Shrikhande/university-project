@@ -26,13 +26,9 @@ const {
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
-//router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-
-
-  router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);
-// router.put('/update', validateUpdateUniversity ,universityController.updateUniversity);
+// router.get('/profile',universityController.seeUniversityProfile);
+router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);
 router.put('/update/password', universityController.universityUpdatePassword)
-   
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 
 

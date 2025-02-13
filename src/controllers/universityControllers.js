@@ -6,50 +6,7 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const { uploadFilesToS3 } = require('../utils/s3Upload'); 
 
-// exports.createUniversity = async (req, res) => {
-//   try {
-//     const { name, email, password, description, country, isPromoted, ratings } = req.body;
 
-//     // Check if the email is already in use
-//     const existingUniversity = await University.findOne({ email });
-//     if (existingUniversity) {
-//       return res.status(400).json({ message: 'Email is already in use.' });
-//     }
-
-//     // Hash the password
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     // Create a new university instance
-//     const newUniversity = new University({
-//       name,
-//       email,
-//       password: hashedPassword,
-//       description,
-//       country,
-//       isPromoted: isPromoted || 'NO', // Default to 'NO' if not provided
-//       ratings: ratings || [], // Default to an empty array if not provided
-//     });
-
-//     // Save the new university to the database
-//     await newUniversity.save();
-
-//     return res.status(201).json({
-//       message: 'University created successfully.',
-//       university: {
-//         id: newUniversity._id,
-//         name: newUniversity.name,
-//         email: newUniversity.email,
-//         country: newUniversity.country,
-//         role: newUniversity.role, // Default role is 'University'
-//         isPromoted: newUniversity.isPromoted,
-//         ratings: newUniversity.ratings,
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error creating university:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 //UNIVERSITY 
 
@@ -288,10 +245,38 @@ exports.deleteUniversity = async (req, res) => {
 };
 
 
+//P
+// exports.seeUniversityProfile = async (req, res) => {
+//   try {
+
+//     const universityId = req.user.id;
+
+//     // Validate if universityId is a valid MongoDB ObjectId
+//     if (!mongoose.isValidObjectId(universityId)) {
+//       return res.status(400).json({ success: false, message: 'Invalid University ID' });
+//     }
+
+//     // Fetch university details excluding password
+//     const university = await University.findById(universityId).select('-password -createdAt -updatedAt -isDeleted -__v');
+//     // Handle case where university is not found
+//     if (!university) {
+//       return res.status(404).json({ success: false, message: 'University not found' });
+//     }
+
+//     return res.status(200).json({ success: true, university });
+
+//   } catch (error) {
+//     console.error('Error fetching university profile:', error);
+//     return res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// };
+
 
 
 
 //COURSES
+
+
 
 exports.createCourse = async (req, res) => {
   const session = await mongoose.startSession();

@@ -8,9 +8,190 @@ const Agent = require('../models/agentModel');
 const bcrypt = require('bcrypt');
 const generator = require('generate-password');
 const nodemailer = require('nodemailer');
+const Course = require('../models/coursesModel');
+const university = require('../models/universityModel');
+const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 //COURSES 
+
+
+
+
+// Get all courses for a specific university
+exports.getAllUniversityCoursesforAgency = async (req, res) => {
+  try {
+    const { universityId } = req.params; // University ID is required
+
+    // Validate universityId
+    if (!isValidObjectId(universityId)) return res.status(400).json({ message: 'Enter a valid universityId' });
+    
+
+    // Fetch the university and check if it exists
+    const finduniversity = await university.findById(universityId).populate('courses', '_id');
+    if (!finduniversity) return res.status(404).json({ message: 'University not found' })
+
+    // Check if the university has any courses
+    if (!finduniversity.courses || finduniversity.courses.length === 0) {
+      return res.status(404).json({ message: 'This university does not have any courses' });
+    }
+
+    // Fetch courses for the specified university
+    const courses = await Course.find({ university: universityId }).populate('university', 'name');
+
+    // Check if any courses are found
+    if (!courses.length) {
+      return res.status(404).json({ message: 'No courses found for the given university' });
+    }
+
+    // Send response
+    return res.status(200).json({university_name:finduniversity.name,total: courses.length,coursesList: courses});
+  } 
+  catch (error) {
+    console.error('Error fetching courses:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getallCoursesWithFiltersforAgency = async (req, res) => {
+  try {
+    const { minPrice, maxPrice, country, courseName, universityName } = req.query;
+
+    // Build the filter object dynamically
+    const filter = {
+      status: 'Active', // Show only active courses
+      isDeleted: false, // Exclude soft-deleted courses
+    };
+
+    // // Validate and apply price filters
+    // if (minPrice || maxPrice) {
+    //   const min = Number(minPrice);
+    //   const max = Number(maxPrice);
+
+    //   if (min && max && min > max) {
+    //     return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+    //   }
+
+    //   filter.fees = {};
+    //   if (min) filter.fees.$gte = min;
+    //   if (max) filter.fees.$lte = max;
+    // }
+   // Validate and apply price filters
+    if (minPrice || maxPrice) {
+      // Convert minPrice and maxPrice to numbers
+      const min = Number(minPrice);
+      const max = Number(maxPrice);
+
+      // Validation 1: Check if minPrice and maxPrice are valid numbers
+      if (minPrice && isNaN(min)) {
+        return res.status(400).json({ message: 'minPrice must be a valid number.' });
+      }
+      if (maxPrice && isNaN(max)) {
+        return res.status(400).json({ message: 'maxPrice must be a valid number.' });
+      }
+
+      // Validation 2: Check if minPrice or maxPrice is negative
+      if ((minPrice && min < 0) || (maxPrice && max < 0)) {
+        return res.status(400).json({ message: 'Price values cannot be negative.' });
+      }
+
+      // Validation 3: Check if minPrice is greater than maxPrice
+      if (minPrice && maxPrice && min > max) {
+        return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+      }
+
+      // Apply price filters
+      filter.fees = {};
+      if (minPrice) filter.fees.$gte = min;
+      if (maxPrice) filter.fees.$lte = max;
+    }
+    // Fetch universities matching country filter
+    if (country) {
+      const universitiesInCountry = await University.find({
+        'address.country': new RegExp(country, 'i'),
+        isDeleted: false, // Exclude deleted universities
+      }).select('_id');
+
+      if (!universitiesInCountry.length) {
+        return res.status(404).json({ message: 'No universities found in the specified country.' });
+      }
+
+      filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
+    }
+
+    // Fetch universities matching university name filter
+    if (universityName) {
+      const universitiesWithName = await University.find({
+        name: new RegExp(universityName, 'i'),
+        isDeleted: false, // Exclude deleted universities
+      }).select('_id');
+
+      if (!universitiesWithName.length) {
+        return res.status(404).json({ message: 'No universities found with the specified name.' });
+      }
+
+      // If both country and university name are provided, filter matching both
+      if (filter.university && filter.university.$in) {
+        filter.university.$in = filter.university.$in.filter((id) =>
+          universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
+        );
+
+        if (!filter.university.$in.length) {
+          return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
+        }
+      } else {
+        filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
+      }
+    }
+
+
+    // Apply course name filter
+    if (courseName) {
+      filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
+    }
+
+    // Fetch the filtered courses
+    const courses = await Course.find(filter)
+      .populate({
+        path: 'university',
+        select: 'name address.country', // Include university details
+      })
+      .sort({ applicationDate: -1 }); // Sort by latest application date
+
+    if (!courses.length) {
+      return res.status(404).json({ message: 'No active courses found matching the criteria.' });
+    }
+
+    // Send response
+    return res.status(200).json({ total: courses.length, coursesList: courses });
+  } catch (error) {
+    console.error('Error fetching courses with filters:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+exports.getCourseByIdforAgency = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+ 
+    if (!isValidObjectId(courseId)) return res.status(400).json({ message: 'Enter a valid courseId' });
+    // Fetch the course and its associated university
+    const course = await Course.findOne({ _id: courseId, status:'Active' }).populate('university', 'name');
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+
+    return res.status(200).json({ Course_Details:course });
+  } 
+  catch (error) {
+    console.error('Error fetching course:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
 
 // Promote a university
 exports.promoteUniversity = async (req, res) => {
