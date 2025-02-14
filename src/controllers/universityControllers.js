@@ -246,30 +246,30 @@ exports.deleteUniversity = async (req, res) => {
 
 
 //P
-// exports.seeUniversityProfile = async (req, res) => {
-//   try {
+ exports.seeUniversityProfile = async (req, res) => {
+  try {
 
-//     const universityId = req.user.id;
+    const universityId = req.user.id;
 
-//     // Validate if universityId is a valid MongoDB ObjectId
-//     if (!mongoose.isValidObjectId(universityId)) {
-//       return res.status(400).json({ success: false, message: 'Invalid University ID' });
-//     }
+    // Validate if universityId is a valid MongoDB ObjectId
+    if (!mongoose.isValidObjectId(universityId)) {
+      return res.status(400).json({ success: false, message: 'Invalid University ID' });
+    }
 
-//     // Fetch university details excluding password
-//     const university = await University.findById(universityId).select('-password -createdAt -updatedAt -isDeleted -__v');
-//     // Handle case where university is not found
-//     if (!university) {
-//       return res.status(404).json({ success: false, message: 'University not found' });
-//     }
+    // Fetch university details excluding password
+    const university = await University.findById(universityId).select('-password -createdAt -updatedAt -isDeleted -__v');
+    // Handle case where university is not found
+    if (!university) {
+      return res.status(404).json({ success: false, message: 'University not found' });
+    }
 
-//     return res.status(200).json({ success: true, university });
+    return res.status(200).json({ success: true, university });
 
-//   } catch (error) {
-//     console.error('Error fetching university profile:', error);
-//     return res.status(500).json({ success: false, message: 'Internal server error' });
-//   }
-// };
+  } catch (error) {
+    console.error('Error fetching university profile:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
 
 
 

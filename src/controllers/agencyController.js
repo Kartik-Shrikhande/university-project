@@ -53,6 +53,7 @@ exports.getAllUniversityCoursesforAgency = async (req, res) => {
   }
 };
 
+// Get all courses 
 exports.getallCoursesWithFiltersforAgency = async (req, res) => {
   try {
     const { minPrice, maxPrice, country, courseName, universityName } = req.query;
@@ -170,6 +171,7 @@ exports.getallCoursesWithFiltersforAgency = async (req, res) => {
   }
 };
 
+// Get course by id
 exports.getCourseByIdforAgency = async (req, res) => {
   try {
     const { courseId } = req.params;

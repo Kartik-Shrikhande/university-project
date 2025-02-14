@@ -167,7 +167,7 @@ router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.a
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
 router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
 
-// router.get('/profile',studentController.seeStudentProfile);
+router.get('/profile',studentController.seeStudentProfile);
 
 router.put('/update',
   // updateValidator, 
