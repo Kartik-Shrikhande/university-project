@@ -15,9 +15,12 @@ require('dotenv').config({ path: '.env' })
 require('./utils/passport'); 
 
 app.use(cors({
-    origin: "*", // Remove trailing slash
+    origin: [
+        "http://localhost:3000" 
+    ],
     credentials: true
-  }))
+}));
+
 const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
 const coursesRoutes = require('../src/routes/coursesRoutes')
