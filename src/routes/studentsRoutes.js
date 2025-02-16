@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const paymentController = require('../controllers/paymentController');
-
+const applicationController = require('../controllers/applicationController')
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 // const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
@@ -233,8 +233,7 @@ router.post('/create-payment',
     userActivity.updateLastActivity,
      userControllers.enrollCourse)
 
-
-
+     
 //COURSES
 // Get all courses by uni id (optionally filtered by university)
 router.get('/courses/:universityId',
@@ -262,16 +261,11 @@ userActivity.updateLastActivity,
 //APPLICATION
 
 // POST route for applying to a university
-router.post('/application', 
- 
-  userControllers.applyForUniversity);
+router.post('/application', applicationController.applyForCourse);
+router.get('/students/applications',applicationController.getStudentApplications);
+router.get('/get/application/:applicationId',applicationController.getApplicationById);
+// Route to get application by ID
 
-
-router.get('/students/applications',
-   userControllers.getStudentApplications);
-
-   router.get('/get/application/:applicationId',
-    userControllers.getApplicationByIdForStudent);
 
 router.use('*', (req, res) => {
     res.status(404).json({

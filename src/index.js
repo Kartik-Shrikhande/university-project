@@ -13,6 +13,10 @@ const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport'); 
 
+app.use(cors({
+    origin: "*", // Remove trailing slash
+    credentials: true
+  }))
 const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
 const coursesRoutes = require('../src/routes/coursesRoutes')
@@ -21,7 +25,7 @@ const agentsRoutes = require('../src/routes/agentRoutes')
 const otpRoutes = require('../src/routes/otpRoutes')
 const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
 
-const applicationRoutes = require('../src/routes/applicationRoutes');
+// const applicationRoutes = require('../src/routes/applicationRoutes');
 
 const startCronJob = require('../src/controllers/inactivityMailController');
 
@@ -43,7 +47,7 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //   );
   
 
-app.use('/student/stripe-webhook', express.raw({ type: 'application/json' })); // ✅ Required for Stripe signature verification
+app.use('/student/stripe-webhook', express.raw({ type: 'application/json' })); //  Required for Stripe signature verification
 
 app.use(express.json())
 app.use(cookieParser());
