@@ -6,6 +6,7 @@ const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger/swagger-output.json');
 const cookieParser = require('cookie-parser');
+const cors = require('cors')
 
 
 // Now, you can access your documentation at http://localhost:3000/api-docs
