@@ -51,8 +51,6 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //   );
   
 
-app.use('/student/stripe-webhook', express.raw({ type: 'application/json' })); //  Required for Stripe signature verification
-
 app.use(express.json())
 app.use(cookieParser());
 
