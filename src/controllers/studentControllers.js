@@ -336,6 +336,11 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
+       // Compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password.' });
+    }
     //  // Check if email is verified
     //  if (!user.isVerified) {
     //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
@@ -346,11 +351,7 @@ exports.login = async (req, res) => {
       }
   
 
-    // Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
-    }
+ 
 
     // Generate JWT Token
     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
