@@ -746,24 +746,15 @@
         }
       }
     },
-    "/application": {
+    "/application/{courseId}": {
       "post": {
         "description": "",
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "universityId": {
-                  "example": "any"
-                },
-                "courseId": {
-                  "example": "any"
-                }
-              }
-            }
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "type": "string"
           }
         ],
         "responses": {

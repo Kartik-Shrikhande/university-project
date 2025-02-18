@@ -261,7 +261,7 @@ userActivity.updateLastActivity,
 //APPLICATION
 
 // POST route for applying to a university
-router.post('/application', applicationController.applyForCourse);
+router.post('/application/:courseId', applicationController.applyForCourse);
 router.get('/students/applications',applicationController.getStudentApplications);
 router.get('/get/application/:applicationId',applicationController.getApplicationById);
 // Route to get application by ID

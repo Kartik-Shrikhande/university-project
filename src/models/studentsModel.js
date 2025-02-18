@@ -100,11 +100,8 @@ const studentSchema = new mongoose.Schema(
     // languageTestScore: { type: String }, // Added from input model
 
     // Application Details
-    applications: [
-      {
-        applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' },
-      },
-    ],
+    applications: [{applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' }}],
+    
     verificationToken: { type: String, required: false },  // Add this field for email verification
     isPaid: { type: Boolean, default: false },
        // Payment Integration

@@ -3,6 +3,7 @@ const Application = require('../models/applicationModel');
 const Students = require('../models/studentsModel');
 const Agency = require('../models/agencyModel');
 const University = require('../models/universityModel');
+const Course = require('../models/coursesModel');
 require('dotenv').config()
 
 
@@ -10,42 +11,39 @@ exports.applyForCourse = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-      const { universityId, courseId } = req.body;
+      const { courseId } = req.params;
       const { documents } = req.files || {}; // Assuming file upload middleware is used
       const studentId = req.user.id; // Retrieved from authentication middleware
   
       // Validate IDs
-      if (
-        !mongoose.Types.ObjectId.isValid(studentId) ||
-        !mongoose.Types.ObjectId.isValid(universityId) ||
-        !mongoose.Types.ObjectId.isValid(courseId)
-      ) {
-        return res.status(400).json({ message: 'Invalid IDs provided.' });
-      }
-  
+      if (!mongoose.Types.ObjectId.isValid(courseId)) return res.status(400).json({ message: 'Invalid CourseId.' });
+      
+
+
+    // Fetch the course details (including university)
+    const course = await Course.findById(courseId).select('university status');
+    if (!course) {
+        return res.status(404).json({ message: 'Course not found.' });
+    }
+
+    // Ensure the course is active before proceeding
+    if (course.status !== 'Active') {
+        return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
+    }
+
+    const universityId = course.university; // ✅ Auto-fetch university ID from course
+
+
+
       // Fetch the student
       const student = await Students.findById(studentId).session(session).select(
         'firstName middleName lastName dateOfBirth gender email telephoneNumber presentAddress permanentAddress documentType ' +
-        'documentUpload mostRecentEducation otherEducationName yearOfGraduation collegeUniversity programType otherProgramName ' +
-        'discipline otherDisciplineName countryApplyingFrom applications isPaid referralSource assignedAgent preferredCommunicationMethod'
+        'documentUpload mostRecentEducation otherEducationName yearOfGraduation collegeUniversity'
       );
       if (!student) {
         return res.status(404).json({ message: 'Student not found.' });
       }
   
-      // Fetch the university
-      const getUniversity = await University.findById(universityId).session(session).select('courses');
-      if (!getUniversity) {
-        return res.status(404).json({ message: 'University not found.' });
-      }
-  
-      // Check if the course exists in the university
-      const courseExists = getUniversity.courses.some((course) =>
-        course.toString() === courseId
-      );
-      if (!courseExists) {
-        return res.status(400).json({ message: 'The selected course does not exist in the specified university.' });
-      }
   
       // Check if the student already applied to the same course at the university
       const existingApplication = await Application.findOne({
@@ -121,15 +119,15 @@ exports.applyForCourse = async (req, res) => {
           otherEducationName: student.otherEducationName,
           yearOfGraduation: student.yearOfGraduation,
           collegeUniversity: student.collegeUniversity,
-          programType: student.programType,
-          otherProgramName: student.otherProgramName,
-          discipline: student.discipline,
-          otherDisciplineName: student.otherDisciplineName,
-          countryApplyingFrom: student.countryApplyingFrom,
-          referralSource: student.referralSource,
+          // programType: student.programType,
+          // otherProgramName: student.otherProgramName,
+          // discipline: student.discipline,
+          // otherDisciplineName: student.otherDisciplineName,
+          // countryApplyingFrom: student.countryApplyingFrom,
+          // referralSource: student.referralSource,
           assignedAgent: student.assignedAgent,
-          preferredCommunicationMethod: student.preferredCommunicationMethod,
-          isPaid: student.isPaid,
+          // preferredCommunicationMethod: student.preferredCommunicationMethod,
+          // isPaid: student.isPaid,
         },
       });
     } catch (error) {
