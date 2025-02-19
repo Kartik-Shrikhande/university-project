@@ -14,12 +14,12 @@ const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport'); 
 
-app.use(cors({
-    origin: [
-        "http://localhost:5173" 
-    ],
-    credentials: true
-}));
+// app.use(cors({
+//     origin: [
+//         "http://localhost:5173" 
+//     ],
+//     credentials: true
+// }));
 
 const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
@@ -50,9 +50,19 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //     })
 //   );
   
-
-app.use(express.json())
+// Set up middleware
+app.use(express.json({ 
+    verify: (req, res, buf) => { req.rawBody = buf.toString(); }
+}));
 app.use(cookieParser());
+app.use(cors({
+    origin: ["http://localhost:5173"], 
+    credentials: true
+}));
+
+
+// app.use(express.json())
+// app.use(cookieParser());
 
 // // Set up Swagger
 // setupSwagger(app);

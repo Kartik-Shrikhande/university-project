@@ -181,6 +181,21 @@ exports.registerStudent = async (req, res) => {
    
   
     await newStudent.save({ session });
+  // Generate JWT Token
+  const token = jwt.sign(
+    { id: newStudent._id, role: 'student' },
+    process.env.SECRET_KEY,
+    { expiresIn: '1h' }
+  );
+
+  // Set token in HTTP-only cookie
+  res.cookie('refreshtoken', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Strict',
+    maxAge: 60 * 60 * 1000, // 1 hour
+  });
+
 
     // Send OTP email
     const transporter = nodemailer.createTransport({
