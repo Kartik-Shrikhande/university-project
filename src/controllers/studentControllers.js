@@ -123,17 +123,17 @@ exports.registerStudent = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
 
- // Generate OTP
- const otpCode = Math.floor(100000 + Math.random() * 900000);
- const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
+//  // Generate OTP
+//  const otpCode = Math.floor(100000 + Math.random() * 900000);
+//  const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // OTP valid for 1 minutes
 
- // Save OTP to the database
- const newOtp = new Otp({
-   email,
-   otp: otpCode,
-   expiry: otpExpiry,
- });
- await newOtp.save({ session });
+//  // Save OTP to the database
+//  const newOtp = new Otp({
+//    email,
+//    otp: otpCode,
+//    expiry: otpExpiry,
+//  });
+//  await newOtp.save({ session });
 
  const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate a secure token
 
@@ -232,16 +232,59 @@ await transporter.sendMail(mailOptions);
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ message: 'A verification email has been successfully sent to your inbox. Please follow the instructions in the email to verify your address and complete the registration process.' });
+    return res.status(200).json({
+       message: 'A verification email has been successfully sent to your inbox. Please follow the instructions in the email to verify your address and complete the registration process.' 
+       ,token:token
+      });
    
   
-  } catch (error) {
+  }
+   catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error('Error during registration:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+
+exports.verifyStudentStatus = async (req, res) => {
+  try {
+    // const token = req.cookies.refreshtoken || req.header('Authorization').replace('Bearer ', '');
+    // if (!token) {
+    //   return res.status(401).json({ status: false, message: 'Unauthorized: No token provided' });
+    // }
+
+    // const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    // const student = await Students.findById(decoded.id);
+    // if (!student) {
+    //   return res.status(404).json({ status: false, message: 'Student not found' });
+    // }
+    const studentId = req.user.id;
+
+    // Fetch student details from the database
+    const student = await Students.findById(studentId).select('isVerified isPaid'); // Only fetch required fields
+    if (!student) {
+      return res.status(404).json({ status: false, message: 'Student not found' });
+    }
+
+    // Extract verification and subscription status directly from database
+    const isVerified = student.isVerified; // No default value, taken directly from DB
+    const isPaid = student.isPaid; // No default value, taken directly from DB
+
+    return res.status(200).json({
+      status: true,
+      verification: isVerified,
+      subscription: isPaid,
+    });
+  } catch (error) {
+    console.error('Error verifying student status:', error);
+    return res.status(500).json({ status: false, message: 'Internal server error' });
+  }
+};
+
+
 
 exports.verifyEmail = async (req, res) => {
   try {

@@ -162,6 +162,7 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
+router.get('/status',studentController.verifyStudentStatus);
 
  //PAYMENT 
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
