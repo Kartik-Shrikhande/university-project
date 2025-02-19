@@ -5,7 +5,7 @@ const Students = require('../models/studentsModel');
 //Previouse approach - in use
 exports.authenticateUser = (req, res, next) => {
   try {
-    const token = req.cookies.refreshtoken; // Extract token from cookies
+    const token = req.cookies.refreshtoken|| req.header('Authorization')?.split(' ')[1]; // Extract token from cookies
 
     if (!token) {
       return res.status(401).json({ message: 'No token provided.' });
@@ -180,7 +180,7 @@ exports.refreshToken = async (req, res) => {
 
 exports.verifyToken = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.refreshtoken ||req.headers.authorization?.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({ message: 'No token provided.' });

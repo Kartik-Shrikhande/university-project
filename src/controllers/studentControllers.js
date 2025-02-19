@@ -196,7 +196,8 @@ exports.registerStudent = async (req, res) => {
     maxAge: 60 * 60 * 1000, // 1 hour
   });
 
-
+  res.setHeader('Authorization', `Bearer ${token}`)
+  
     // Send OTP email
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
@@ -424,6 +425,9 @@ exports.login = async (req, res) => {
     });
 
 
+    // Send JWT in Response Headers
+    res.setHeader('Authorization', `Bearer ${token}`);
+    
   //  **Custom Response for Students**
     if (role === "student") {
       return res.status(200).json({
