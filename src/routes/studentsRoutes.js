@@ -122,6 +122,15 @@ router.post('/login',
    userControllers.login);
 
 
+
+
+   router.post('/api/login',
+    //  loginValidator,
+   studentValidations.validateLoginStudent,
+     userActivity.updateLastActivity, 
+     validate,
+     userControllers.appLogin);
+
   //  router.post('/verify/otp',
   //   //  loginValidator,
   //  studentValidations.validateVerifyOtpForLogin,

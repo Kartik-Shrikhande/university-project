@@ -12,7 +12,7 @@ exports.applyForCourse = async (req, res) => {
     session.startTransaction();
     try {
       const { courseId } = req.params;
-      const { documents } = req.files || {}; // Assuming file upload middleware is used
+      const documents = req.files?.documents || []; // Ensure documents is always an array// Assuming file upload middleware is used
       const studentId = req.user.id; // Retrieved from authentication middleware
   
       // Validate IDs
@@ -62,13 +62,12 @@ exports.applyForCourse = async (req, res) => {
       }
   
       // Prepare document metadata if documents are uploaded
-      const uploadedDocuments = documents
-        ? documents.map((doc) => ({
-            fileName: doc.originalname,
-            fileType: doc.mimetype,
-            fileUrl: doc.path,
-          }))
-        : [];
+// Prepare document metadata if documents are uploaded
+const uploadedDocuments = documents.map((doc) => ({
+  fileName: doc.originalname,
+  fileType: doc.mimetype,
+  fileUrl: doc.path,
+}));
   
       // Create a new application
       const newApplication = new Application({
@@ -77,12 +76,16 @@ exports.applyForCourse = async (req, res) => {
         course: courseId,
         documents: uploadedDocuments,
         agency: defaultAgency._id, // Assign default agency
-        assignedAgent: student.assignedAgent, // Retain assigned agent from student record
+        assignedAgent: student.assignedAgent|| [], // Retain assigned agent from student record
       });
   
       // Save the application
       await newApplication.save({ session });
-  
+      
+      if (!student.applications) {
+        student.applications = [];  // Initialize if undefined
+    }
+    
       // Update the student's application list
       student.applications.push({ applicationId: newApplication._id });
       await student.save({ session });

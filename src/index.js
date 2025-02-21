@@ -55,11 +55,13 @@ app.use(express.json({
     verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(cookieParser());
+
 app.use(cors({
-    origin: ["http://localhost:5173"], 
+    origin: [
+        "https://6de8-152-59-199-254.ngrok-free.app/" 
+    ],
     credentials: true
 }));
-
 
 // app.use(express.json())
 // app.use(cookieParser());

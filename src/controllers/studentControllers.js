@@ -88,7 +88,7 @@ exports.registerStudent = async (req, res) => {
       englishLanguageRequirement,
       testName,
       score,
-      // referralSource,
+      referralSource,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
@@ -172,7 +172,7 @@ exports.registerStudent = async (req, res) => {
       englishLanguageRequirement,
       testName,
       score,
-      // referralSource,
+      referralSource,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
@@ -619,6 +619,78 @@ exports.login = async (req, res) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
+
+///////////////////////////////////////////////////
+
+exports.appLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    let user = null;
+    let role = null;
+
+    // Role collections for login
+    const roleCollections = [
+      { model: University, roleName: 'University' },
+      { model: Students, roleName: 'student' },
+      { model: Agents, roleName: 'agent' },
+      { model: Solicitors, roleName: 'solicitor' },
+      { model: Agency, roleName: 'admin' } // Updated to match Agency model
+    ];
+
+    // Check each role collection
+    for (const { model, roleName } of roleCollections) {
+      user = await model.findOne({ email });
+      if (user) {
+        role = roleName;
+        break;
+      }
+    }
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password.' });
+    }
+       // Compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password.' });
+    }
+    //  // Check if email is verified
+    //  if (!user.isVerified) {
+    //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+    // }
+      // **Enforce Email Verification ONLY for Students**
+      if (role === "student" && !user.isVerified) {
+        return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+      }
+
+    // Generate JWT Token
+    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
+
+    // Set token in HTTP-only cookie
+    res.cookie('refreshtoken', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      maxAge: 604800000, // 7 days in milliseconds
+      path: '/'
+    });
+
+
+    // Send JWT in Response Headers
+    res.setHeader('Authorization', `Bearer ${token}`);
+
+    // **Default Response for Other Roles**
+    return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id});
+
+  } catch (error) {
+    console.error('Login Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
 
 
 
