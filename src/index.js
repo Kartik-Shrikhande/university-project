@@ -21,6 +21,19 @@ require('./utils/passport');
 //     credentials: true
 // }));
 
+app.use(cors({
+    origin: function (origin, callback) {
+        if (origin && origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
+
+
 const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
 const coursesRoutes = require('../src/routes/coursesRoutes')
@@ -55,21 +68,6 @@ app.use(express.json({
     verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(cookieParser());
-
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            const allowedPattern = /^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/;
-
-            if (origin && allowedPattern.test(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true,
-    })
-);
 
 
 // app.use(cors({
