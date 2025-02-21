@@ -12,7 +12,7 @@ const cors = require('cors')
 // Now, you can access your documentation at http://localhost:3000/api-docs
 const app = express()
 require('dotenv').config({ path: '.env' })
-require('./utils/passport'); 
+require('./utils/passport');
 
 // app.use(cors({
 //     origin: [
@@ -49,19 +49,35 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //       },
 //     })
 //   );
-  
+
 // Set up middleware
-app.use(express.json({ 
+app.use(express.json({
     verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(cookieParser());
 
-app.use(cors({
-    origin: [
-        "https://6de8-152-59-199-254.ngrok-free.app/" 
-    ],
-    credentials: true
-}));
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            const allowedPattern = /^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/;
+
+            if (origin && allowedPattern.test(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+    })
+);
+
+
+// app.use(cors({
+//     origin: [
+//         "https://6de8-152-59-199-254.ngrok-free.app/" 
+//     ],
+//     credentials: true
+// }));
 
 // app.use(express.json())
 // app.use(cookieParser());
@@ -74,13 +90,13 @@ app.use(cors({
 // Set up express-session
 app.use(
     session({
-      secret: process.env.SESSION_SECRET || 'defaultSecret',
-      resave: false,
-      saveUninitialized: false,
+        secret: process.env.SESSION_SECRET || 'defaultSecret',
+        resave: false,
+        saveUninitialized: false,
     })
-  );
-  
-  // Initialize Passport for Google login
+);
+
+// Initialize Passport for Google login
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -98,18 +114,19 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 mongoose.connect(process.env.MONGODB_URL)
-    .then(() => { console.log('MongoDB is connected')
+    .then(() => {
+        console.log('MongoDB is connected')
 
-     })
+    })
     .catch((error) => { console.log(error); })
 
 
-    try {
-        startCronJob();
-    } catch (error) {
-        console.error('Error starting the inactivity check cron job:', error);
-    }
-    
+try {
+    startCronJob();
+} catch (error) {
+    console.error('Error starting the inactivity check cron job:', error);
+}
+
 
 app.listen(process.env.PORT, () => {
     console.log('App is running on port', + process.env.PORT)
