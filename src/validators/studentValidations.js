@@ -130,7 +130,7 @@ const validateRegisterStudent = [
   body('englishLanguageRequirement')
     .notEmpty()
     .withMessage('English language requirement is required.')
-    .isIn(['Yes', 'No'])
+    .isIn(['Yes', 'No', 'yes','no'])
     .withMessage('English language requirement must be one of the following: Yes or No. Please choose one of these options.'),
 
   // Validate testName (for language test)

@@ -87,26 +87,26 @@ const studentSchema = new mongoose.Schema(
      }, 
      englishLanguageRequirement: { 
       type: String, 
-      enum: ['Yes', 'No'],
+      enum: ['Yes', 'No', 'yes', 'no'],
       required: true 
     },
     testName: {
       type: String, 
       enum: ['TOEFL', 'IELTS', 'Other'],
       required: function() {
-        return this.englishLanguageRequirement === 'Yes'; // Only required if English test is given
+        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
       }
     },
     score: {
       type: String,
       required: function() {
-        return this.englishLanguageRequirement === 'Yes'; // Only required if English test is given
+        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
       }
     },
     documentUpload: [{ 
       type: String,
       required: function() {
-        return this.englishLanguageRequirement === 'Yes'; // Only required if English test is given
+        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
       }
     }],
     // languageTestName: { type: String }, // Added from input model

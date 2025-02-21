@@ -95,8 +95,10 @@ exports.registerStudent = async (req, res) => {
     } = req.body;
 
 
-     // Validate required fields based on English test requirement
-     if (englishLanguageRequirement === 'Yes') {
+    const isEnglishTestRequired = englishLanguageRequirement.toLowerCase() === 'yes';
+
+    // Validate required fields based on English test requirement
+    if (isEnglishTestRequired) {
       if (!testName || !score || !(req.files && req.files['documentUpload'])) {
         return res.status(400).json({
           message: 'Test name, score, and documentUpload are required when English language test is given.',
@@ -179,8 +181,8 @@ exports.registerStudent = async (req, res) => {
       NameOfCourse,
       courseStartTimeline,
       englishLanguageRequirement,
-      testName: englishLanguageRequirement === 'Yes' ? testName : undefined,
-      score: englishLanguageRequirement === 'Yes' ? score : undefined,
+      testName: isEnglishTestRequired ? testName : undefined,
+      score: isEnglishTestRequired ? score : undefined,
       referralSource,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
