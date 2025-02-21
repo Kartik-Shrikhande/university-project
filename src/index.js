@@ -20,10 +20,13 @@ require('./utils/passport');
 //     ],
 //     credentials: true
 // }));
-
 app.use(cors({
     origin: function (origin, callback) {
-        if (origin && origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/)) {
+        console.log("Origin attempting to connect:", origin);
+
+        if (!origin || 
+            origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/) ||
+            origin === "http://localhost:5173") { 
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -55,13 +58,6 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 //       { model: Agents, roleName: 'agent' },
 //       { model: Solicitors, roleName: 'solicitor' },
 //       { model: Agencies, roleName: 'admin' }
-// app.use(
-//     express.json({
-//       verify: (req, res, buf) => {
-//         req.rawBody = buf.toString();
-//       },
-//     })
-//   );
 
 // Set up middleware
 app.use(express.json({
@@ -69,6 +65,10 @@ app.use(express.json({
 }));
 app.use(cookieParser());
 
+// app.use(cors({
+//     origin: ["http://localhost:5173"], 
+//     credentials: true
+// }));
 
 // app.use(cors({
 //     origin: [

@@ -94,6 +94,15 @@ exports.registerStudent = async (req, res) => {
       gdprAccepted,
     } = req.body;
 
+
+     // Validate required fields based on English test requirement
+     if (englishLanguageRequirement === 'Yes') {
+      if (!testName || !score || !(req.files && req.files['documentUpload'])) {
+        return res.status(400).json({
+          message: 'Test name, score, and documentUpload are required when English language test is given.',
+        });
+      }
+    }
     // Check if student already exists
     const existingStudent = await Students.findOne({ email }).session(session);;
     if (existingStudent) {
@@ -170,8 +179,8 @@ exports.registerStudent = async (req, res) => {
       NameOfCourse,
       courseStartTimeline,
       englishLanguageRequirement,
-      testName,
-      score,
+      testName: englishLanguageRequirement === 'Yes' ? testName : undefined,
+      score: englishLanguageRequirement === 'Yes' ? score : undefined,
       referralSource,
       preferredCommunicationMethod,
       termsAndConditionsAccepted,
