@@ -22,22 +22,13 @@ const studentSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 8 },
     countryCode:{ type: String, required: true, maxlength: 10 },
     telephoneNumber: { type: String, required: true, maxlength: 15 },
-    presentAddress: {
-      type: { type: String, default: 'present' },
-      streetAddress: { type: String, maxlength: 100 },
-      city: { type: String, maxlength: 50 },
-      state: { type: String, maxlength: 50 },
-      postalCode: { type: String, maxlength: 15 },
+    address: {
       country: { type: String, maxlength: 50 },
-    },
-    permanentAddress: {
-      type: { type: String, default: 'permanent' },
-      streetAddress: { type: String, maxlength: 100 },
+      zip_postalCode: { type: String, maxlength: 15 },
+      state_province_region: { type: String, maxlength: 50 }, // Updated field
       city: { type: String, maxlength: 50 },
-      state: { type: String, maxlength: 50 },
-      postalCode: { type: String, maxlength: 15 },
-      country: { type: String, maxlength: 50 },
-    },
+      addressLine: { type: String, maxlength: 100 } // Updated field
+  },
     profilePhoto: { type: String }, // Path or URL to the profile photo
 
     documentType: { type: String, 
@@ -111,7 +102,10 @@ const studentSchema = new mongoose.Schema(
     }],
     // languageTestName: { type: String }, // Added from input model
     // languageTestScore: { type: String }, // Added from input model
-
+    preferredCommunicationMethod:{ 
+      type: String,
+      required:true 
+    },
     // Application Details
     applications: [{applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' }}],
     
@@ -122,7 +116,7 @@ const studentSchema = new mongoose.Schema(
     referralSource: { type: String, 
       // enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
       //  'Education fair/exhibition','Advertisement(online/offline)','Other'],
-      //  required: true
+       required: true
       },
     visitedCourses: { type: [mongoose.Schema.Types.ObjectId], ref: 'Course', default: [] },
     assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },

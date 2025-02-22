@@ -67,8 +67,7 @@ exports.registerStudent = async (req, res) => {
       password,
       countryCode,
       telephoneNumber,
-      presentAddress,
-      permanentAddress,
+      address,
       documentType,
       mostRecentEducation,
       otherEducationName,
@@ -160,8 +159,6 @@ exports.registerStudent = async (req, res) => {
       password: hashedPassword,
       countryCode,
       telephoneNumber,
-      presentAddress,
-      permanentAddress,
       documentType,
       documentUpload:uploadedDocumentUploads,
       document: uploadedDocuments, // Save document URLs
@@ -188,6 +185,13 @@ exports.registerStudent = async (req, res) => {
       termsAndConditionsAccepted,
       gdprAccepted,
       verificationToken,
+      address: {  // Updated Address Structure
+        country: address.country,
+        zip_postalCode: address.zip_postalCode,
+        state_province_region: address.state_province_region,
+        city: address.city,
+        addressLine: address.addressLine,
+      },
     });
    
   
@@ -692,7 +696,7 @@ exports.appLogin = async (req, res) => {
     res.setHeader('Authorization', `Bearer ${token}`);
 
     // **Default Response for Other Roles**
-    return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id});
+    return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id,user:user});
 
   } catch (error) {
     console.error('Login Error:', error);

@@ -71,6 +71,14 @@ const validateRegisterStudent = [
     .isLength({ max: 15 })
     .withMessage('Telephone number cannot exceed 15 characters.'),
 
+  // Address validations
+  body("address.country").notEmpty().withMessage("Country is required"),
+  body("address.zip_postalCode").notEmpty().withMessage("Zip/Postal Code is required"),
+  body("address.state_province_region").notEmpty().withMessage("State/Province/Region is required"),
+  body("address.city").notEmpty().withMessage("City is required"),
+  body("address.addressLine").notEmpty().withMessage("Address Line is required"),
+
+
   // Validate documentType
   body('documentType')
     .notEmpty()
@@ -85,6 +93,8 @@ const validateRegisterStudent = [
     .isIn(['BTech', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'])
     .withMessage('Most recent education must be one of the following: BTech, Diploma, Degree, Masters, PhD, or Other. Please choose one of these options.'),
 
+
+    body('yearOfGraduation').notEmpty().isInt().withMessage('Valid graduation year is required'),
   // Validate programType
   body('programType')
     .notEmpty()
@@ -160,7 +170,11 @@ const validateRegisterStudent = [
     .withMessage('GDPR compliance must be explicitly accepted.'),
 
 
-  // // Validate referralSource
+    body('NameOfUniversity').notEmpty().withMessage('Name Of University is required'),
+    body('preferredCommunicationMethod').notEmpty().withMessage('preferred communication method is required'),
+    body('NameOfCourse').notEmpty().withMessage('NameOfCourse is required')
+  
+    // // Validate referralSource
   // body('referralSource')
   // .notEmpty()
   // .withMessage('Referral source is required. Choose one from: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other.')

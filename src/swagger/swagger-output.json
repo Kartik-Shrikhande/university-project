@@ -61,10 +61,7 @@
                 "telephoneNumber": {
                   "example": "any"
                 },
-                "presentAddress": {
-                  "example": "any"
-                },
-                "permanentAddress": {
+                "address": {
                   "example": "any"
                 },
                 "documentType": {
