@@ -172,7 +172,7 @@ const validateRegisterStudent = [
 
     body('NameOfUniversity').notEmpty().withMessage('Name Of University is required'),
     body('preferredCommunicationMethod').notEmpty().withMessage('preferred communication method is required'),
-    body('NameOfCourse').notEmpty().withMessage('NameOfCourse is required')
+    // body('NameOfCourse').notEmpty().withMessage('NameOfCourse is required')
   
     // // Validate referralSource
   // body('referralSource')
