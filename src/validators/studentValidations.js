@@ -108,12 +108,12 @@ const validateRegisterStudent = [
     .isIn(['Computers', 'Business', 'Marketing', 'Other'])
     .withMessage('Discipline must be one of the following: Computers, Business, Marketing, or Other. Please choose one of these options.'),
 
-  // Validate countryApplyingFrom
-  body('countryApplyingFrom')
-    .notEmpty()
-    .withMessage('Country applying from is required.')
-    .isIn(['India', 'UK', 'Other'])
-    .withMessage('Country applying from must be one of the following: India, UK, or Other. Please choose one of these options.'),
+  // // Validate countryApplyingFrom
+  // body('countryApplyingFrom')
+  //   .notEmpty()
+  //   .withMessage('Country applying from is required.')
+  //   .isIn(['India', 'UK', 'Other'])
+  //   .withMessage('Country applying from must be one of the following: India, UK, or Other. Please choose one of these options.'),
 
   // Validate preferredUniversity
   body('preferredUniversity')
