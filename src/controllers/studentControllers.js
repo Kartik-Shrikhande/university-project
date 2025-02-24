@@ -249,7 +249,7 @@ await transporter.sendMail(mailOptions);
     session.endSession();
 
     return res.status(200).json({
-       message: 'A verification email has been successfully sent to your inbox. Please follow the instructions in the email to verify your address and complete the registration process.' 
+       message: 'A verification link has been sent to your email. Please click on the link to verify your email address in order to login.' 
        ,token:token
       });
    
