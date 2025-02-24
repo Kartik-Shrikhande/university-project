@@ -139,6 +139,11 @@ router.post('/login',
   //    userControllers.verifyOtpforLogin);
 
 
+  // Route to resend verification email //IN USE
+  router.post('/resend-verification-email',userControllers.resendVerificationEmail);
+
+
+
    router.post(
     '/resend/otp',
     studentValidations.validateResendOtpForLogin,
@@ -170,6 +175,8 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
+
+// router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
 
 router.get('/status',studentController.verifyStudentStatus);
 

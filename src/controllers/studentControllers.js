@@ -760,6 +760,102 @@ exports.checkStudentVerificationStatus = async (req, res) => {
   }
 };
 
+// Function to validate email format
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+//IN USE
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+     // Check if email is provided
+     if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Invalid email format.' });
+    }
+    // Check if the student exists
+    const student = await Students.findOne({ email });
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Check if the student is already verified
+    if (student.isVerified) {
+      return res.status(400).json({ message: 'Email is already verified.' });
+    }
+
+    // Generate a new verification token
+    const newVerificationToken = crypto.randomBytes(32).toString('hex');
+
+    // Update the student record with the new token
+    student.verificationToken = newVerificationToken;
+    await student.save();
+
+    // Configure the email transporter
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Email content
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Email Verification - Resend',
+      text: `Click the following link to verify your email: 
+      https://university-project-m8o9.onrender.com/student/verify-email?token=${newVerificationToken}`,
+    };
+
+    // Send the email
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      message: 'A new verification link has been sent to your email. Please check your inbox.',
+    });
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+//
+// exports.resendVerificationEmailAutomated = async (req, res) => {
+//   try {
+//     // Extract user ID from JWT token
+//     const userId = req.user.id;
+
+//     // Find the student in the database
+//     const student = await Students.findById(userId);
+//     if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+//     if (student.isVerified) return res.status(400).json({ message: 'Email already verified.' });
+
+//     // Generate a new verification token and update expiry
+//     const newVerificationToken = crypto.randomBytes(32).toString('hex');
+//     student.verificationToken = newVerificationToken;
+//     student.verificationTokenExpiry = Date.now() + 15 * 60 * 1000;
+
+//     await student.save();
+
+//     // Send verification email
+//     sendVerificationEmail(student.email, newVerificationToken);
+
+//     res.status(200).json({ message: 'Verification email resent successfully.' });
+
+//   } catch (error) {
+//     res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 //P
 exports.seeStudentProfile = async (req, res) => {
