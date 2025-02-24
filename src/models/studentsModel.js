@@ -57,15 +57,15 @@ const studentSchema = new mongoose.Schema(
     otherProgramName: { type: String },
     discipline: { type: String, enum: ['Computers', 'Business', 'Marketing', 'Other'] },
     otherDisciplineName: { type: String },
-    countryApplyingFrom: { type: String,
-      enum: ['India', 'UK', 'Other'],
-       required: true },
-    countryName: { type: String },
+    // countryApplyingFrom: { type: String,
+    //   enum: ['India', 'UK', 'Other'],
+    //    required: true },
+    // countryName: { type: String },
     preferredUniversity: { type: String,
       enum: ['Yes', 'No'],
       required: true
     }, 
-    NameOfUniversity:{ type: String },
+    NameOfUniversity:{ type: String ,default:null},
     // Added from input model
     preferredCourse: { type: String,
       enum: ['Yes', 'No'],
@@ -84,6 +84,7 @@ const studentSchema = new mongoose.Schema(
     testName: {
       type: String, 
       enum: ['TOEFL', 'IELTS', 'Other'],
+      default:null,
       required: function() {
         return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
       }
@@ -102,10 +103,10 @@ const studentSchema = new mongoose.Schema(
     }],
     // languageTestName: { type: String }, // Added from input model
     // languageTestScore: { type: String }, // Added from input model
-    preferredCommunicationMethod:{ 
-      type: String,
-      required:true 
-    },
+    // preferredCommunicationMethod:{ 
+    //   type: String,
+    //   required:true 
+    // },
     // Application Details
     applications: [{applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' }}],
     

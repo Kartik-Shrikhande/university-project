@@ -170,9 +170,9 @@ const validateRegisterStudent = [
     .withMessage('GDPR compliance must be explicitly accepted.'),
 
 
-    body('NameOfUniversity').notEmpty().withMessage('Name Of University is required'),
-    body('preferredCommunicationMethod').notEmpty().withMessage('preferred communication method is required'),
-    // body('NameOfCourse').notEmpty().withMessage('NameOfCourse is required')
+    // body('NameOfUniversity').notEmpty().withMessage('Name Of University is required'),
+    // body('preferredCommunicationMethod').notEmpty().withMessage('preferred communication method is required'),
+    body('preferredUniversity').notEmpty().withMessage('preferredUniversity is required')
   
     // // Validate referralSource
   // body('referralSource')

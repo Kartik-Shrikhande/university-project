@@ -91,12 +91,6 @@
                 "otherDisciplineName": {
                   "example": "any"
                 },
-                "countryApplyingFrom": {
-                  "example": "any"
-                },
-                "countryName": {
-                  "example": "any"
-                },
                 "preferredUniversity": {
                   "example": "any"
                 },
@@ -122,9 +116,6 @@
                   "example": "any"
                 },
                 "referralSource": {
-                  "example": "any"
-                },
-                "preferredCommunicationMethod": {
                   "example": "any"
                 },
                 "termsAndConditionsAccepted": {
