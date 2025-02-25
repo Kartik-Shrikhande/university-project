@@ -2,16 +2,24 @@ const mongoose = require('mongoose');
 
 const agentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    isActive:{
+      type: Boolean, 
+      default: false, 
+    },
+    availabilityForApplication:{
+      type: Boolean, 
+      default: false, 
+    },
     role: { type: String, enum: ['Admin', 'agent'], default: 'agent' },
     assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // Students handled by the agent
     pendingApplications: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Pending applications
     ],
     approvedApplications: [
-      { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Approved applications
+      { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Approved applications //send to university
     ],
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 

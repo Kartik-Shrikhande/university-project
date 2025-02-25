@@ -6,6 +6,7 @@ const University = require('../models/universityModel');
 const Course = require('../models/coursesModel');
 require('dotenv').config()
 
+//STUDENTS
 
 exports.applyForCourse = async (req, res) => {
     const session = await mongoose.startSession();
@@ -344,6 +345,8 @@ exports.getApplicationById = async (req, res) => {
 };
 
   
+
+//AGENT 
 
 
 // exports.applyForUniversity = async (req, res) => {

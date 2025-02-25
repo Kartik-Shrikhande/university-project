@@ -442,12 +442,20 @@ exports.login = async (req, res) => {
     // Send JWT in Response Headers
     res.setHeader('Authorization', `Bearer ${token}`);
     
+ // **Always Update `loginCompleted` to `true` for Students if it is false**
+   // **Ensure `loginCompleted` is Set to `true` for Students Whenever It’s False**
+    if (role === "student" && user.loginCompleted === false) {
+      await Students.updateOne({ _id: user._id }, { $set: { loginCompleted: true } });
+      user.loginCompleted = true; // Update user object for response
+    }
+
   //  **Custom Response for Students**
     if (role === "student") {
       return res.status(200).json({
         message: 'Login successful.',
         role: role,
         token: token,
+        // userDetail:user,
         user: {
           id: user._id,
           email: user.email,
@@ -455,7 +463,8 @@ exports.login = async (req, res) => {
           is_active: true, // Assuming all logged-in users are active
           email_verified: user.isVerified || false,
           platform_fee_paid: user.isPaid || false,
-          created_at: user.createdAt
+          created_at: user.createdAt,
+          // loginCompleted: user.loginCompleted // Now guaranteed to be true if it was false
         },
         platform_access: {
           courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
@@ -638,71 +647,71 @@ exports.login = async (req, res) => {
 
 ///////////////////////////////////////////////////
 
-exports.appLogin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    let user = null;
-    let role = null;
+// exports.appLogin = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     let user = null;
+//     let role = null;
 
-    // Role collections for login
-    const roleCollections = [
-      { model: University, roleName: 'University' },
-      { model: Students, roleName: 'student' },
-      { model: Agents, roleName: 'agent' },
-      { model: Solicitors, roleName: 'solicitor' },
-      { model: Agency, roleName: 'admin' } // Updated to match Agency model
-    ];
+//     // Role collections for login
+//     const roleCollections = [
+//       { model: University, roleName: 'University' },
+//       { model: Students, roleName: 'student' },
+//       { model: Agents, roleName: 'agent' },
+//       { model: Solicitors, roleName: 'solicitor' },
+//       { model: Agency, roleName: 'admin' } // Updated to match Agency model
+//     ];
 
-    // Check each role collection
-    for (const { model, roleName } of roleCollections) {
-      user = await model.findOne({ email });
-      if (user) {
-        role = roleName;
-        break;
-      }
-    }
+//     // Check each role collection
+//     for (const { model, roleName } of roleCollections) {
+//       user = await model.findOne({ email });
+//       if (user) {
+//         role = roleName;
+//         break;
+//       }
+//     }
 
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
-    }
-       // Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
-    }
-    //  // Check if email is verified
-    //  if (!user.isVerified) {
-    //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-    // }
-      // **Enforce Email Verification ONLY for Students**
-      if (role === "student" && !user.isVerified) {
-        return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-      }
+//     if (!user) {
+//       return res.status(400).json({ message: 'Invalid email or password.' });
+//     }
+//        // Compare password
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ message: 'Invalid email or password.' });
+//     }
+//     //  // Check if email is verified
+//     //  if (!user.isVerified) {
+//     //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+//     // }
+//       // **Enforce Email Verification ONLY for Students**
+//       if (role === "student" && !user.isVerified) {
+//         return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+//       }
 
-    // Generate JWT Token
-    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
+//     // Generate JWT Token
+//     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
 
-    // Set token in HTTP-only cookie
-    res.cookie('refreshtoken', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'None',
-      maxAge: 604800000, // 7 days in milliseconds
-      path: '/'
-    });
+//     // Set token in HTTP-only cookie
+//     res.cookie('refreshtoken', token, {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: 'None',
+//       maxAge: 604800000, // 7 days in milliseconds
+//       path: '/'
+//     });
 
 
-    // Send JWT in Response Headers
-    res.setHeader('Authorization', `Bearer ${token}`);
+//     // Send JWT in Response Headers
+//     res.setHeader('Authorization', `Bearer ${token}`);
 
-    // **Default Response for Other Roles**
-    return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id,user:user});
+//     // **Default Response for Other Roles**
+//     return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id,user:user});
 
-  } catch (error) {
-    console.error('Login Error:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
+//   } catch (error) {
+//     console.error('Login Error:', error);
+//     return res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// };
 
 
 
@@ -824,6 +833,7 @@ exports.resendVerificationEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error resending verification email:', error);
+    // console.log(error)
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
