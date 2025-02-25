@@ -114,7 +114,7 @@ router.post(
 //    validate, 
 //    userControllers.registerStudent);
 
-router.post('/api/login',
+router.post('/login',
   //  loginValidator,
  studentValidations.validateLoginStudent,
    userActivity.updateLastActivity, 
