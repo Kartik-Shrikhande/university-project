@@ -47,7 +47,7 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
     otherEducationName: { type: String },
-    yearOfGraduation: { type: Number, min: 2014, max: 2024 },
+    yearOfGraduation: { type: Number, min: 2014, max: new Date().getFullYear() },
     collegeUniversity: { type: String, maxlength: 100 },
     programType: {
       type: String,
@@ -84,15 +84,15 @@ const studentSchema = new mongoose.Schema(
     testName: {
       type: String, 
       enum: ['TOEFL', 'IELTS', 'Other'],
-      default:null,
+      default: null,
       required: function() {
-        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
+        return this.englishLanguageRequirement && this.englishLanguageRequirement.toLowerCase() === 'yes'; 
       }
     },
     score: {
       type: String,
       required: function() {
-        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
+        return this.englishLanguageRequirement && this.englishLanguageRequirement.toLowerCase() === 'yes'; 
       }
     },
     documentUpload: [{ 
@@ -108,8 +108,9 @@ const studentSchema = new mongoose.Schema(
     //   required:true 
     // },
     // Application Details
-    applications: [{applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' }}],
-    
+   
+    applications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+
     verificationToken: { type: String, required: false },  // Add this field for email verification
     isPaid: { type: Boolean, default: false },
        // Payment Integration

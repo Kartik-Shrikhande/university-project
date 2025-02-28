@@ -17,7 +17,7 @@ const universitySchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 8 },
     role: { type: String, enum: ['Admin', 'University'], default: 'University' }, // Default role is 'University'
     description: { type: String },
-     bannerImage: { type: String },
+     bannerImage:  [{ type: String }],
        // 3. Official Website URL
     website: { type: String, required: true },
 

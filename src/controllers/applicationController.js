@@ -3,145 +3,337 @@ const Application = require('../models/applicationModel');
 const Students = require('../models/studentsModel');
 const Agency = require('../models/agencyModel');
 const University = require('../models/universityModel');
+const { uploadFilesToS3 } = require('../utils/s3Upload');
 const Course = require('../models/coursesModel');
 require('dotenv').config()
 
 //STUDENTS
 
-exports.applyForCourse = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const { courseId } = req.params;
-      const documents = req.files?.documents || []; // Ensure documents is always an array// Assuming file upload middleware is used
-      const studentId = req.user.id; // Retrieved from authentication middleware
+// exports.applyForCourse = async (req, res) => {
+//     const session = await mongoose.startSession();
+//     session.startTransaction();
+//     try {
+//       const { courseId } = req.params;
+//       const documents = req.files?.documents || []; // Ensure documents is always an array// Assuming file upload middleware is used
+//       const studentId = req.user.id; // Retrieved from authentication middleware
   
-      // Validate IDs
-      if (!mongoose.Types.ObjectId.isValid(courseId)) return res.status(400).json({ message: 'Invalid CourseId.' });
+//       // Validate IDs
+//       if (!mongoose.Types.ObjectId.isValid(courseId)) return res.status(400).json({ message: 'Invalid CourseId.' });
       
 
 
-    // Fetch the course details (including university)
-    const course = await Course.findById(courseId).select('university status');
-    if (!course) {
-        return res.status(404).json({ message: 'Course not found.' });
-    }
+//     // Fetch the course details (including university)
+//     const course = await Course.findById(courseId).select('university status');
+//     if (!course) {
+//         return res.status(404).json({ message: 'Course not found.' });
+//     }
 
-    // Ensure the course is active before proceeding
-    if (course.status !== 'Active') {
-        return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
-    }
+//     // Ensure the course is active before proceeding
+//     if (course.status !== 'Active') {
+//         return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
+//     }
 
-    const universityId = course.university; // ✅ Auto-fetch university ID from course
+//     const universityId = course.university; // ✅ Auto-fetch university ID from course
 
 
 
-      // Fetch the student
-      const student = await Students.findById(studentId).session(session).select(
-        'firstName middleName lastName dateOfBirth gender email telephoneNumber presentAddress permanentAddress documentType ' +
-        'documentUpload mostRecentEducation otherEducationName yearOfGraduation collegeUniversity'
-      );
-      if (!student) {
-        return res.status(404).json({ message: 'Student not found.' });
+//       // Fetch the student
+//       const student = await Students.findById(studentId).session(session).select(
+//         'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
+//         'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
+//          );
+//       if (!student) {
+//         return res.status(404).json({ message: 'Student not found.' });
+//       }
+  
+  
+//       // Check if the student already applied to the same course at the university
+//       const existingApplication = await Application.findOne({
+//         student: studentId,
+//         university: universityId,
+//         course: courseId,
+//       }).session(session);
+//       if (existingApplication) {
+//         return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
+//       }
+  
+//       // Fetch the default agency
+//       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
+//       if (!defaultAgency) {
+//         return res.status(500).json({ message: 'Default agency not found.' });
+//       }
+  
+//       // Prepare document metadata if documents are uploaded
+// // Prepare document metadata if documents are uploaded
+// const uploadedDocuments = documents.map((doc) => ({
+//   fileName: doc.originalname,
+//   fileType: doc.mimetype,
+//   fileUrl: doc.path,
+// }));
+  
+//       // Create a new application
+//       const newApplication = new Application({
+//         student: studentId,
+//         university: universityId,
+//         course: courseId,
+//         documents: uploadedDocuments,
+//         agency: defaultAgency._id, // Assign default agency
+//         assignedAgent: student.assignedAgent|| [], // Retain assigned agent from student record
+//       });
+  
+//       // Save the application
+//       await newApplication.save({ session });
+      
+//       if (!student.applications) {
+//         student.applications = [];  // Initialize if undefined
+//     }
+    
+//       // Update the student's application list
+//       student.applications.push({ applicationId: newApplication._id });
+//       await student.save({ session });
+  
+//       // Update the agency's pending applications list
+//       defaultAgency.pendingApplications.push(newApplication._id);
+//       await defaultAgency.save({ session });
+  
+//       await session.commitTransaction();
+//       session.endSession();
+  
+//       return res.status(201).json({
+//         message: 'Application submitted successfully.',
+//         application: {
+//           id: newApplication._id,
+//           status: newApplication.status,
+//           submissionDate: newApplication.submissionDate,
+//           university: newApplication.university,
+//           course: newApplication.course,
+//         },
+//         student: {
+//           firstName: student.firstName,
+//           middleName: student.middleName,
+//           lastName: student.lastName,
+//           dateOfBirth: student.dateOfBirth,
+//           gender: student.gender,
+//           email: student.email,
+//           telephoneNumber: student.telephoneNumber,
+//           presentAddress: student.presentAddress,
+//           permanentAddress: student.permanentAddress,
+//           documentType: student.documentType,
+//           documentUpload: student.documentUpload,
+//           mostRecentEducation: student.mostRecentEducation,
+//           otherEducationName: student.otherEducationName,
+//           // yearOfGraduation: student.yearOfGraduation,
+//           collegeUniversity: student.collegeUniversity,
+//           // programType: student.programType,
+//           // otherProgramName: student.otherProgramName,
+//           // discipline: student.discipline,
+//           // otherDisciplineName: student.otherDisciplineName,
+//           // countryApplyingFrom: student.countryApplyingFrom,
+//           // referralSource: student.referralSource,
+//           assignedAgent: student.assignedAgent,
+//           // preferredCommunicationMethod: student.preferredCommunicationMethod,
+//           // isPaid: student.isPaid,
+//         },
+//       });
+//     } catch (error) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       console.error('Error applying for university:', error);
+//       return res.status(500).json({ message: 'Internal server error.' });
+//     }
+//   };
+
+
+exports.applyForCourse = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+      const { courseId } = req.params;
+      const studentId = req.user.id;
+
+      // Extract input fields from the request body
+      const {
+          previousDegree,
+          grades,
+          marks,
+          fromYear,
+          toYear,
+      } = req.body;
+
+
+ // ✅ Upload files to AWS S3 and get URLs
+ const academicTranscripts = req.files['academicTranscripts']
+ ? await uploadFilesToS3(req.files['academicTranscripts'])
+ : [];
+
+const proofofEnglishProficiency = req.files['proofofEnglishProficiency']
+ ? await uploadFilesToS3(req.files['proofofEnglishProficiency'])
+ : [];
+
+const lettersOfRecommendation = req.files['lettersOfRecommendation']
+ ? await uploadFilesToS3(req.files['lettersOfRecommendation'])
+ : [];
+
+const statementOfPurpose = req.files['statementOfPurpose']
+ ? await uploadFilesToS3(req.files['statementOfPurpose'])
+ : [];
+
+const resumeCV = req.files['resumeCV']
+ ? await uploadFilesToS3(req.files['resumeCV'])
+ : [];
+
+const passportSizePhotographs = req.files['passportSizePhotographs']
+ ? await uploadFilesToS3(req.files['passportSizePhotographs'])
+ : [];
+
+const financialStatements = req.files['financialStatements']
+ ? await uploadFilesToS3(req.files['financialStatements'])
+ : [];
+
+const additionalDocuments = req.files['additionalDocuments']
+ ? await uploadFilesToS3(req.files['additionalDocuments'])
+ : [];
+
+
+      // Validate course ID
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+          return res.status(400).json({ message: 'Invalid CourseId.' });
       }
+
+      const course = await Course.findById(courseId).select('university status');
+      if (!course) {
+          return res.status(404).json({ message: 'Course not found.' });
+      }
+
+      if (course.status !== 'Active') {
+          return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
+      }
+
+      const universityId = course.university;
+       // ✅ Fetch Student Details
+       const student = await Students.findById(studentId).session(session).select(
+        'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
+        'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
+    );
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
+
   
-  
-      // Check if the student already applied to the same course at the university
+
       const existingApplication = await Application.findOne({
-        student: studentId,
-        university: universityId,
-        course: courseId,
+          student: studentId,
+          university: universityId,
+          course: courseId,
       }).session(session);
+
       if (existingApplication) {
-        return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
+          return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
       }
-  
-      // Fetch the default agency
+
       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
       if (!defaultAgency) {
-        return res.status(500).json({ message: 'Default agency not found.' });
+          return res.status(500).json({ message: 'Default agency not found.' });
       }
-  
-      // Prepare document metadata if documents are uploaded
-// Prepare document metadata if documents are uploaded
-const uploadedDocuments = documents.map((doc) => ({
-  fileName: doc.originalname,
-  fileType: doc.mimetype,
-  fileUrl: doc.path,
-}));
-  
-      // Create a new application
+
+      // ✅ Create a new application with properly initialized arrays
       const newApplication = new Application({
-        student: studentId,
-        university: universityId,
-        course: courseId,
-        documents: uploadedDocuments,
-        agency: defaultAgency._id, // Assign default agency
-        assignedAgent: student.assignedAgent|| [], // Retain assigned agent from student record
+          student: studentId,
+          university: universityId,
+          course: courseId,
+          agency: defaultAgency._id,
+          assignedAgent: student.assignedAgent || [],
+
+          // Academic Details
+          previousDegree,
+          grades,
+          marks,
+          fromYear,
+          toYear,
+
+          // Uploaded Documents
+          academicTranscripts,
+          proofofEnglishProficiency,
+          lettersOfRecommendation,
+          statementOfPurpose,
+          resumeCV,
+          passportSizePhotographs,
+          financialStatements,
+          additionalDocuments,
+
+          
       });
-  
-      // Save the application
+
       await newApplication.save({ session });
-      
-      if (!student.applications) {
-        student.applications = [];  // Initialize if undefined
-    }
-    
-      // Update the student's application list
-      student.applications.push({ applicationId: newApplication._id });
-      await student.save({ session });
-  
-      // Update the agency's pending applications list
+
+
+
+// Ensure applications array is initialized
+if (!Array.isArray(student.applications)) {
+  student.applications = [];
+}
+
+// Add the new application using $push (safer method)
+await Students.findByIdAndUpdate(
+  studentId,
+  { $push: { applications: newApplication._id } },
+  { session, new: true }
+);
+
+// Also update the agency
+await Agency.findByIdAndUpdate(
+  process.env.DEFAULT_AGENCY_ID,
+  { $push: { pendingApplications: newApplication._id } },
+  { session, new: true }
+);
+
+
       defaultAgency.pendingApplications.push(newApplication._id);
       await defaultAgency.save({ session });
-  
+
       await session.commitTransaction();
       session.endSession();
-  
+
       return res.status(201).json({
-        message: 'Application submitted successfully.',
-        application: {
-          id: newApplication._id,
-          status: newApplication.status,
-          submissionDate: newApplication.submissionDate,
-          university: newApplication.university,
-          course: newApplication.course,
-        },
-        student: {
-          firstName: student.firstName,
-          middleName: student.middleName,
-          lastName: student.lastName,
-          dateOfBirth: student.dateOfBirth,
-          gender: student.gender,
-          email: student.email,
-          telephoneNumber: student.telephoneNumber,
-          presentAddress: student.presentAddress,
-          permanentAddress: student.permanentAddress,
-          documentType: student.documentType,
-          documentUpload: student.documentUpload,
-          mostRecentEducation: student.mostRecentEducation,
-          otherEducationName: student.otherEducationName,
-          yearOfGraduation: student.yearOfGraduation,
-          collegeUniversity: student.collegeUniversity,
-          // programType: student.programType,
-          // otherProgramName: student.otherProgramName,
-          // discipline: student.discipline,
-          // otherDisciplineName: student.otherDisciplineName,
-          // countryApplyingFrom: student.countryApplyingFrom,
-          // referralSource: student.referralSource,
-          assignedAgent: student.assignedAgent,
-          // preferredCommunicationMethod: student.preferredCommunicationMethod,
-          // isPaid: student.isPaid,
+          message: 'Application submitted successfully.',
+          application: {
+              id: newApplication._id,
+              status: newApplication.status,
+              submissionDate: newApplication.submissionDate,
+              university: newApplication.university,
+              course: newApplication.course,
+          },
+          student: {
+            firstName: student.firstName,
+            middleName: student.middleName,
+            lastName: student.lastName,
+            dateOfBirth: student.dateOfBirth,
+            gender: student.gender,
+            email: student.email,
+            countryCode: student.countryCode,
+            telephoneNumber: student.telephoneNumber,
+            address: student.address,
+            // permanentAddress: student.permanentAddress,
+            documentType: student.documentType,
+            documentUpload: student.documentUpload,
+            mostRecentEducation: student.mostRecentEducation,
+            otherEducationName: student.otherEducationName,
+            collegeUniversity: student.collegeUniversity,
+            discipline: student.discipline,
+            otherDisciplineName: student.otherDisciplineName,
+            // assignedAgent: student.assignedAgent,
+            
         },
       });
-    } catch (error) {
+
+  } catch (error) {
       await session.abortTransaction();
       session.endSession();
       console.error('Error applying for university:', error);
       return res.status(500).json({ message: 'Internal server error.' });
-    }
-  };
-  
+  }
+};
+
+
 //-----------------------------------------------------------------------------------------------------------
   //previouse
   // exports.getStudentApplications = async (req, res) => {
@@ -220,131 +412,99 @@ const uploadedDocuments = documents.map((doc) => ({
   
   
 
-exports.getStudentApplications = async (req, res) => {
-  try {
-    const studentId = req.user.id; // Retrieved from authentication middleware
-
-    // Validate `studentId`
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({ message: 'Invalid student ID provided.' });
+  exports.getStudentApplications = async (req, res) => {
+    try {
+      const studentId = req.user.id;
+  
+      // Validate `studentId`
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        return res.status(400).json({ message: 'Invalid student ID provided.' });
+      }
+  
+      // Fetch the student with their applications
+      const student = await Students.findById(studentId)
+        .populate({
+          path: 'applications',
+          populate: [
+            { path: 'university', select: 'name country' },
+            { path: 'course', select: 'name fees' },
+            { path: 'agency', select: 'name contactEmail' },
+            { path: 'assignedAgent', select: 'name email' },
+          ],
+        })
+        .select('applications firstName lastName email');
+  
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found.' });
+      }
+  
+      if (!student.applications || student.applications.length === 0) {
+        return res.status(404).json({ message: 'No applications found for this student.' });
+      }
+  
+      // Prepare the response data
+      const applications = student.applications.map((app) => ({
+        applicationId: app._id,
+        university: app.university ? app.university.name : 'Unknown',
+        // country: app.university?app.university.address.country : 'Unknown',
+        course: app.course ? app.course.name : 'Unknown',
+        status: app.status,
+        submissionDate: app.submissionDate ? app.submissionDate.toLocaleDateString() : null,
+        submissionTime: app.submissionDate ? app.submissionDate.toISOString().slice(11, 19) : null,
+        notes: app.notes || 'No notes provided',
+      }));
+  
+      return res.status(200).json({
+        total: applications.length,
+        message: 'Successfully fetched student applications.',
+        student: {
+          id: student._id,
+          name: `${student.firstName} ${student.lastName}`,
+          email: student.email,
+        },
+        applications,
+      });
+    } catch (error) {
+      console.error('Error fetching student applications:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
-
-    // Fetch the student with their applications
-    const student = await Students.findById(studentId).select('applications firstName lastName email');
-
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
-
-    // Check if the student has applications
-    if (!student.applications || student.applications.length === 0) {
-      return res.status(404).json({ message: 'No applications found for this student.' });
-    }
-
-    // Get application IDs from student
-    const applicationIds = student.applications.map(app => app.applicationId);
-
-    // Fetch applications from the `Application` model
-    const applications = await Application.find({ _id: { $in: applicationIds }, isDeleted: false })
-      .populate('university', 'name country')
-      .populate('course', 'name fees')
-      .populate('agency', 'name email')
-      .populate('assignedAgent', 'name email');
-
-    if (!applications || applications.length === 0) {
-      return res.status(404).json({ message: 'No valid applications found in the system.' });
-    }
-
-    // Prepare response data
-    const formattedApplications = applications.map(app => ({
-      applicationId: app._id,
-      university: app.university ? app.university.name : 'Unknown',
-      country: app.university ? app.university.country : 'Unknown',
-      course: app.course ? app.course.name : 'Unknown',
-      status: app.status,
-      submissionDate: app.submissionDate ? app.submissionDate.toLocaleDateString() : null,
-      submissionTime: app.submissionDate ? app.submissionDate.toISOString().slice(11, 19) : null,
-      notes: app.notes || 'No notes provided',
-    }));
-
-    return res.status(200).json({
-      total: formattedApplications.length,
-      message: 'Successfully fetched student applications.',
-      student: {
-        id: student._id,
-        name: `${student.firstName} ${student.lastName}`,
-        email: student.email,
-      },
-      applications: formattedApplications,
-    });
-
-  } catch (error) {
-    console.error('Error fetching student applications:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
+  };
+  
+//-
 //-----------------------------------------------------------------------------------------------------------
 
 
+// ✅ Get a specific application by ID for a student
 exports.getApplicationById = async (req, res) => {
   try {
-    const studentId = req.user.id; // Retrieved from authentication middleware
-    const { applicationId } = req.params;
 
-    // Validate `studentId` and `applicationId`
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ message: 'Invalid student ID or application ID provided.' });
-    }
+    const studentId  = req.user.id
+      const { applicationId } = req.params;
 
-    // Check if student exists
-    const student = await Students.findById(studentId).select('applications');
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
+      // Ensure student exists
+      const studentExists = await Students.findById(studentId);
+      if (!studentExists) {
+          return res.status(404).json({ message: "Student not found" });
+      }
 
-    // Ensure the application belongs to the student
-    const isStudentApplication = student.applications.some(app => app.applicationId.toString() === applicationId);
-    if (!isStudentApplication) {
-      return res.status(403).json({ message: 'Unauthorized to access this application.' });
-    }
-
-    // Fetch application details
-    const application = await Application.findOne({ _id: applicationId, isDeleted: false })
+      // Fetch application
+      const application = await Application.findOne({ student: studentId, _id: applicationId })
       .populate('university', 'name country')
       .populate('course', 'name fees')
       .populate('agency', 'name email')
       .populate('assignedAgent', 'name email');
 
-    if (!application) {
-      return res.status(404).json({ message: 'Application not found.' });
-    }
+      if (!application) {
+          return res.status(404).json({ message: "Application not found" });
+      }
 
-    // Prepare response
-    return res.status(200).json({
-      message: 'Successfully fetched application details.',
-      application: {
-        applicationId: application._id,
-        university: application.university ? application.university.name : 'Unknown',
-        country: application.university ? application.university.country : 'Unknown',
-        course: application.course ? application.course.name : 'Unknown',
-        fees: application.course ? application.course.fees : 0,
-        status: application.status,
-        submissionDate: application.submissionDate ? application.submissionDate.toLocaleDateString() : null,
-        submissionTime: application.submissionDate ? application.submissionDate.toISOString().slice(11, 19) : null,
-        notes: application.notes || 'No notes provided',
-        agency: application.agency ? application.agency.name : 'Not assigned',
-        assignedAgent: application.assignedAgent ? { name: application.assignedAgent.name, email: application.assignedAgent.email } : 'Not assigned',
-      },
-    });
+      res.status(200).json({ success: true, application });
 
   } catch (error) {
-    console.error('Error fetching application details:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+      console.error("Error fetching application:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-};
-
-  
+};  
 
 //AGENT 
 

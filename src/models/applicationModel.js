@@ -25,11 +25,43 @@ const applicationSchema = new mongoose.Schema(
         fileType: { type: String }, // Type of the file (e.g., PDF, image)
         fileUrl: { 
           type: String, 
-          required: true 
+          // required: true 
         }, // URL or path to the file
       },
     ],
-
+    //Application Input fields 
+    previousDegree: { 
+      type: String, //enum : masters , bachelors,others
+      enum: ['Masters', 'Bachelors', 'Others'], 
+      required: true 
+    },
+    grades:{
+      type: String, 
+      enum: ['Cgpa', 'Grades'], 
+      required: true 
+    },
+    marks:{
+      type: String, 
+      required: true 
+    },
+ fromYear:{
+  type: Number, 
+  required: true
+ },
+  toYear:{
+  type: Number, 
+  required: true
+ },
+//documents 
+  // Documents (✅ No More `required: true`)
+  academicTranscripts: [{ type: String, default: [] }], 
+  proofofEnglishProficiency: [{ type: String, default: [] }],
+  lettersOfRecommendation: [{ type: String, default: [] }],
+  statementOfPurpose: [{ type: String, default: [] }],
+  resumeCV: [{ type: String, default: [] }],
+  passportSizePhotographs: [{ type: String, default: [] }],
+  financialStatements: [{ type: String, default: [] }],
+  additionalDocuments: [{ type: String, default: [] }],
     // Financial Aid field
     financialAid: {
       type: String,

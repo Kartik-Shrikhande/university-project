@@ -94,7 +94,10 @@ const validateRegisterStudent = [
     .withMessage('Most recent education must be one of the following: BTech, Diploma, Degree, Masters, PhD, or Other. Please choose one of these options.'),
 
 
-    body('yearOfGraduation').notEmpty().isInt().withMessage('Valid graduation year is required'),
+  body('yearOfGraduation').notEmpty()
+    .isInt({ min: 2014, max: new Date().getFullYear() })
+    .withMessage(`From year must be between 2014 and ${new Date().getFullYear()}.`),
+
   // Validate programType
   body('programType')
     .notEmpty()

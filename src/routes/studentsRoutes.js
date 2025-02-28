@@ -10,12 +10,13 @@ const userControllers = require('../controllers/studentControllers');
 const userActivity = require('../middlewares/updateActivity')
 const multer = require('multer');
 const { validationResult } = require('express-validator');
-
 const studentController = require('../controllers/studentControllers');
-
 const studentValidations = require('../validators/studentValidations');
 // const upload = require('../middlewares/uploadMiddleware');
-const {uploadImage}=require("../middlewares/uploadMiddleware")
+const uploadImage=require("../middlewares/uploadMiddleware")
+const validateApplication = require('../validators/applicationValidations'); // ✅ Import validation middleware
+
+const{ uploadFilesToS3} = require('../utils/s3Upload'); // Import updated upload middleware
 
 // Multer setup for file upload (memory storage)
 const storage = multer.memoryStorage();
@@ -98,10 +99,6 @@ router.get('/verify-status/:id', studentController.checkStudentVerificationStatu
 router.get('/verify-email', studentController.verifyEmail);
 
 
-
-
-
-
 router.post(
   '/verify/registration/otp',
   studentValidations.validateVerifyOtpForRegistration,
@@ -152,13 +149,6 @@ router.post('/login',
   );
 
 
-
-
-
-
-
-
-
   // router.get('/get/universitiesss',
   //   //authenticationMiddleware1.authenticateUser,
   //   //authenticationMiddleware1.authorizeRoles('student'),
@@ -177,6 +167,25 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
 // router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
+
+// Apply for a course (Authenticated User)
+
+
+const uploadFields = uploadImage.fields([
+  { name: 'academicTranscripts', maxCount: 5 },
+  { name: 'proofofEnglishProficiency', maxCount: 5 },
+  { name: 'lettersOfRecommendation', maxCount: 5 },
+  { name: 'statementOfPurpose', maxCount: 5 },
+  { name: 'resumeCV', maxCount: 5 },
+  { name: 'passportSizePhotographs', maxCount: 5 },
+  { name: 'financialStatements', maxCount: 5 },
+  { name: 'additionalDocuments', maxCount: 5 },
+]);
+
+router.post('/application/:courseId', 
+  uploadFields,
+  validateApplication, 
+  applicationController.applyForCourse);
 
 router.get('/status',studentController.verifyStudentStatus);
 
@@ -278,7 +287,22 @@ userActivity.updateLastActivity,
 //APPLICATION
 
 // POST route for applying to a university
-router.post('/application/:courseId', applicationController.applyForCourse);
+// / Multer setup for multiple document uploads
+// ✅ Use upload.fields() properly
+// const uploads = uploadImage.fields([
+//   { name: 'documents', maxCount: 10 },
+//   { name: 'academicTranscripts', maxCount: 5 },
+//   { name: 'proofOfEnglishProficiency', maxCount: 5 },
+//   { name: 'lettersOfRecommendation', maxCount: 5 },
+//   { name: 'statementOfPurpose', maxCount: 5 },
+//   { name: 'resumeCV', maxCount: 5 },
+//   { name: 'passportSizePhotographs', maxCount: 5 },
+//   { name: 'financialStatements', maxCount: 5 },
+//   { name: 'additionalDocuments', maxCount: 5 }
+// ]);
+
+
+// router.post('/application/:courseId', applicationController.applyForCourse);//previouse
 router.get('/students/applications',applicationController.getStudentApplications);
 router.get('/get/application/:applicationId',applicationController.getApplicationById);
 // Route to get application by ID

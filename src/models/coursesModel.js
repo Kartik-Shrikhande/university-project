@@ -8,6 +8,13 @@ const courseSchema = new mongoose.Schema(
     university: { type: mongoose.Schema.Types.ObjectId, ref: 'University', required: true },
     fees: { type: Number, required: true },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+    courseImage: [{ type: String }],
+    courseType:{
+       type: String, 
+       enum: ['fulltime', 'parttime','online'],
+       required: true 
+      },
+    courseDuration : { type: String, required: true },
     ratings: [{ type: Number }],
     applicationDate: { 
       type: Date, 
