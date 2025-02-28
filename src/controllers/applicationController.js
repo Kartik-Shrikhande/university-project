@@ -195,7 +195,27 @@ const additionalDocuments = req.files['additionalDocuments']
  ? await uploadFilesToS3(req.files['additionalDocuments'])
  : [];
 
-
+   // Validate required files
+   if (
+    !academicTranscripts.length ||
+    !proofofEnglishProficiency.length ||
+    !lettersOfRecommendation.length ||
+    !statementOfPurpose.length ||
+    !passportSizePhotographs.length ||
+    !financialStatements.length
+) {
+    return res.status(400).json({
+        message: "All required documents must be uploaded.",
+        missingFiles: {
+            academicTranscripts: academicTranscripts.length ? "Provided" : "Missing",
+            proofOfEnglishProficiency: proofofEnglishProficiency.length ? "Provided" : "Missing",
+            lettersOfRecommendation: lettersOfRecommendation.length ? "Provided" : "Missing",
+            statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
+            passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
+            financialStatements: financialStatements.length ? "Provided" : "Missing",
+        },
+    });
+}
       // Validate course ID
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
           return res.status(400).json({ message: 'Invalid CourseId.' });
