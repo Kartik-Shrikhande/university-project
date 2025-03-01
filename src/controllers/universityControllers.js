@@ -277,14 +277,14 @@ exports.deleteUniversity = async (req, res) => {
 //COURSES
 
 
-
 exports.createCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { name, description, fees, ratings } = req.body;
-    const  universityId  = req.user.id;; // Get universityId from URL parameters
+    const { name, description, fees, ratings, expiryDate, courseType, courseDuration } = req.body;
+    const universityId = req.user.id; // Get universityId from the logged-in user
 
+    // Validate University
     const universityRecord = await University.findById(universityId).session(session);
     if (!universityRecord) {
       await session.abortTransaction();
@@ -292,7 +292,7 @@ exports.createCourse = async (req, res) => {
       return res.status(404).json({ message: 'University not found' });
     }
 
-    // Check if the course already exists in the same university
+    // Check for duplicate course
     const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
     if (existingCourse) {
       await session.abortTransaction();
@@ -300,17 +300,36 @@ exports.createCourse = async (req, res) => {
       return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
     }
 
-    // Create a new course
+    // Validate Expiry Date
+    const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime()) || expiry <= new Date()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid expiry date. It must be a future date.' });
+    }
+  
+    // Upload files to AWS S3 and get URLs
+    let courseImages = [];
+    if (req.files && req.files.length > 0) {
+      courseImages = await uploadFilesToS3(req.files);
+    }
+
+    // Create new course
     const course = new Course({
       name,
       description,
       university: universityId,
       fees,
       ratings,
+      expiryDate: expiry,
+      courseType,
+      courseDuration,
+      courseImage:courseImages ,
     });
+
     await course.save({ session });
 
-    // Add course to the university's course list
+    // Add course to university's course list
     universityRecord.courses.push(course._id);
     await universityRecord.save({ session });
 
@@ -330,30 +349,93 @@ exports.createCourse = async (req, res) => {
 };
 
 
+// exports.createCourse = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+//   try {
+//     const { name, description, fees, ratings } = req.body;
+//     const  universityId  = req.user.id;; // Get universityId from URL parameters
+
+//     const universityRecord = await University.findById(universityId).session(session);
+//     if (!universityRecord) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: 'University not found' });
+//     }
+
+//     // Check if the course already exists in the same university
+//     const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
+//     if (existingCourse) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
+//     }
+
+//     // Create a new course
+//     const course = new Course({
+//       name,
+//       description,
+//       university: universityId,
+//       fees,
+//       ratings,
+//     });
+//     await course.save({ session });
+
+//     // Add course to the university's course list
+//     universityRecord.courses.push(course._id);
+//     await universityRecord.save({ session });
+
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(201).json({
+//       message: 'Course created successfully',
+//       course,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     console.error('Error creating course:', error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// };
+
+
 // Get all courses for a university
 exports.getAllCourses = async (req, res) => {
   try {
-    const universityId = req.user.id; // Retrieve university ID from middleware
+    const universityId = req.user.id;
 
-    // Fetch the university and its courses
-    const university = await University.findById(universityId).populate('courses', 'name fees description ratings');
+    // Fetch university with its active and non-deleted courses
+    const university = await University.findById(universityId)
+      .populate({
+        path: 'courses',
+        match: { isDeleted: false, expiryDate: { $gt: new Date() } },
+        select: 'name fees description status expiryDate courseType courseDuration courseImage',
+      });
+
     if (!university) {
       return res.status(404).json({ message: 'University not found.' });
     }
 
-    // Check if there are any courses
     if (!university.courses || university.courses.length === 0) {
       return res.status(404).json({ message: 'No active courses found for this university.' });
     }
 
+    // Add days remaining dynamically
+    const courses = university.courses.map((course) => ({
+      ...course.toObject(),
+      daysRemaining: Math.max(0, Math.ceil((new Date(course.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))),
+    }));
+
     return res.status(200).json({
       message: 'Courses fetched successfully.',
-      total: university.courses.length,
+      total: courses.length,
       university: {
         id: university._id,
         name: university.name,
       },
-      courses: university.courses,
+      courses,
     });
   } catch (error) {
     console.error('Error fetching courses:', error);
@@ -410,8 +492,8 @@ exports.getAllactiveCourses = async (req, res) => {
     // Fetch the university and its inactive courses
     const university = await University.findById(universityId).populate({
       path: 'courses',
-      match: { status: 'Active' }, // Match only inactive courses
-      select: 'name fees description ratings status',
+      match: { isDeleted: false,status: 'Active' }, // Match only inactive courses
+      select: 'name fees description status',
     });
 
     if (!university) {
@@ -456,8 +538,8 @@ exports.getAllInactiveCourses = async (req, res) => {
     // Fetch the university and its inactive courses
     const university = await University.findById(universityId).populate({
       path: 'courses',
-      match: { status: 'Inactive' }, // Match only inactive courses
-      select: 'name fees description ratings status',
+      match: {isDeleted: false, status: 'Inactive' }, // Match only inactive courses
+      select: 'name fees description status',
     });
 
     if (!university) {
@@ -564,6 +646,11 @@ exports.activateCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found or does not belong to the specified university.' });
     }
 
+     // Check if the course is deleted
+     if (course.isDeleted) {
+      return res.status(400).json({ message: 'Cannot activate a deleted course.' });
+    }
+
     // Check if the course is already active
     if (course.status === 'Active') {
       return res.status(400).json({ message: 'The course is already active.' });
@@ -611,6 +698,11 @@ exports.inactivateCourse = async (req, res) => {
     const course = await Course.findOne({ _id: courseId, university: universityId });
     if (!course) {
       return res.status(404).json({ message: 'Course not found or does not belong to the specified university.' });
+    }
+
+     /// Check if the course is deleted
+    if (course.isDeleted) {
+      return res.status(400).json({ message: 'Cannot inactivate a deleted course.' });
     }
 
     // Check if the course is already inactive

@@ -35,6 +35,7 @@ router.delete('/delete', validateDeleteUniversity,universityController.deleteUni
 //COURSES 
 
 router.post('/api/course/create',
+  upload.array('courseImage', 5),
   validateCreateCourse,
  handleValidationErrors,
  universityController.createCourse);

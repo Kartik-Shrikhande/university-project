@@ -1190,7 +1190,7 @@ exports.getUniversities = async (req, res) => {
     // if (!student) {
     //   return res.status(404).json({ message: 'Student not found from.' });
     // }
-    const universities = await University.find().sort({ isPromoted: -1 });
+    const universities = await University.find({isDeleted:false}).sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
     }
@@ -1255,7 +1255,7 @@ exports.getAllUniversityCourses = async (req, res) => {
     }
 
     // Fetch courses for the specified university
-    const courses = await Course.find({ university: universityId }).populate('university', 'name');
+    const courses = await Course.find({ university: universityId ,isDeleted:false}).populate('university', 'name');
 
     // Check if any courses are found
     if (!courses.length) {
@@ -1474,7 +1474,7 @@ exports.getCourseById = async (req, res) => {
 
     if (!isValidObjectId(courseId)) return res.status(400).json({ message: 'Enter a valid courseId' });
     // Fetch the course and its associated university
-    const course = await Course.findOne({ _id: courseId, status:'Active' }).populate('university', 'name');
+    const course = await Course.findOne({ _id: courseId, status:'Active',isDeleted:false}).populate('university', 'name');
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
