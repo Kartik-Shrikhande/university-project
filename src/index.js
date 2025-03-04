@@ -48,6 +48,7 @@ const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google
 // const applicationRoutes = require('../src/routes/applicationRoutes');
 
 const startCronJob = require('../src/controllers/inactivityMailController');
+const startCourseExpiryCron = require('../src/services/courseExpiryCheck'); // Course expiry cron
 
 // Start the cron job
 
@@ -121,6 +122,7 @@ mongoose.connect(process.env.MONGODB_URL, {connectTimeoutMS: 60000, socketTimeou
 
 try {
     startCronJob();
+    startCourseExpiryCron(); // Start course expiry cron
 } catch (error) {
     console.error('Error starting the inactivity check cron job:', error);
 }

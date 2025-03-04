@@ -115,6 +115,7 @@ const startCronJob = () => {
   });
 
   console.log('Cron job is running');
+  
 };
 
 module.exports = startCronJob;

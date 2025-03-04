@@ -789,6 +789,26 @@
             "name": "universityName",
             "in": "query",
             "type": "string"
+          },
+          {
+            "name": "courseType",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "minDuration",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "maxDuration",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "expiryDate",
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {

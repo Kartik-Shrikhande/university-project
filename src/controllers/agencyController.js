@@ -13,10 +13,50 @@ const university = require('../models/universityModel');
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
+
+//STUDENT
+
+exports.getAllStudents = async (req, res) => {
+  try {
+    const students = await Students.find()
+      .select('firstName middleName lastName email countryCode telephoneNumber documentType countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
+      .populate('agency', 'name') // Assuming you want to populate agency name
+      .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
+
+    return res.status(200).json({
+      totalStudents: students.length,
+      data: students,
+    });
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getStudentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const student = await Students.findById(id)
+      .select('firstName middleName lastName email telephoneNumber presentAddress permanentAddress documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
+      .populate('agency', 'name contactEmail') // Populate agency name and email
+      .populate('assignedAgent', 'name') // Populate assigned agent name
+      .populate('applications.applicationId'); // Populate application details
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(200).json({ student });
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
 //COURSES 
-
-
-
 
 // Get all courses for a specific university
 exports.getAllUniversityCoursesforAgency = async (req, res) => {
@@ -54,122 +94,149 @@ exports.getAllUniversityCoursesforAgency = async (req, res) => {
 };
 
 // Get all courses 
-exports.getallCoursesWithFiltersforAgency = async (req, res) => {
-  try {
-    const { minPrice, maxPrice, country, courseName, universityName } = req.query;
-
-    // Build the filter object dynamically
-    const filter = {
-      status: 'Active', // Show only active courses
-      isDeleted: false, // Exclude soft-deleted courses
-    };
-
-    // // Validate and apply price filters
-    // if (minPrice || maxPrice) {
-    //   const min = Number(minPrice);
-    //   const max = Number(maxPrice);
-
-    //   if (min && max && min > max) {
-    //     return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
-    //   }
-
-    //   filter.fees = {};
-    //   if (min) filter.fees.$gte = min;
-    //   if (max) filter.fees.$lte = max;
-    // }
-   // Validate and apply price filters
-    if (minPrice || maxPrice) {
-      // Convert minPrice and maxPrice to numbers
-      const min = Number(minPrice);
-      const max = Number(maxPrice);
-
-      // Validation 1: Check if minPrice and maxPrice are valid numbers
-      if (minPrice && isNaN(min)) {
-        return res.status(400).json({ message: 'minPrice must be a valid number.' });
-      }
-      if (maxPrice && isNaN(max)) {
-        return res.status(400).json({ message: 'maxPrice must be a valid number.' });
-      }
-
-      // Validation 2: Check if minPrice or maxPrice is negative
-      if ((minPrice && min < 0) || (maxPrice && max < 0)) {
-        return res.status(400).json({ message: 'Price values cannot be negative.' });
-      }
-
-      // Validation 3: Check if minPrice is greater than maxPrice
-      if (minPrice && maxPrice && min > max) {
-        return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
-      }
-
-      // Apply price filters
-      filter.fees = {};
-      if (minPrice) filter.fees.$gte = min;
-      if (maxPrice) filter.fees.$lte = max;
-    }
-    // Fetch universities matching country filter
-    if (country) {
-      const universitiesInCountry = await University.find({
-        'address.country': new RegExp(country, 'i'),
-        isDeleted: false, // Exclude deleted universities
-      }).select('_id');
-
-      if (!universitiesInCountry.length) {
-        return res.status(404).json({ message: 'No universities found in the specified country.' });
-      }
-
-      filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
-    }
-
-    // Fetch universities matching university name filter
-    if (universityName) {
-      const universitiesWithName = await University.find({
-        name: new RegExp(universityName, 'i'),
-        isDeleted: false, // Exclude deleted universities
-      }).select('_id');
-
-      if (!universitiesWithName.length) {
-        return res.status(404).json({ message: 'No universities found with the specified name.' });
-      }
-
-      // If both country and university name are provided, filter matching both
-      if (filter.university && filter.university.$in) {
-        filter.university.$in = filter.university.$in.filter((id) =>
-          universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
-        );
-
-        if (!filter.university.$in.length) {
-          return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
-        }
-      } else {
-        filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
-      }
-    }
-
-
-    // Apply course name filter
-    if (courseName) {
-      filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
-    }
-
-    // Fetch the filtered courses
-    const courses = await Course.find(filter)
-      .populate({
-        path: 'university',
-        select: 'name address.country', // Include university details
-      })
-      .sort({ applicationDate: -1 }); // Sort by latest application date
-
-    if (!courses.length) {
-      return res.status(404).json({ message: 'No active courses found matching the criteria.' });
-    }
-
-    // Send response
-    return res.status(200).json({ total: courses.length, coursesList: courses });
-  } catch (error) {
-    console.error('Error fetching courses with filters:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
+ exports.getallCoursesWithFiltersforAgency = async (req, res) => {
+   try {
+     const { 
+       minPrice, 
+       maxPrice, 
+       country, 
+       courseName, 
+       universityName, 
+       courseType, 
+       minDuration, 
+       maxDuration, 
+       expiryDate 
+     } = req.query;
+ 
+     // Build the filter object dynamically
+     const filter = {
+      //  status: 'Active', // Show only active courses
+      //  isDeleted: false, // Exclude soft-deleted courses
+     };
+ 
+     // Validate and apply price filters
+     if (minPrice || maxPrice) {
+       const min = Number(minPrice);
+       const max = Number(maxPrice);
+ 
+       if (minPrice && isNaN(min)) {
+         return res.status(400).json({ message: 'minPrice must be a valid number.' });
+       }
+       if (maxPrice && isNaN(max)) {
+         return res.status(400).json({ message: 'maxPrice must be a valid number.' });
+       }
+       if ((minPrice && min < 0) || (maxPrice && max < 0)) {
+         return res.status(400).json({ message: 'Price values cannot be negative.' });
+       }
+       if (minPrice && maxPrice && min > max) {
+         return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+       }
+ 
+       filter.fees = {};
+       if (minPrice) filter.fees.$gte = min;
+       if (maxPrice) filter.fees.$lte = max;
+     }
+ 
+     // Fetch universities matching country filter
+     if (country) {
+       const universitiesInCountry = await University.find({
+         'address.country': new RegExp(country, 'i'),
+         isDeleted: false, // Exclude deleted universities
+       }).select('_id');
+ 
+       if (!universitiesInCountry.length) {
+         return res.status(404).json({ message: 'No universities found in the specified country.' });
+       }
+ 
+       filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
+     }
+ 
+     // Fetch universities matching university name filter
+     if (universityName) {
+       const universitiesWithName = await University.find({
+         name: new RegExp(universityName, 'i'),
+         isDeleted: false, // Exclude deleted universities
+       }).select('_id');
+ 
+       if (!universitiesWithName.length) {
+         return res.status(404).json({ message: 'No universities found with the specified name.' });
+       }
+ 
+       // If both country and university name are provided, filter matching both
+       if (filter.university && filter.university.$in) {
+         filter.university.$in = filter.university.$in.filter((id) =>
+           universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
+         );
+ 
+         if (!filter.university.$in.length) {
+           return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
+         }
+       } else {
+         filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
+       }
+     }
+ 
+     // Apply course name filter
+     if (courseName) {
+       filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
+     }
+ 
+     // **New: Apply Course Type filter**
+     if (courseType) {
+       filter.courseType = new RegExp(courseType, 'i'); // Case-insensitive match
+     }
+ 
+     // **New: Apply Course Duration filter**
+     if (minDuration || maxDuration) {
+       const minDur = Number(minDuration);
+       const maxDur = Number(maxDuration);
+ 
+       if (minDuration && isNaN(minDur)) {
+         return res.status(400).json({ message: 'minDuration must be a valid number.' });
+       }
+       if (maxDuration && isNaN(maxDur)) {
+         return res.status(400).json({ message: 'maxDuration must be a valid number.' });
+       }
+       if ((minDuration && minDur < 0) || (maxDuration && maxDur < 0)) {
+         return res.status(400).json({ message: 'Duration values cannot be negative.' });
+       }
+       if (minDuration && maxDuration && minDur > maxDur) {
+         return res.status(400).json({ message: 'Invalid duration range. minDuration cannot be greater than maxDuration.' });
+       }
+ 
+       filter.courseDuration = {};
+       if (minDuration) filter.courseDuration.$gte = minDur;
+       if (maxDuration) filter.courseDuration.$lte = maxDur;
+     }
+ 
+     // **New: Apply Expiry Date filter**
+     if (expiryDate) {
+       const parsedExpiryDate = new Date(expiryDate);
+       if (isNaN(parsedExpiryDate.getTime())) {
+         return res.status(400).json({ message: 'Invalid expiry date format. Use YYYY-MM-DD.' });
+       }
+       filter.expiryDate = { $gte: parsedExpiryDate }; // Show courses that expire on or after the given date
+     }
+ 
+     // Fetch the filtered courses
+     const courses = await Course.find(filter)
+       .populate({
+         path: 'university',
+         select: 'name address.country', // Include university details
+       })
+       .sort({ applicationDate: -1 }); // Sort by latest application date
+ 
+     if (!courses.length) {
+       return res.status(404).json({ message: 'No active courses found matching the criteria.' });
+     }
+ 
+     // Send response
+     return res.status(200).json({ total: courses.length, coursesList: courses });
+   } catch (error) {
+     console.error('Error fetching courses with filters:', error);
+     return res.status(500).json({ message: 'Internal server error.' });
+   }
+ };
 
 // Get course by id
 exports.getCourseByIdforAgency = async (req, res) => {
@@ -178,7 +245,7 @@ exports.getCourseByIdforAgency = async (req, res) => {
  
     if (!isValidObjectId(courseId)) return res.status(400).json({ message: 'Enter a valid courseId' });
     // Fetch the course and its associated university
-    const course = await Course.findOne({ _id: courseId, status:'Active' }).populate('university', 'name');
+    const course = await Course.findOne({ _id: courseId }).populate('university', 'name');
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
@@ -253,6 +320,7 @@ exports.demoteUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 
 
 //AGENCY APIs
@@ -797,45 +865,7 @@ exports.assignAgentToApplication = async (req, res) => {
   }
 };
 
-// Students
 
-exports.getAllStudents = async (req, res) => {
-  try {
-    const students = await Students.find()
-      .select('firstName middleName lastName email countryCode telephoneNumber documentType countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
-      .populate('agency', 'name') // Assuming you want to populate agency name
-      .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
-
-    return res.status(200).json({
-      totalStudents: students.length,
-      data: students,
-    });
-  } catch (error) {
-    console.error('Error fetching students:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-exports.getStudentById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const student = await Students.findById(id)
-      .select('firstName middleName lastName email telephoneNumber presentAddress permanentAddress documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
-      .populate('agency', 'name contactEmail') // Populate agency name and email
-      .populate('assignedAgent', 'name') // Populate assigned agent name
-      .populate('applications.applicationId'); // Populate application details
-
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    return res.status(200).json({ student });
-  } catch (error) {
-    console.error('Error fetching student:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
 
 
 //university 
@@ -955,7 +985,7 @@ exports.getUniversities = async (req, res) => {
     // if (!student) {
     //   return res.status(404).json({ message: 'Student not found from.' });
     // }
-    const universities = await University.find({isDeleted:false}).sort({ isPromoted: -1 });
+    const universities = await University.find().sort({ isPromoted: -1});
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
     }

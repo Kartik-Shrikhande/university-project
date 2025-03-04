@@ -1136,43 +1136,35 @@ exports.getUniversityById = async (req, res) => {
   try {
     const { universityId } = req.params;
     const studentId = req.user.id; // Extract studentId from authenticated user
-//     const role =req.user.role
-  
 
-
-// if (role !== 'student') {
-//   return res.status(403).json({ message: 'Access denied. Unauthorized role fdg.' });
-// }
+    // Validate universityId
     if (!mongoose.Types.ObjectId.isValid(universityId)) {
-      return res.status(400).json({ message: 'Enter valid universityId.' });
+      return res.status(400).json({ message: 'Enter a valid universityId.' });
     }
-     
-const student = await Students.findById(studentId).session(session);
+
+    // Check if student exists
+    const student = await Students.findById(studentId).session(session);
     if (!student) {
-      return res.status(200).json({ message: 'Student not found.' });
+      return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Fetch university
-    const findUniversity = await University.findById(universityId).session(session);
+    // Fetch university, ensuring it's not deleted
+    const findUniversity = await University.findOne({
+      _id: universityId,
+      isDeleted: false, // Ensuring we only fetch non-deleted universities
+    }).session(session);
+
     if (!findUniversity) {
-      return res.status(404).json({ message: 'University not found.' });
-    }
-
-
-
-    // Ensure visitedUniversities is initialized
-    student.visitedUniversities = student.visitedUniversities || [];
-
-    // Add university to visitedUniversities if not already present
-    if (!student.visitedUniversities.includes(universityId)) {
-      student.visitedUniversities.push(universityId);
-      await student.save({ session });
+      return res.status(404).json({ message: 'University not found or has been deleted.' });
     }
 
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ University_Details: findUniversity });
+    return res.status(200).json({
+      message: 'University fetched successfully.',
+      university: findUniversity,
+    });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -1242,30 +1234,35 @@ exports.getAllUniversityCourses = async (req, res) => {
     const { universityId } = req.params; // University ID is required
 
     // Validate universityId
-    if (!isValidObjectId(universityId)) return res.status(400).json({ message: 'Enter a valid universityId' });
-    
-
-    // Fetch the university and check if it exists
-    const finduniversity = await university.findById(universityId).populate('courses', '_id');
-    if (!finduniversity) return res.status(404).json({ message: 'University not found' })
-
-    // Check if the university has any courses
-    if (!finduniversity.courses || finduniversity.courses.length === 0) {
-      return res.status(404).json({ message: 'This university does not have any courses' });
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Enter a valid universityId' });
     }
 
-    // Fetch courses for the specified university
-    const courses = await Course.find({ university: universityId ,isDeleted:false}).populate('university', 'name');
+    // Fetch the university and ensure it is not deleted
+    const findUniversity = await University.findOne({ _id: universityId, isDeleted: false }).populate('courses', '_id name');
+    if (!findUniversity) {
+      return res.status(404).json({ message: 'University not found or has been deleted' });
+    }
 
-    // Check if any courses are found
+    // Fetch only active courses (excluding deleted courses)
+    const courses = await Course.find({
+      university: universityId,
+      isDeleted: false, // Exclude deleted courses
+      status: 'Active' // Only fetch active courses
+    }).populate('university', 'name');
+
+    // Check if any active courses are found
     if (!courses.length) {
-      return res.status(404).json({ message: 'No courses found for the given university' });
+      return res.status(404).json({ message: 'No active courses found for the given university' });
     }
 
     // Send response
-    return res.status(200).json({university_name:finduniversity.name,total: courses.length,coursesList: courses});
-  } 
-  catch (error) {
+    return res.status(200).json({
+      university_name: findUniversity.name,
+      total: courses.length,
+      coursesList: courses,
+    });
+  } catch (error) {
     console.error('Error fetching courses:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
@@ -1276,7 +1273,17 @@ exports.getAllUniversityCourses = async (req, res) => {
 
 exports.getCoursesWithFilters = async (req, res) => {
   try {
-    const { minPrice, maxPrice, country, courseName, universityName } = req.query;
+    const { 
+      minPrice, 
+      maxPrice, 
+      country, 
+      courseName, 
+      universityName, 
+      courseType, 
+      minDuration, 
+      maxDuration, 
+      expiryDate 
+    } = req.query;
 
     // Build the filter object dynamically
     const filter = {
@@ -1284,48 +1291,29 @@ exports.getCoursesWithFilters = async (req, res) => {
       isDeleted: false, // Exclude soft-deleted courses
     };
 
-    // // Validate and apply price filters
-    // if (minPrice || maxPrice) {
-    //   const min = Number(minPrice);
-    //   const max = Number(maxPrice);
-
-    //   if (min && max && min > max) {
-    //     return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
-    //   }
-
-    //   filter.fees = {};
-    //   if (min) filter.fees.$gte = min;
-    //   if (max) filter.fees.$lte = max;
-    // }
-   // Validate and apply price filters
+    // Validate and apply price filters
     if (minPrice || maxPrice) {
-      // Convert minPrice and maxPrice to numbers
       const min = Number(minPrice);
       const max = Number(maxPrice);
 
-      // Validation 1: Check if minPrice and maxPrice are valid numbers
       if (minPrice && isNaN(min)) {
         return res.status(400).json({ message: 'minPrice must be a valid number.' });
       }
       if (maxPrice && isNaN(max)) {
         return res.status(400).json({ message: 'maxPrice must be a valid number.' });
       }
-
-      // Validation 2: Check if minPrice or maxPrice is negative
       if ((minPrice && min < 0) || (maxPrice && max < 0)) {
         return res.status(400).json({ message: 'Price values cannot be negative.' });
       }
-
-      // Validation 3: Check if minPrice is greater than maxPrice
       if (minPrice && maxPrice && min > max) {
         return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
       }
 
-      // Apply price filters
       filter.fees = {};
       if (minPrice) filter.fees.$gte = min;
       if (maxPrice) filter.fees.$lte = max;
     }
+
     // Fetch universities matching country filter
     if (country) {
       const universitiesInCountry = await University.find({
@@ -1370,6 +1358,43 @@ exports.getCoursesWithFilters = async (req, res) => {
       filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
     }
 
+    // **New: Apply Course Type filter**
+    if (courseType) {
+      filter.courseType = new RegExp(courseType, 'i'); // Case-insensitive match
+    }
+
+    // **New: Apply Course Duration filter**
+    if (minDuration || maxDuration) {
+      const minDur = Number(minDuration);
+      const maxDur = Number(maxDuration);
+
+      if (minDuration && isNaN(minDur)) {
+        return res.status(400).json({ message: 'minDuration must be a valid number.' });
+      }
+      if (maxDuration && isNaN(maxDur)) {
+        return res.status(400).json({ message: 'maxDuration must be a valid number.' });
+      }
+      if ((minDuration && minDur < 0) || (maxDuration && maxDur < 0)) {
+        return res.status(400).json({ message: 'Duration values cannot be negative.' });
+      }
+      if (minDuration && maxDuration && minDur > maxDur) {
+        return res.status(400).json({ message: 'Invalid duration range. minDuration cannot be greater than maxDuration.' });
+      }
+
+      filter.courseDuration = {};
+      if (minDuration) filter.courseDuration.$gte = minDur;
+      if (maxDuration) filter.courseDuration.$lte = maxDur;
+    }
+
+    // **New: Apply Expiry Date filter**
+    if (expiryDate) {
+      const parsedExpiryDate = new Date(expiryDate);
+      if (isNaN(parsedExpiryDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid expiry date format. Use YYYY-MM-DD.' });
+      }
+      filter.expiryDate = { $gte: parsedExpiryDate }; // Show courses that expire on or after the given date
+    }
+
     // Fetch the filtered courses
     const courses = await Course.find(filter)
       .populate({
@@ -1389,6 +1414,7 @@ exports.getCoursesWithFilters = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 
 
 // exports.getCoursesWithFilters = async (req, res) => {
