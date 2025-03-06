@@ -182,10 +182,7 @@ const uploadFields = uploadImage.fields([
   { name: 'additionalDocuments', maxCount: 5 },
 ]);
 
-router.post('/application/:courseId', 
-  uploadFields,
-  validateApplication, 
-  applicationController.applyForCourse);
+
 
 router.get('/status',studentController.verifyStudentStatus);
 
@@ -303,6 +300,8 @@ userActivity.updateLastActivity,
 
 
 // router.post('/application/:courseId', applicationController.applyForCourse);//previouse
+router.get('/application/getStudentDetailsForApplication', applicationController.getStudentDetailsForApplication);
+router.post('/application/:courseId', uploadFields,validateApplication,applicationController.applyForCourse);
 router.get('/students/applications',applicationController.getStudentApplications);
 router.get('/get/application/:applicationId',applicationController.getApplicationById);
 // Route to get application by ID

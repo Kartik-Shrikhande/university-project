@@ -17,6 +17,12 @@ const courseSchema = new mongoose.Schema(
     },
     courseDuration: { type: String, required: true },
     ratings: [{ type: Number }],
+
+    // seatingAvailability:{
+    //   type: Number,
+    //   default:0
+    // },                    //keeping it for future
+    
     applicationDate: { 
       type: Date, 
       default: Date.now 
