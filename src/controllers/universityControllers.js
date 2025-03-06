@@ -361,6 +361,167 @@ exports.createCourse = async (req, res) => {
   }
 };
 
+exports.updateCourse = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const universityId = req.user.id; // Get university ID from logged-in user
+    const { courseId } = req.params;
+    const {
+      name,
+      description,
+      description2,
+      description3,
+      fees,
+      ratings,
+      expiryDate,
+      courseType,
+      courseDuration,
+    } = req.body;
+
+    // Validate course ID
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid course ID format.' });
+    }
+
+    // Find course and ensure it belongs to the university
+    const course = await Course.findOne({ _id: courseId, university: universityId }).session(session);
+    if (!course) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Course not found or unauthorized to update.' });
+    }
+
+    // Prevent updating deleted courses
+    if (course.isDeleted) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot update a deleted course.' });
+    }
+
+    // Prevent updating expired courses
+    if (course.expiryDate && new Date(course.expiryDate) < new Date()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot update an expired course.' });
+    }
+
+    // Validate Expiry Date
+    if (expiryDate) {
+      const newExpiryDate = new Date(expiryDate);
+      if (isNaN(newExpiryDate.getTime()) || newExpiryDate <= new Date()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Expiry date must be a valid future date (YYYY-MM-DD).' });
+      }
+      course.expiryDate = newExpiryDate;
+    }
+
+    // Validate Fees
+    if (fees !== undefined) {
+      if (isNaN(fees) || fees <= 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Fees must be a positive number.' });
+      }
+      course.fees = fees;
+    }
+
+    // Validate Course Type
+    const validCourseTypes = ['fulltime', 'parttime', 'online'];
+    if (courseType && !validCourseTypes.includes(courseType)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: `Invalid course type. Allowed values: ${validCourseTypes.join(', ')}` });
+    }
+    if (courseType) course.courseType = courseType;
+
+    // Validate Course Duration
+    if (courseDuration !== undefined) {
+      if (!/^\d+$/.test(courseDuration)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Course duration must be a positive integer (in months or years).' });
+      }
+      course.courseDuration = courseDuration;
+    }
+
+    // Update only provided fields
+    if (name) course.name = name;
+    if (description) course.description = description;
+    if (description2) course.description2 = description2;
+    if (description3) course.description3 = description3;
+    if (ratings) course.ratings = ratings;
+
+    // Handle file uploads if any (update course images)
+    if (req.files && req.files.length > 0) {
+      course.courseImage = await uploadFilesToS3(req.files);
+    }
+
+    await course.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Course updated successfully.', course });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error updating course:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+exports.deleteCourse = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const universityId = req.user.id;
+    const { courseId } = req.params;
+
+    // Validate Course ID
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid course ID format.' });
+    }
+
+    // Find Course
+    const course = await Course.findOne({ _id: courseId, university: universityId }).session(session);
+    if (!course) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Course not found or unauthorized to delete.' });
+    }
+
+    // Prevent deletion of already deleted courses
+    if (course.isDeleted) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Course is already deleted.' });
+    }
+
+    // Soft Delete the Course
+    course.isDeleted = true;
+    await course.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Course deleted successfully.' });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error deleting course:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 
 // exports.createCourse = async (req, res) => {
 //   const session = await mongoose.startSession();

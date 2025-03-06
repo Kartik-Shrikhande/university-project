@@ -51,6 +51,10 @@ const uploadFilesToS3 = async (files) => {
 
   return Promise.all(uploadPromises);
 };
+
+
+
+
 // Registration
 exports.registerStudent = async (req, res) => {
   const session = await mongoose.startSession();
@@ -990,46 +994,110 @@ exports.resendOtpForLogin = async (req, res) => {
 
 
 // Update Student
-exports.updateStudent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const studentId = req.studentId;
-    const updates = req.body;
 
-    // Disallow updates to restricted fields
+exports.updateStudent = async (req, res) => {
+  let session;
+  try {
+    const studentId = req.user.id;
+    let updates = req.body;
+
+    // Remove fields that are empty strings
+    updates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== '')
+    );
+
+    // Restricted fields that cannot be updated
     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
-    for (const field of restrictedFields) {
-      if (updates[field]) {
-        return res.status(400).json({ message: `Field "${field}" cannot be updated directly.` });
-      }
+
+    // Check if any restricted field is being updated
+    const invalidFields = Object.keys(updates).filter(field => restrictedFields.includes(field));
+    if (invalidFields.length > 0) {
+      return res.status(400).json({ message: `Fields ${invalidFields.join(', ')} cannot be updated directly.` });
     }
 
+    // Check if there are any valid fields left to update
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update.' });
+    }
+
+    // Start session only if using transactions
+    session = await mongoose.startSession();
+    session.startTransaction();
+
     // Update student details
-    const updatedStudent = await Students.findByIdAndUpdate(studentId, updates, {
-      new: true,
-      runValidators: true,
-      session,
-    });
+    const updatedStudent = await Students.findByIdAndUpdate(
+      studentId,
+      { $set: updates }, // Using $set to update only specific fields
+      { new: true, runValidators: true, session }
+    );
 
     if (!updatedStudent) {
       await session.abortTransaction();
-      session.endSession();
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Commit transaction
+    // Commit transaction only if the update was successful
     await session.commitTransaction();
-    session.endSession();
 
-    return res.status(200).json({ message: 'Student updated successfully.', updatedStudent });
+    return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent });
+
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error('Error updating student:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    if (session) {
+      await session.abortTransaction();
+    }
+    return res.status(500).json({ message: 'Internal server error.', error: error.message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
+
+
+
+
+
+// exports.updateStudent = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+//   try {
+//     const studentId = req.user.id;
+//     const updates = req.body;
+
+//     // Disallow updates to restricted fields
+//     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
+//     for (const field of restrictedFields) {
+//       if (updates[field]) {
+//         return res.status(400).json({ message: `Field "${field}" cannot be updated directly.` });
+//       }
+//     }
+
+//     // Update student details
+//     const updatedStudent = await Students.findByIdAndUpdate(studentId, updates, {
+//       new: true,
+//       runValidators: true,
+//       session,
+//     });
+
+//     if (!updatedStudent) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ message: 'Student not found.' });
+//     }
+
+//     // Commit transaction
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return res.status(200).json({ message: 'Student updated successfully.', updatedStudent });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     console.error('Error updating student:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 

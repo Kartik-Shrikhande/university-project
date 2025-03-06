@@ -187,6 +187,49 @@ const validateRegisterStudent = [
 
 
 
+const validateUpdateStudent = [
+  body('firstName').optional().isString().trim().isLength({ max: 50 }).withMessage('First name cannot exceed 50 characters.'),
+  body('middleName').optional().isString().trim().isLength({ max: 50 }).withMessage('Middle name cannot exceed 50 characters.'),
+  body('lastName').optional().isString().trim().isLength({ max: 50 }).withMessage('Last name cannot exceed 50 characters.'),
+
+  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format. Use YYYY-MM-DD.'),
+  body('gender').optional().isIn(['Male', 'Female', 'Other']).withMessage('Gender must be Male, Female, or Other.'),
+
+  body('telephoneNumber').optional().isString().trim().isLength({ max: 15 }).withMessage('Telephone number cannot exceed 15 characters.'),
+
+  // Address validation (optional but must be valid if provided)
+  body("address.country").optional().isString().trim().withMessage("Invalid country."),
+  body("address.zip_postalCode").optional().isString().trim().withMessage("Invalid Zip/Postal Code."),
+  body("address.state_province_region").optional().isString().trim().withMessage("Invalid State/Province/Region."),
+  body("address.city").optional().isString().trim().withMessage("Invalid City."),
+  body("address.addressLine").optional().isString().trim().withMessage("Invalid Address Line."),
+
+  body('documentType').optional().isIn(['Passport']).withMessage('Document type must be Passport.'),
+
+  body('mostRecentEducation').optional().isIn(['BTech', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'])
+    .withMessage('Most recent education must be BTech, Diploma, Degree, Masters, PhD, or Other.'),
+
+  body('yearOfGraduation').optional().isInt({ min: 2014, max: new Date().getFullYear() })
+    .withMessage(`Year of graduation must be between 2014 and ${new Date().getFullYear()}.`),
+
+  body('programType').optional().isIn(['Graduation', 'Post Graduation', 'Under Graduation', 'PhD', 'Other'])
+    .withMessage('Program type must be Graduation, Post Graduation, Under Graduation, PhD, or Other.'),
+
+  body('discipline').optional().isIn(['Computers', 'Business', 'Marketing', 'Other'])
+    .withMessage('Discipline must be Computers, Business, Marketing, or Other.'),
+
+  body('preferredUniversity').optional().isIn(['Yes', 'No']).withMessage('Preferred university must be Yes or No.'),
+  body('preferredCourse').optional().isIn(['Yes', 'No']).withMessage('Preferred course must be Yes or No.'),
+
+  body('courseStartTimeline').optional().isIn(['3 months', '6 months', '9 months', '1 year'])
+    .withMessage('Course start timeline must be 3 months, 6 months, 9 months, or 1 year.'),
+
+  body('englishLanguageRequirement').optional().isIn(['Yes', 'No', 'yes', 'no'])
+    .withMessage('English language requirement must be Yes or No.'),
+
+  body('testName').optional().isIn(['TOEFL', 'IELTS', 'Other']).withMessage('Test name must be TOEFL, IELTS, or Other.'),
+  body('score').optional().isString().trim().withMessage('Score must be a valid string.')
+];
 
 
 const validateLoginStudent = [
@@ -274,7 +317,7 @@ const validateVerifyOtpForRegistration = [
 module.exports = { 
   validateRegisterStudent,
   validateLoginStudent,
-  
+  validateUpdateStudent,
   // validateVerifyOtpForLogin,
   validateResendOtpForLogin,
   validateVerifyOtpForRegistration,

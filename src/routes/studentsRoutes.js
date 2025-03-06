@@ -196,7 +196,7 @@ router.post('/stripe-webhook', express.raw({ type: 'application/json' }),payment
 router.get('/profile',studentController.seeStudentProfile);
 
 router.put('/update',
-  // updateValidator, 
+  studentValidations.validateUpdateStudent,
   validate,
   userActivity.updateLastActivity,
    userControllers.updateStudent);

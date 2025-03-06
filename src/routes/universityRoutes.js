@@ -40,6 +40,21 @@ router.post('/api/course/create',
  handleValidationErrors,
  universityController.createCourse);
 
+
+// Update Course (Only University can update)
+router.put('/update/:courseId', upload.array('courseImage', 5), 
+validateUpdateCourse, 
+handleValidationErrors, 
+universityController.updateCourse);
+
+// Delete Course (Only University can delete - Soft Delete)
+router.delete('/delete/:courseId', 
+  validateDeleteCourse,
+   handleValidationErrors, 
+   universityController.deleteCourse);
+
+
+
 //GET - ACTIVE/INACTIVE
 //get all courses (Active)
 router.get('/get/all-courses', universityController.getAllCourses);
