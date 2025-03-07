@@ -37,9 +37,9 @@ exports.validateCreateCourse = [
 
 exports.validateUpdateCourse = [
     // Validate universityId
-    check('universityId')
-    .isMongoId()
-      .withMessage('Invalid university ID.'),
+    // check('universityId')
+    // .isMongoId()
+    //   .withMessage('Invalid university ID.'),
   
     // Validate courseId
     check('courseId')
