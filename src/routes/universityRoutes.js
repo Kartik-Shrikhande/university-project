@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const universityController= require('../controllers/universityControllers')
-const CourseController = require('../controllers/coursesControllers');
+// const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;

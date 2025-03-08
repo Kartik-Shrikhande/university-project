@@ -667,7 +667,7 @@ exports.getPendingApplications = async (req, res) => {
 
     // Check if there are any pending applications
     if (!agency.pendingApplications || agency.pendingApplications.length === 0) {
-      return res.status(404).json({ message: 'No pending applications found for the default agency.' });
+      return res.status(404).json({ message: 'No pending applications found in agency.' });
     }
 
     // Populate pending applications

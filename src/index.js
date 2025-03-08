@@ -39,7 +39,6 @@ app.use(cors({
 
 const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
-const coursesRoutes = require('../src/routes/coursesRoutes')
 const agencyRoutes = require('../src/routes/agencyRoutes')
 const agentsRoutes = require('../src/routes/agentRoutes')
 const otpRoutes = require('../src/routes/otpRoutes')
@@ -102,7 +101,6 @@ app.use(passport.session());
 
 app.use('/student', studentRoutes)
 app.use('/university', universityRoutes)
-app.use('/courses', coursesRoutes)
 app.use('/agency', agencyRoutes)
 app.use('/agent', agentsRoutes)
 app.use('/otp', otpRoutes)
