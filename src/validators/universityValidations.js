@@ -65,7 +65,7 @@ const validateUniversityLogin = [
 
 // Validation rules for updating a university
 const validateUniversityUpdate = [
-  checkEmptyBody,
+  // checkEmptyBody,
   check('email').not().exists().withMessage('Email cannot be updated.'),
   check('password').not().exists().withMessage('Password cannot be updated.'),
   check('isPromoted').not().exists().withMessage('isPromoted cannot be updated.'),
