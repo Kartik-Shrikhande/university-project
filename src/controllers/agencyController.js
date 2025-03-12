@@ -10,6 +10,10 @@ const generator = require('generate-password');
 const nodemailer = require('nodemailer');
 const Course = require('../models/coursesModel');
 const university = require('../models/universityModel');
+//associate APIs
+const AssociateSolicitor = require('../models/associateModel');
+const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
+
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
@@ -1013,6 +1017,228 @@ exports.getUniversityById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching university:', error);
     return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+// ASSOCIATES 
+
+
+// // Function to encrypt bank details
+// function encryptData(data) {
+//   const algorithm = "aes-256-cbc";
+//   const key = process.env.ENCRYPTION_KEY || "default_key_32chars_long"; // Store securely in env variables
+//   const iv = crypto.randomBytes(16);
+//   const cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
+//   let encrypted = cipher.update(data);
+//   encrypted = Buffer.concat([encrypted, cipher.final()]);
+//   return iv.toString("hex") + ":" + encrypted.toString("hex");
+// }
+
+
+
+
+// **CREATE Associate Solicitor**
+
+
+exports.createAssociate = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phoneNumber, address, bankDetails } = req.body;
+
+    // Check if required fields are provided
+    if (!firstName || !lastName || !email || !phoneNumber || !bankDetails?.accountNumber || !bankDetails?.bankName) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Check if the email is already in use
+    const existingAssociate = await AssociateSolicitor.findOne({ email });
+    if (existingAssociate) {
+      return res.status(400).json({ success: false, message: "Email already in use" });
+    }
+
+    // **Auto-generate a password**
+    const password = generator.generate({
+      length: 10,
+      numbers: true,
+      symbols: true,
+      uppercase: true,
+      excludeSimilarCharacters: true,
+    });
+
+    // **Hash the generated password**
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // **Encrypt the bank account number**
+    bankDetails.accountNumber = encryptData(bankDetails.accountNumber);
+
+    // Create a new Associate Solicitor
+    const newAssociate = new AssociateSolicitor({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword, // Store hashed password
+      phoneNumber,
+      address,
+      bankDetails,
+    });
+
+    // Save the associate to the database
+    await newAssociate.save();
+
+    // **Send credentials via email**
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your Associate Solicitor Account Credentials",
+      text: `Your account has been successfully created.\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: "Associate Solicitor created successfully",
+      data: {
+        id: newAssociate._id,
+        firstName: newAssociate.firstName,
+        lastName: newAssociate.lastName,
+        email: newAssociate.email,
+        phoneNumber: newAssociate.phoneNumber,
+        address: newAssociate.address,
+        bankDetails: { bankName: bankDetails.bankName }, // Exclude sensitive info
+      },
+    });
+
+  } catch (error) {
+    console.error("Error creating associate:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+// **GET ALL Associates (with optional soft-delete filter)**
+exports.getAllAssociates = async (req, res) => {
+  try {
+
+    const associates = await AssociateSolicitor.find().select('_id email firstName lastName isDeleted');
+
+    if (associates.length === 0) {
+      return res.status(404).json({ success: false, message: "No associates found" });
+    }
+
+     return  res.status(200).json({ success: true,total:associates.length, data: associates });
+  } 
+  catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// **GET Associate By ID**
+exports.getAssociateById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Associate ID" });
+    }
+
+    const associate = await AssociateSolicitor.findById(id);
+
+    if (!associate) {
+      return res.status(404).json({ success: false, message: "Associate not found" });
+    }
+
+    // Decrypt bank details before sending response
+    if (associate.bankDetails && associate.bankDetails.accountNumber) {
+      associate.bankDetails.accountNumber = decryptData(associate.bankDetails.accountNumber);
+    }
+
+    res.status(200).json({ success: true, data: associate });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+// **UPDATE Associate**
+exports.updateAssociate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Associate ID" });
+    }
+
+    // Check if the Associate exists and is not soft deleted
+    const existingAssociate = await AssociateSolicitor.findById(id);
+    if (!existingAssociate) {
+      return res.status(404).json({ success: false, message: "Associate Solicitor not found" });
+    }
+
+    if (existingAssociate.isDeleted) {
+      return res.status(400).json({ success: false, message: "Cannot update a deleted Associate Solicitor" });
+    }
+  // Prevent email and password updates
+  if (updates.email || updates.password) {
+    return res.status(400).json({ success: false, message: "Email and password cannot be updated" });
+  }
+    // Encrypt account number if provided
+    if (updates.bankDetails?.accountNumber) {
+      updates.bankDetails.accountNumber = encryptData(updates.bankDetails.accountNumber);
+    }
+
+    // Update Associate
+    const updatedAssociate = await AssociateSolicitor.findByIdAndUpdate(id, updates, { new: true });
+
+    res.status(200).json({ success: true, message: "Associate Solicitor updated successfully", data: updatedAssociate });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// **SOFT DELETE Associate**
+exports.deleteAssociate = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Associate ID" });
+    }
+
+    // Find the associate
+    const associate = await AssociateSolicitor.findById(id);
+
+    if (!associate) {
+      return res.status(404).json({ success: false, message: "Associate Solicitor not found" });
+    }
+
+    // Check if the associate is already deleted
+    if (associate.isDeleted) {
+      return res.status(400).json({ success: false, message: "Associate Solicitor is already deleted" });
+    }
+
+    // Soft delete the associate
+    associate.isDeleted = true;
+    await associate.save();
+
+    res.status(200).json({ success: true, message: "Associate Solicitor deleted successfully", data: associate.id });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

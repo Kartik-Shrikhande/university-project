@@ -41,6 +41,7 @@ const studentRoutes = require('../src/routes/studentsRoutes')
 const universityRoutes = require('../src/routes/universityRoutes')
 const agencyRoutes = require('../src/routes/agencyRoutes')
 const agentsRoutes = require('../src/routes/agentRoutes')
+const associateRoutes = require('../src/routes/associateRoutes')
 const otpRoutes = require('../src/routes/otpRoutes')
 const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
 
@@ -103,6 +104,7 @@ app.use('/student', studentRoutes)
 app.use('/university', universityRoutes)
 app.use('/agency', agencyRoutes)
 app.use('/agent', agentsRoutes)
+// app.use('/associate', associateRoutes)
 app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
 // app.use('/application', applicationRoutes);

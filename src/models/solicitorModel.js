@@ -7,6 +7,7 @@ const solicitorSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     contactNumber: { type: String, required: true },
     assignedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    associate:{ type: mongoose.Schema.Types.ObjectId, ref: 'Associate' },
     solicitorType: {
       type: String,
       enum: ['Regular', 'Head'], // Defines the type of solicitor

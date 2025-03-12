@@ -21,7 +21,7 @@ const Agents = require('../models/agentModel');
 const Solicitors = require('../models/solicitorModel');
 const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
-
+const AssociateSolicitor =require('../models/associateModel')
 
 const { v4: uuidv4 } = require('uuid');
 
@@ -397,7 +397,8 @@ exports.login = async (req, res) => {
       { model: Students, roleName: 'student' },
       { model: Agents, roleName: 'agent' },
       { model: Solicitors, roleName: 'solicitor' },
-      { model: Agency, roleName: 'admin' } // Updated to match Agency model
+      { model: Agency, roleName: 'admin' } ,// Updated to match Agency model
+      { model: AssociateSolicitor, roleName: 'Associate' } // Added Associate Role
     ];
 
     // Check each role collection
@@ -544,6 +545,48 @@ exports.login = async (req, res) => {
   });
 }
 
+ // **Custom Response for Associate Solicitor Role**
+    if (role === 'Associate') {
+      return res.status(200).json({
+        message: 'Login successful.',
+        role: role,
+        token: token,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          address: user.address || '',
+          created_at: user.createdAt
+        },
+        // platform_access: {
+        //   allowed_actions: [
+        //     "review_applications",
+        //     "approve_documents",
+        //     "validate_legal_requirements"
+        //   ],
+        //   blocked_actions: [
+        //     "edit_profile",
+        //     "apply_to_courses"
+        //   ]
+        // },
+        // notifications: [
+        //   {
+        //     id: "NOTIF-001",
+        //     type: "system",
+        //     title: "Welcome to Connect2Uni!",
+        //     content: "You have new applications assigned for review.",
+        //     is_read: false,
+        //     timestamp: new Date().toISOString()
+        //   }
+        // ],
+        // metadata: {
+        //   total_applications_reviewed: user.applicationsReviewed?.length || 0,
+        //   pending_reviews: user.pendingReviews?.length || 0
+        // }
+      });
+    }
 
     // **Custom Response for Agency Role**
     if (role === 'admin') {

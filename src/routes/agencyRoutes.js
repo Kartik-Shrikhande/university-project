@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const agencyController = require('../controllers/agencyController');
+// const associateController = require("../controllers/agencyController");
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const {
@@ -82,6 +83,15 @@ router.post('/assign-agent', agencyController.assignAgentToApplication);
 router.get('/students', agencyController.getAllStudents); // Get all students
 router.get('/students/:id', agencyController.getStudentById); // Get student by ID
 
+
+
+//ASSOCIATE 
+// Define routes
+router.post('/associate/create', agencyController.createAssociate);
+router.get('/associate', agencyController.getAllAssociates);
+router.get('/associate/:id', agencyController.getAssociateById);
+router.put('/associate/:id', agencyController.updateAssociate);
+router.delete('/associate/:id', agencyController.deleteAssociate);
 
 
 router.use('*', (req, res) => {
