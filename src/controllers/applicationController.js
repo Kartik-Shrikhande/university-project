@@ -379,6 +379,100 @@ await Agency.findByIdAndUpdate(
 };
 
 
+
+exports.updateApplication = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+      const { applicationId } = req.params;
+      const studentId = req.user.id;
+
+      // Check if the application ID is valid
+      if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+          return res.status(400).json({ message: 'Invalid Application ID.' });
+      }
+
+      // Find the application and validate ownership
+      const application = await Application.findOne({ _id: applicationId, student: studentId }).session(session);
+      if (!application) {
+          return res.status(404).json({ message: 'Application not found.' });
+      }
+
+      // Extract input fields
+      const { previousDegree, grades, marks, fromYear, toYear } = req.body;
+
+      // ✅ Upload updated files to AWS S3
+      const academicTranscripts = req.files?.['academicTranscripts']
+          ? await uploadFilesToS3(req.files['academicTranscripts'])
+          : application.academicTranscripts;
+
+      const proofofEnglishProficiency = req.files?.['proofofEnglishProficiency']
+          ? await uploadFilesToS3(req.files['proofofEnglishProficiency'])
+          : application.proofofEnglishProficiency;
+
+      const lettersOfRecommendation = req.files?.['lettersOfRecommendation']
+          ? await uploadFilesToS3(req.files['lettersOfRecommendation'])
+          : application.lettersOfRecommendation;
+
+      const statementOfPurpose = req.files?.['statementOfPurpose']
+          ? await uploadFilesToS3(req.files['statementOfPurpose'])
+          : application.statementOfPurpose;
+
+      const resumeCV = req.files?.['resumeCV']
+          ? await uploadFilesToS3(req.files['resumeCV'])
+          : application.resumeCV;
+
+      const passportSizePhotographs = req.files?.['passportSizePhotographs']
+          ? await uploadFilesToS3(req.files['passportSizePhotographs'])
+          : application.passportSizePhotographs;
+
+      const financialStatements = req.files?.['financialStatements']
+          ? await uploadFilesToS3(req.files['financialStatements'])
+          : application.financialStatements;
+
+      const additionalDocuments = req.files?.['additionalDocuments']
+          ? await uploadFilesToS3(req.files['additionalDocuments'])
+          : application.additionalDocuments;
+
+      // ✅ Update the application
+      await Application.findByIdAndUpdate(
+          applicationId,
+          {
+              previousDegree,
+              grades,
+              marks,
+              fromYear,
+              toYear,
+              academicTranscripts,
+              proofofEnglishProficiency,
+              lettersOfRecommendation,
+              statementOfPurpose,
+              resumeCV,
+              passportSizePhotographs,
+              financialStatements,
+              additionalDocuments,
+          },
+          { session, new: true }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({ message: 'Application updated successfully.' });
+
+  } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error('Error updating application:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
+
 //-----------------------------------------------------------------------------------------------------------
   //previouse
   // exports.getStudentApplications = async (req, res) => {
@@ -454,66 +548,147 @@ await Agency.findByIdAndUpdate(
   //     return res.status(500).json({ message: 'Internal server error.' });
   //   }
   // };
-  
-  
+
 
   exports.getStudentApplications = async (req, res) => {
     try {
-      const studentId = req.user.id;
-  
-      // Validate `studentId`
-      if (!mongoose.Types.ObjectId.isValid(studentId)) {
-        return res.status(400).json({ message: 'Invalid student ID provided.' });
-      }
-  
-      // Fetch the student with their applications
-      const student = await Students.findById(studentId)
-        .populate({
-          path: 'applications',
-          populate: [
-            { path: 'university', select: 'name country' },
-            { path: 'course', select: 'name fees' },
-            { path: 'agency', select: 'name contactEmail' },
-            { path: 'assignedAgent', select: 'name email' },
-          ],
-        })
-        .select('applications firstName lastName email');
-  
-      if (!student) {
-        return res.status(404).json({ message: 'Student not found.' });
-      }
-  
-      if (!student.applications || student.applications.length === 0) {
-        return res.status(404).json({ message: 'No applications found for this student.' });
-      }
-  
-      // Prepare the response data
-      const applications = student.applications.map((app) => ({
-        applicationId: app._id,
-        university: app.university ? app.university.name : 'Unknown',
-        // country: app.university?app.university.address.country : 'Unknown',
-        course: app.course ? app.course.name : 'Unknown',
-        status: app.status,
-        submissionDate: app.submissionDate ? app.submissionDate.toLocaleDateString() : null,
-        submissionTime: app.submissionDate ? app.submissionDate.toISOString().slice(11, 19) : null,
-        notes: app.notes || 'No notes provided',
-      }));
-  
-      return res.status(200).json({
-        total: applications.length,
-        message: 'Successfully fetched student applications.',
-        student: {
-          id: student._id,
-          name: `${student.firstName} ${student.lastName}`,
-          email: student.email,
-        },
-        applications,
-      });
+        const studentId = req.user.id;
+        const { status } = req.query; // Get status from query parameter
+
+        // Validate `studentId`
+        if (!mongoose.Types.ObjectId.isValid(studentId)) {
+            return res.status(400).json({ message: 'Invalid student ID provided.' });
+        }
+
+        // Fetch the student with their applications
+        const student = await Students.findById(studentId)
+            .populate({
+                path: 'applications',
+                populate: [
+                    { path: 'university', select: 'name country' },
+                    { path: 'course', select: 'name fees' },
+                    { path: 'agency', select: 'name contactEmail' },
+                    { path: 'assignedAgent', select: 'name email' },
+                ],
+            })
+            .select('applications firstName lastName email');
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found.' });
+        }
+
+        if (!student.applications || student.applications.length === 0) {
+            return res.status(404).json({ message: 'No applications found for this student.' });
+        }
+
+        //  Convert status to lowercase for case-insensitive filtering
+        const statusFilter = status ? status.toLowerCase() : null;
+
+        //  Define valid statuses
+        const validStatuses = ['accepted', 'rejected', 'processing', 'withdrawn'];
+
+        if (statusFilter && !validStatuses.includes(statusFilter)) {
+            return res.status(400).json({
+                message: `Invalid status provided. Valid statuses: ${validStatuses.join(', ')}`,
+            });
+        }
+
+        // ✅ Apply status filtering if provided
+        const filteredApplications = student.applications.filter((app) =>
+            statusFilter ? app.status.toLowerCase() === statusFilter : true
+        );
+
+        if (filteredApplications.length === 0) {
+            return res.status(404).json({
+                message: `No applications found with status '${statusFilter}'.`,
+            });
+        }
+
+        // Prepare the response data
+        const applications = filteredApplications.map((app) => ({
+            applicationId: app._id,
+            university: app.university ? app.university.name : 'Unknown',
+            course: app.course ? app.course.name : 'Unknown',
+            status: app.status,
+            submissionDate: app.submissionDate ? app.submissionDate.toLocaleDateString() : null,
+            submissionTime: app.submissionDate ? app.submissionDate.toISOString().slice(11, 19) : null,
+            notes: app.notes || 'No notes provided',
+        }));
+
+        return res.status(200).json({
+            total: applications.length,
+            message: 'Successfully fetched student applications.',
+            student: {
+                id: student._id,
+                name: `${student.firstName} ${student.lastName}`,
+                email: student.email,
+            },
+            applications,
+        });
     } catch (error) {
-      console.error('Error fetching student applications:', error);
-      return res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error fetching student applications:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
-  };
+};
+  
+//in use previousely 
+  // exports.getStudentApplications = async (req, res) => {
+  //   try {
+  //     const studentId = req.user.id;
+  
+  //     // Validate `studentId`
+  //     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+  //       return res.status(400).json({ message: 'Invalid student ID provided.' });
+  //     }
+  
+  //     // Fetch the student with their applications
+  //     const student = await Students.findById(studentId)
+  //       .populate({
+  //         path: 'applications',
+  //         populate: [
+  //           { path: 'university', select: 'name country' },
+  //           { path: 'course', select: 'name fees' },
+  //           { path: 'agency', select: 'name contactEmail' },
+  //           { path: 'assignedAgent', select: 'name email' },
+  //         ],
+  //       })
+  //       .select('applications firstName lastName email');
+  
+  //     if (!student) {
+  //       return res.status(404).json({ message: 'Student not found.' });
+  //     }
+  
+  //     if (!student.applications || student.applications.length === 0) {
+  //       return res.status(404).json({ message: 'No applications found for this student.' });
+  //     }
+  
+  //     // Prepare the response data
+  //     const applications = student.applications.map((app) => ({
+  //       applicationId: app._id,
+  //       university: app.university ? app.university.name : 'Unknown',
+  //       // country: app.university?app.university.address.country : 'Unknown',
+  //       course: app.course ? app.course.name : 'Unknown',
+  //       status: app.status,
+  //       submissionDate: app.submissionDate ? app.submissionDate.toLocaleDateString() : null,
+  //       submissionTime: app.submissionDate ? app.submissionDate.toISOString().slice(11, 19) : null,
+  //       notes: app.notes || 'No notes provided',
+  //     }));
+  
+  //     return res.status(200).json({
+  //       total: applications.length,
+  //       message: 'Successfully fetched student applications.',
+  //       student: {
+  //         id: student._id,
+  //         name: `${student.firstName} ${student.lastName}`,
+  //         email: student.email,
+  //       },
+  //       applications,
+  //     });
+  //   } catch (error) {
+  //     console.error('Error fetching student applications:', error);
+  //     return res.status(500).json({ message: 'Internal server error.' });
+  //   }
+  // };
   
 //-
 //-----------------------------------------------------------------------------------------------------------
@@ -550,6 +725,49 @@ exports.getApplicationById = async (req, res) => {
       res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };  
+
+
+
+exports.withdrawApplication = async (req, res) => {
+  try {
+      const { applicationId } = req.params;
+      const studentId = req.user.id; // Assuming user ID is extracted from JWT middleware
+
+      //  Validate Application ID format
+      if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+          return res.status(400).json({ message: 'Invalid Application ID.' });
+      }
+
+      // ✅ Find the application and check ownership
+      const application = await Application.findOne({ _id: applicationId, student: studentId });
+
+      if (!application) {
+          return res.status(404).json({ message: 'Application not found for student.' });
+      }
+
+       // ✅ Check if application is already withdrawn
+       if (application.status === 'Withdrawn') {
+        return res.status(400).json({ message: 'Application has already been withdrawn.' });
+    }
+      // ✅ Check if withdrawal is allowed (only "Processing" or "Rejected" states)
+      if (!['Processing'].includes(application.status)) {
+          return res.status(400).json({
+              message: `Accepted and Rejected Application cannot be withdrawn, Current status:- ${application.status}`
+          });
+      }
+
+      // ✅ Update application status to "Withdrawn"
+      application.status = 'Withdrawn';
+      await application.save();
+
+      return res.status(200).json({ message: 'Application successfully withdrawn.' });
+
+  } catch (error) {
+      console.error('Error withdrawing application:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 
 //AGENT 
 
