@@ -152,7 +152,7 @@ exports.getStudentDetailsForApplication = async (req, res) => {
       const student = await Students.findById(studentId).select(
           'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address ' +
           'documentType documentUpload mostRecentEducation discipline otherDisciplineName ' +
-          'otherEducationName collegeUniversity'
+          'otherEducationName collegeUniversity NameOfUniversity'
       );
 
       if (!student) {
