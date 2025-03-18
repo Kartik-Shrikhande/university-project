@@ -151,7 +151,7 @@ exports.getStudentDetailsForApplication = async (req, res) => {
 
       const student = await Students.findById(studentId).select(
           'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address ' +
-          'documentType documentUpload mostRecentEducation discipline otherDisciplineName ' +
+          'documentType document documentUpload mostRecentEducation discipline otherDisciplineName ' +
           'otherEducationName collegeUniversity NameOfUniversity'
       );
 
@@ -188,56 +188,56 @@ exports.applyForCourse = async (req, res) => {
 
 
  // ✅ Upload files to AWS S3 and get URLs
- const academicTranscripts = req.files['academicTranscripts']
- ? await uploadFilesToS3(req.files['academicTranscripts'])
+ const latestdegreeCertificates = req.files['latestdegreeCertificates']
+ ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
  : [];
 
-const proofofEnglishProficiency = req.files['proofofEnglishProficiency']
- ? await uploadFilesToS3(req.files['proofofEnglishProficiency'])
+const englishTest = req.files['englishTest']
+ ? await uploadFilesToS3(req.files['englishTest'])
  : [];
 
-const lettersOfRecommendation = req.files['lettersOfRecommendation']
- ? await uploadFilesToS3(req.files['lettersOfRecommendation'])
+const proofOfAddress = req.files['proofOfAddress']
+ ? await uploadFilesToS3(req.files['proofOfAddress'])
  : [];
 
-const statementOfPurpose = req.files['statementOfPurpose']
- ? await uploadFilesToS3(req.files['statementOfPurpose'])
- : [];
+// const statementOfPurpose = req.files['statementOfPurpose']
+//  ? await uploadFilesToS3(req.files['statementOfPurpose'])
+//  : [];
 
-const resumeCV = req.files['resumeCV']
- ? await uploadFilesToS3(req.files['resumeCV'])
- : [];
+// const resumeCV = req.files['resumeCV']
+//  ? await uploadFilesToS3(req.files['resumeCV'])
+//  : [];
 
-const passportSizePhotographs = req.files['passportSizePhotographs']
- ? await uploadFilesToS3(req.files['passportSizePhotographs'])
- : [];
+// const passportSizePhotographs = req.files['passportSizePhotographs']
+//  ? await uploadFilesToS3(req.files['passportSizePhotographs'])
+//  : [];
 
-const financialStatements = req.files['financialStatements']
- ? await uploadFilesToS3(req.files['financialStatements'])
- : [];
+// const financialStatements = req.files['financialStatements']
+//  ? await uploadFilesToS3(req.files['financialStatements'])
+//  : [];
 
-const additionalDocuments = req.files['additionalDocuments']
- ? await uploadFilesToS3(req.files['additionalDocuments'])
- : [];
+// const additionalDocuments = req.files['additionalDocuments']
+//  ? await uploadFilesToS3(req.files['additionalDocuments'])
+//  : [];
 
    // Validate required files
    if (
-    !academicTranscripts.length ||
-    !proofofEnglishProficiency.length ||
-    !lettersOfRecommendation.length ||
-    !statementOfPurpose.length ||
-    !passportSizePhotographs.length ||
-    !financialStatements.length
+    !latestdegreeCertificates.length ||
+    !englishTest.length ||
+    !proofOfAddress.length 
+    // !statementOfPurpose.length ||
+    // !passportSizePhotographs.length ||
+    // !financialStatements.length
 ) {
     return res.status(400).json({
         message: "All required documents must be uploaded.",
         missingFiles: {
-            academicTranscripts: academicTranscripts.length ? "Provided" : "Missing",
-            proofOfEnglishProficiency: proofofEnglishProficiency.length ? "Provided" : "Missing",
-            lettersOfRecommendation: lettersOfRecommendation.length ? "Provided" : "Missing",
-            statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
-            passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
-            financialStatements: financialStatements.length ? "Provided" : "Missing",
+            latestdegreeCertificates: latestdegreeCertificates.length ? "Provided" : "Missing",
+            englishTest: englishTest.length ? "Provided" : "Missing",
+            proofOfAddress: proofOfAddress.length ? "Provided" : "Missing",
+            // statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
+            // passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
+            // financialStatements: financialStatements.length ? "Provided" : "Missing",
         },
     });
 }
@@ -295,15 +295,21 @@ const additionalDocuments = req.files['additionalDocuments']
           fromYear,
           toYear,
 
+
           // Uploaded Documents
-          academicTranscripts,
-          proofofEnglishProficiency,
-          lettersOfRecommendation,
-          statementOfPurpose,
-          resumeCV,
-          passportSizePhotographs,
-          financialStatements,
-          additionalDocuments,
+          latestdegreeCertificates,
+          englishTest,
+          proofOfAddress
+
+
+        //   academicTranscripts,
+        //   proofofEnglishProficiency,
+        //   lettersOfRecommendation,
+        //   statementOfPurpose,
+        //   resumeCV,
+        //   passportSizePhotographs,
+        //   financialStatements,
+        //   additionalDocuments,
 
           
       });

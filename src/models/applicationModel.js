@@ -54,14 +54,19 @@ const applicationSchema = new mongoose.Schema(
  },
 //documents 
   // Documents (✅ No More `required: true`)
-  academicTranscripts: [{ type: String, default: [] }], 
-  proofofEnglishProficiency: [{ type: String, default: [] }],
-  lettersOfRecommendation: [{ type: String, default: [] }],
-  statementOfPurpose: [{ type: String, default: [] }],
-  resumeCV: [{ type: String, default: [] }],
-  passportSizePhotographs: [{ type: String, default: [] }],
-  financialStatements: [{ type: String, default: [] }],
-  additionalDocuments: [{ type: String, default: [] }],
+  // academicTranscripts: [{ type: String, default: [] }], 
+  // proofofEnglishProficiency: [{ type: String, default: [] }],
+  // lettersOfRecommendation: [{ type: String, default: [] }],
+  // statementOfPurpose: [{ type: String, default: [] }],
+  // resumeCV: [{ type: String, default: [] }],
+  // passportSizePhotographs: [{ type: String, default: [] }],
+  // financialStatements: [{ type: String, default: [] }],
+  // additionalDocuments: [{ type: String, default: [] }],
+  latestdegreeCertificates: [{ type: String, default: [] }], 
+  englishTest: [{ type: String, default: [] }], 
+  proofOfAddress: [{ type: String, default: [] }], 
+   
+
     // Financial Aid field
     financialAid: {
       type: String,

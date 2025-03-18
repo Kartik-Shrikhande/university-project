@@ -95,7 +95,7 @@ const studentSchema = new mongoose.Schema(
         return this.englishLanguageRequirement && this.englishLanguageRequirement.toLowerCase() === 'yes'; 
       }
     },
-    documentUpload: [{ 
+    document: [{ 
       type: String,
       required: function() {
         return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'

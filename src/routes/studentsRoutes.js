@@ -172,14 +172,14 @@ router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.a
 
 
 const uploadFields = uploadImage.fields([
-  { name: 'academicTranscripts', maxCount: 5 },
-  { name: 'proofofEnglishProficiency', maxCount: 5 },
-  { name: 'lettersOfRecommendation', maxCount: 5 },
-  { name: 'statementOfPurpose', maxCount: 5 },
-  { name: 'resumeCV', maxCount: 5 },
-  { name: 'passportSizePhotographs', maxCount: 5 },
-  { name: 'financialStatements', maxCount: 5 },
-  { name: 'additionalDocuments', maxCount: 5 },
+  { name: 'latestdegreeCertificates', maxCount: 5 },
+  { name: 'englishTest', maxCount: 5 },
+  { name: 'proofOfAddress', maxCount: 5 },
+  // { name: 'statementOfPurpose', maxCount: 5 },
+  // { name: 'resumeCV', maxCount: 5 },
+  // { name: 'passportSizePhotographs', maxCount: 5 },
+  // { name: 'financialStatements', maxCount: 5 },
+  // { name: 'additionalDocuments', maxCount: 5 },
 ]);
 
 
