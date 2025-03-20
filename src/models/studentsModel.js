@@ -43,11 +43,20 @@ const studentSchema = new mongoose.Schema(
     // Education Details
     mostRecentEducation: {
       type: String,
-      enum: ['BTech', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'],
+      enum: ['Bachelors', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'],
       required: true,
     },
+    courseName:{ type: String ,  required: true},
     otherEducationName: { type: String },
-    yearOfGraduation: { type: Number, min: 2014, max: new Date().getFullYear() },
+    // yearOfGraduation: { type: Number, min: 2014, max: new Date().getFullYear() },
+     fromYear:{
+  type: Number, 
+  required: true
+ },
+  toYear:{
+  type: Number, 
+  required: true
+ },
     collegeUniversity: { type: String, maxlength: 100 },
     programType: {
       type: String,

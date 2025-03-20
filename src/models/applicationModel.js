@@ -30,11 +30,11 @@ const applicationSchema = new mongoose.Schema(
       },
     ],
     //Application Input fields 
-    previousDegree: { 
-      type: String, //enum : masters , bachelors,others
-      enum: ['Masters', 'Bachelors', 'Others'], 
-      required: true 
-    },
+    // previousDegree: { 
+    //   type: String, //enum : masters , bachelors,others
+    //   enum: ['Masters', 'Bachelors', 'Others'], 
+    //   required: true 
+    // },
     grades:{
       type: String, 
       enum: ['Cgpa', 'Grades'], 
@@ -44,14 +44,14 @@ const applicationSchema = new mongoose.Schema(
       type: String, 
       required: true 
     },
- fromYear:{
-  type: Number, 
-  required: true
- },
-  toYear:{
-  type: Number, 
-  required: true
- },
+//  fromYear:{
+//   type: Number, 
+//   required: true
+//  },
+//   toYear:{
+//   type: Number, 
+//   required: true
+//  },
 //documents 
   // Documents (✅ No More `required: true`)
   // academicTranscripts: [{ type: String, default: [] }], 

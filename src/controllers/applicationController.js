@@ -151,8 +151,8 @@ exports.getStudentDetailsForApplication = async (req, res) => {
 
       const student = await Students.findById(studentId).select(
           'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address ' +
-          'documentType document documentUpload mostRecentEducation discipline otherDisciplineName ' +
-          'otherEducationName collegeUniversity NameOfUniversity'
+          'documentType document documentUpload mostRecentEducation courseName fromYear toYear discipline otherDisciplineName ' +
+          'otherEducationName collegeUniversity NameOfUniversity '
       );
 
       if (!student) {
@@ -179,11 +179,11 @@ exports.applyForCourse = async (req, res) => {
 
       // Extract input fields from the request body
       const {
-          previousDegree,
+        //   previousDegree,
           grades,
           marks,
-          fromYear,
-          toYear,
+        //   fromYear,
+        //   toYear,
       } = req.body;
 
 
@@ -289,11 +289,11 @@ const proofOfAddress = req.files['proofOfAddress']
           assignedAgent: student.assignedAgent || [],
 
           // Academic Details
-          previousDegree,
+        //   previousDegree,
           grades,
           marks,
-          fromYear,
-          toYear,
+        //   fromYear,
+        //   toYear,
 
 
           // Uploaded Documents
@@ -338,8 +338,8 @@ await Agency.findByIdAndUpdate(
 );
 
 
-      defaultAgency.pendingApplications.push(newApplication._id);
-      await defaultAgency.save({ session });
+    //   defaultAgency.pendingApplications.push(newApplication._id);
+    //   await defaultAgency.save({ session });
 
       await session.commitTransaction();
       session.endSession();

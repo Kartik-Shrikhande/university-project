@@ -70,6 +70,15 @@
                 "mostRecentEducation": {
                   "example": "any"
                 },
+                "courseName": {
+                  "example": "any"
+                },
+                "fromYear": {
+                  "example": "any"
+                },
+                "toYear": {
+                  "example": "any"
+                },
                 "otherEducationName": {
                   "example": "any"
                 },
@@ -850,19 +859,10 @@
             "schema": {
               "type": "object",
               "properties": {
-                "fromYear": {
-                  "example": "any"
-                },
-                "previousDegree": {
-                  "example": "any"
-                },
                 "grades": {
                   "example": "any"
                 },
                 "marks": {
-                  "example": "any"
-                },
-                "toYear": {
                   "example": "any"
                 }
               }
