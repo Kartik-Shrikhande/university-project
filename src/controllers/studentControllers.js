@@ -1044,6 +1044,9 @@ exports.resendOtpForLogin = async (req, res) => {
 
 // Update Student
 
+
+
+
 exports.updateStudent = async (req, res) => {
   let session;
   try {
@@ -1055,6 +1058,7 @@ exports.updateStudent = async (req, res) => {
       Object.entries(updates).filter(([_, value]) => value !== '')
     );
 
+    
     // Restricted fields that cannot be updated
     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
 
@@ -1065,9 +1069,13 @@ exports.updateStudent = async (req, res) => {
     }
 
     // Check if there are any valid fields left to update
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ message: 'No valid fields to update.' });
-    }
+ // Check if there are any valid fields left to update
+ if (
+  Object.keys(updates).length === 0 &&
+  (!req.files || (!req.files['document'] && !req.files['documentUpload']))
+) {
+  return res.status(400).json({ message: 'No valid fields to update.' });
+}
 
     // Start session only if using transactions
     session = await mongoose.startSession();
@@ -1080,6 +1088,21 @@ exports.updateStudent = async (req, res) => {
       { new: true, runValidators: true, session }
     );
 
+  // Handle document uploads
+// Handle document uploads
+let uploadedDocuments = [];
+if (req.files && req.files['document']) {
+  uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
+}
+// console.log(req.files); // Log the incoming file fields
+
+
+let uploadedDocumentUploads = [];
+if (req.files && req.files['documentUpload']) {
+  uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
+}
+
+
     if (!updatedStudent) {
       await session.abortTransaction();
       return res.status(404).json({ message: 'Student not found.' });
@@ -1088,7 +1111,7 @@ exports.updateStudent = async (req, res) => {
     // Commit transaction only if the update was successful
     await session.commitTransaction();
 
-    return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent });
+    return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent,new:true});
 
   } catch (error) {
     console.error('Error updating student:', error);

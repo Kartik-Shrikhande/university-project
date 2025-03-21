@@ -154,17 +154,17 @@ const studentSchema = new mongoose.Schema(
     isVerified:{type: Boolean, default: false},
      // **New Fields for Response Structure**
 
-    // Documents to track status
-    documents: {
-      passport: {
-        url: { type: String },  // URL for passport file
-        status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
-      },
-      english_test: {
-        url: { type: String },  // URL for English test file
-        status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
-      }
-    },
+    // // Documents to track status
+    // documents: {
+    //   passport: {
+    //     url: { type: String },  // URL for passport file
+    //     status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
+    //   },
+    //   english_test: {
+    //     url: { type: String },  // URL for English test file
+    //     status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
+    //   }
+    // },
 
     // Payment status
     payment_status: {
