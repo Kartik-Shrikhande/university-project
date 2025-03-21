@@ -6,7 +6,7 @@ const University = require('../models/universityModel');
 const Application = require('../models/applicationModel');
 const Course = require('../models/coursesModel');
 const { isValidObjectId } = require('mongoose');
-const uploadFileToS3 = require('../utils/s3Upload');
+const { uploadFilesToS3 } = require('../utils/s3Upload');
 const Otp = require('../models/otpModel');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
@@ -23,34 +23,34 @@ const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
 
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid');
 
-// Create S3 client
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+// // Create S3 client
+// const s3 = new S3Client({
+//   region: process.env.AWS_REGION,
+//   credentials: {
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   },
+// });
 
-// Function to upload files to S3
-const uploadFilesToS3 = async (files) => {
-  const uploadPromises = files.map(async (file) => {
-    const uniqueFileName = `${uuidv4()}-${file.originalname}`;
-    const params = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: uniqueFileName,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
+// // Function to upload files to S3
+// const uploadFilesToS3 = async (files) => {
+//   const uploadPromises = files.map(async (file) => {
+//     const uniqueFileName = `${uuidv4()}-${file.originalname}`;
+//     const params = {
+//       Bucket: process.env.S3_BUCKET_NAME,
+//       Key: uniqueFileName,
+//       Body: file.buffer,
+//       ContentType: file.mimetype,
+//     };
 
-    await s3.send(new PutObjectCommand(params)); // Upload file
-    return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFileName}`;
-  });
+//     await s3.send(new PutObjectCommand(params)); // Upload file
+//     return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFileName}`;
+//   });
 
-  return Promise.all(uploadPromises);
-};
+//   return Promise.all(uploadPromises);
+// };
 
 
 

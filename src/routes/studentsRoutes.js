@@ -193,6 +193,10 @@ router.post('/stripe-webhook', express.raw({ type: 'application/json' }),payment
 router.get('/profile',studentController.seeStudentProfile);
 
 router.put('/update',
+  upload.fields([
+    { name: 'document', maxCount: 5 },   // Uploads up to 5 PDF files for `documents`
+    { name: 'documentUpload', maxCount: 5 }, // Uploads up to 5 PDF files for `documentUpload`
+  ]),// Accept up to 5 PDF files
   studentValidations.validateUpdateStudent,
   validate,
   userActivity.updateLastActivity,
@@ -244,8 +248,6 @@ router.post('/create-payment',
   // authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
   userActivity.updateLastActivity,
     userControllers.createPayment)
-
-
 
 
 

@@ -904,19 +904,10 @@
             "schema": {
               "type": "object",
               "properties": {
-                "fromYear": {
-                  "example": "any"
-                },
-                "previousDegree": {
-                  "example": "any"
-                },
                 "grades": {
                   "example": "any"
                 },
                 "marks": {
-                  "example": "any"
-                },
-                "toYear": {
                   "example": "any"
                 }
               }

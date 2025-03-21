@@ -406,58 +406,43 @@ exports.updateApplication = async (req, res) => {
       }
 
       // Extract input fields
-      const { previousDegree, grades, marks, fromYear, toYear } = req.body;
+      const {grades, marks} = req.body;
 
-      // ✅ Upload updated files to AWS S3
-      const academicTranscripts = req.files?.['academicTranscripts']
-          ? await uploadFilesToS3(req.files['academicTranscripts'])
-          : application.academicTranscripts;
 
-      const proofofEnglishProficiency = req.files?.['proofofEnglishProficiency']
-          ? await uploadFilesToS3(req.files['proofofEnglishProficiency'])
-          : application.proofofEnglishProficiency;
+      // ✅ Upload files to AWS S3 and get URLs
+ const latestdegreeCertificates = req.files['latestdegreeCertificates']
+ ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
+ : [];
 
-      const lettersOfRecommendation = req.files?.['lettersOfRecommendation']
-          ? await uploadFilesToS3(req.files['lettersOfRecommendation'])
-          : application.lettersOfRecommendation;
+const englishTest = req.files['englishTest']
+ ? await uploadFilesToS3(req.files['englishTest'])
+ : [];
 
-      const statementOfPurpose = req.files?.['statementOfPurpose']
-          ? await uploadFilesToS3(req.files['statementOfPurpose'])
-          : application.statementOfPurpose;
-
-      const resumeCV = req.files?.['resumeCV']
-          ? await uploadFilesToS3(req.files['resumeCV'])
-          : application.resumeCV;
-
-      const passportSizePhotographs = req.files?.['passportSizePhotographs']
-          ? await uploadFilesToS3(req.files['passportSizePhotographs'])
-          : application.passportSizePhotographs;
-
-      const financialStatements = req.files?.['financialStatements']
-          ? await uploadFilesToS3(req.files['financialStatements'])
-          : application.financialStatements;
-
-      const additionalDocuments = req.files?.['additionalDocuments']
-          ? await uploadFilesToS3(req.files['additionalDocuments'])
-          : application.additionalDocuments;
+const proofOfAddress = req.files['proofOfAddress']
+ ? await uploadFilesToS3(req.files['proofOfAddress'])
+ : [];
 
       // ✅ Update the application
       await Application.findByIdAndUpdate(
           applicationId,
           {
-              previousDegree,
+            //   previousDegree,
               grades,
               marks,
-              fromYear,
-              toYear,
-              academicTranscripts,
-              proofofEnglishProficiency,
-              lettersOfRecommendation,
-              statementOfPurpose,
-              resumeCV,
-              passportSizePhotographs,
-              financialStatements,
-              additionalDocuments,
+            //   fromYear,
+            //   toYear,
+            //   academicTranscripts,
+            //   proofofEnglishProficiency,
+            //   lettersOfRecommendation,
+            //   statementOfPurpose,
+            //   resumeCV,
+            //   passportSizePhotographs,
+            //   financialStatements,
+            //   additionalDocuments,
+            latestdegreeCertificates,
+            englishTest,
+            proofOfAddress
+  
           },
           { session, new: true }
       );

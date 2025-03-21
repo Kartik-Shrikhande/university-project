@@ -230,8 +230,33 @@ const validateUpdateStudent = [
   body('mostRecentEducation').optional().isIn(['BTech', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'])
     .withMessage('Most recent education must be BTech, Diploma, Degree, Masters, PhD, or Other.'),
 
-  body('yearOfGraduation').optional().isInt({ min: 2014, max: new Date().getFullYear() })
-    .withMessage(`Year of graduation must be between 2014 and ${new Date().getFullYear()}.`),
+  // body('yearOfGraduation').optional().isInt({ min: 2014, max: new Date().getFullYear() })
+  //   .withMessage(`Year of graduation must be between 2014 and ${new Date().getFullYear()}.`),
+// Validate mostRecentEducation
+body('courseName')
+.optional()
+.withMessage('courseName is required.')
+.isString()
+.withMessage('courseName must be a string.'),
+
+ // Validate fromYear (required and valid year >= 1900 and <= current year)
+ body('fromYear')
+ .optional()
+ .isInt({ min: 1900, max: new Date().getFullYear() })
+ .withMessage(`fromYear must be between 1900 and ${new Date().getFullYear()}.`),
+
+// Validate toYear (required, must be greater than or equal to fromYear)
+body('toYear')
+.optional()
+ .isInt({ min: 1900, max: new Date().getFullYear() })
+ .withMessage(`toYear must be between 1900 and ${new Date().getFullYear()}.`)
+ .custom((value, { req }) => {
+   if (value < req.body.fromYear) {
+     throw new Error('To year must be greater than or equal to fromYear.');
+   }
+   return true;
+ }),
+
 
   body('programType').optional().isIn(['Graduation', 'Post Graduation', 'Under Graduation', 'PhD', 'Other'])
     .withMessage('Program type must be Graduation, Post Graduation, Under Graduation, PhD, or Other.'),
