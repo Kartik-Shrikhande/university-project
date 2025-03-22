@@ -387,79 +387,78 @@ await Agency.findByIdAndUpdate(
 
 
 exports.updateApplication = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+  
+    try {
       const { applicationId } = req.params;
       const studentId = req.user.id;
-
+  
       // Check if the application ID is valid
       if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-          return res.status(400).json({ message: 'Invalid Application ID.' });
+        return res.status(400).json({ message: 'Invalid Application ID.' });
       }
-
+  
       // Find the application and validate ownership
       const application = await Application.findOne({ _id: applicationId, student: studentId }).session(session);
       if (!application) {
-          return res.status(404).json({ message: 'Application not found.' });
+        return res.status(404).json({ message: 'Application not found.' });
       }
-
-      // Extract input fields
-      const {grades, marks} = req.body;
-
-
-      // ✅ Upload files to AWS S3 and get URLs
- const latestdegreeCertificates = req.files['latestdegreeCertificates']
- ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
- : [];
-
-const englishTest = req.files['englishTest']
- ? await uploadFilesToS3(req.files['englishTest'])
- : [];
-
-const proofOfAddress = req.files['proofOfAddress']
- ? await uploadFilesToS3(req.files['proofOfAddress'])
- : [];
-
-      // ✅ Update the application
-      await Application.findByIdAndUpdate(
-          applicationId,
-          {
-            //   previousDegree,
-              grades,
-              marks,
-            //   fromYear,
-            //   toYear,
-            //   academicTranscripts,
-            //   proofofEnglishProficiency,
-            //   lettersOfRecommendation,
-            //   statementOfPurpose,
-            //   resumeCV,
-            //   passportSizePhotographs,
-            //   financialStatements,
-            //   additionalDocuments,
-            latestdegreeCertificates,
-            englishTest,
-            proofOfAddress
   
-          },
-          { session, new: true }
+      // Extract input fields
+      const { grades, marks } = req.body;
+  
+      // ✅ Upload files to AWS S3 and get URLs
+      const latestdegreeCertificates = req.files['latestdegreeCertificates']
+        ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
+        : null;
+  
+      const englishTest = req.files['englishTest']
+        ? await uploadFilesToS3(req.files['englishTest'])
+        : null;
+  
+      const proofOfAddress = req.files['proofOfAddress']
+        ? await uploadFilesToS3(req.files['proofOfAddress'])
+        : null;
+  
+      // ✅ Prepare update object
+      const updateFields = {
+        grades,
+        marks,
+      };
+  
+      // ✅ Conditionally update document fields
+      if (latestdegreeCertificates) {
+        updateFields.latestdegreeCertificates = latestdegreeCertificates;
+      }
+  
+      if (englishTest) {
+        updateFields.englishTest = englishTest;
+      }
+  
+      if (proofOfAddress) {
+        updateFields.proofOfAddress = proofOfAddress;
+      }
+  
+      // ✅ Use $set to update only the provided fields
+      await Application.findByIdAndUpdate(
+        applicationId,
+        { $set: updateFields },
+        { session, new: true }
       );
-
+  
       await session.commitTransaction();
       session.endSession();
-
+  
       return res.status(200).json({ message: 'Application updated successfully.' });
-
-  } catch (error) {
+    } catch (error) {
       await session.abortTransaction();
       session.endSession();
       console.error('Error updating application:', error);
       return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
+    }
+  };
+  
 
 
 

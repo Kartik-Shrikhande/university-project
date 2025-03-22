@@ -107,9 +107,12 @@ const studentSchema = new mongoose.Schema(
     document: [{ 
       type: String,
       required: function() {
-        return this.englishLanguageRequirement.toLowerCase() === 'yes'; // Handle both 'Yes' and 'yes'
+        return this.englishLanguageRequirement && 
+               typeof this.englishLanguageRequirement === 'string' && 
+               this.englishLanguageRequirement.toLowerCase() === 'yes'; 
       }
     }],
+    
     // languageTestName: { type: String }, // Added from input model
     // languageTestScore: { type: String }, // Added from input model
     // preferredCommunicationMethod:{ 

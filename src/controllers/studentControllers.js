@@ -1045,86 +1045,195 @@ exports.resendOtpForLogin = async (req, res) => {
 // Update Student
 
 
-
-
 exports.updateStudent = async (req, res) => {
   let session;
   try {
     const studentId = req.user.id;
     let updates = req.body;
 
-    // Remove fields that are empty strings
+    // Remove empty fields from updates
     updates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== '')
     );
 
-    
     // Restricted fields that cannot be updated
-    const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
+    const restrictedFields = [
+      'email',
+      'password',
+      'visitedUniversities',
+      'visitedCourses',
+      'enrolledCourses',
+    ];
 
-    // Check if any restricted field is being updated
-    const invalidFields = Object.keys(updates).filter(field => restrictedFields.includes(field));
+    // Check if any restricted fields are included in updates
+    const invalidFields = Object.keys(updates).filter((field) =>
+      restrictedFields.includes(field)
+    );
     if (invalidFields.length > 0) {
-      return res.status(400).json({ message: `Fields ${invalidFields.join(', ')} cannot be updated directly.` });
+      return res
+        .status(400)
+        .json({
+          message: `Fields ${invalidFields.join(', ')} cannot be updated directly.`,
+        });
     }
 
-    // Check if there are any valid fields left to update
- // Check if there are any valid fields left to update
- if (
-  Object.keys(updates).length === 0 &&
-  (!req.files || (!req.files['document'] && !req.files['documentUpload']))
-) {
-  return res.status(400).json({ message: 'No valid fields to update.' });
-}
+    // Check if there are valid fields to update or files to upload
+    if (
+      Object.keys(updates).length === 0 &&
+      (!req.files || (!req.files['document'] && !req.files['documentUpload']))
+    ) {
+      return res.status(400).json({ message: 'No valid fields to update.' });
+    }
 
-    // Start session only if using transactions
+    // Start a session for transaction
     session = await mongoose.startSession();
     session.startTransaction();
+
+    // Handle document uploads (if any)
+    let uploadedDocuments = [];
+    let uploadedDocumentUploads = [];
+
+    if (req.files) {
+      if (req.files['document']) {
+        uploadedDocuments = await uploadFilesToS3(req.files['document']); // Upload 'document' files
+      }
+
+      if (req.files['documentUpload']) {
+        uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']); // Upload 'documentUpload' files
+      }
+    }
+
+    // Prepare document uploads for update
+    if (uploadedDocuments.length > 0) {
+      updates.document = [
+        ...(Array.isArray(updates.document) ? updates.document : []),
+        ...uploadedDocuments,
+      ];
+    }
+
+    if (uploadedDocumentUploads.length > 0) {
+      updates.documentUpload = [
+        ...(Array.isArray(updates.documentUpload)
+          ? updates.documentUpload
+          : []),
+        ...uploadedDocumentUploads,
+      ];
+    }
 
     // Update student details
     const updatedStudent = await Students.findByIdAndUpdate(
       studentId,
-      { $set: updates }, // Using $set to update only specific fields
+      { $set: updates }, // Use $set to update specific fields
       { new: true, runValidators: true, session }
     );
-
-  // Handle document uploads
-// Handle document uploads
-let uploadedDocuments = [];
-if (req.files && req.files['document']) {
-  uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
-}
-// console.log(req.files); // Log the incoming file fields
-
-
-let uploadedDocumentUploads = [];
-if (req.files && req.files['documentUpload']) {
-  uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
-}
-
 
     if (!updatedStudent) {
       await session.abortTransaction();
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Commit transaction only if the update was successful
+    // Commit transaction if everything succeeds
     await session.commitTransaction();
 
-    return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent,new:true});
-
+    return res.status(200).json({
+      message: 'Student updated successfully.',
+      student: updatedStudent,
+    });
   } catch (error) {
     console.error('Error updating student:', error);
     if (session) {
       await session.abortTransaction();
     }
-    return res.status(500).json({ message: 'Internal server error.', error: error.message });
+    return res
+      .status(500)
+      .json({ message: 'Internal server error.', error: error.message });
   } finally {
     if (session) {
       session.endSession();
     }
   }
 };
+
+
+
+// exports.updateStudent = async (req, res) => {
+//   let session;
+//   try {
+//     const studentId = req.user.id;
+//     let updates = req.body;
+
+//     // Remove fields that are empty strings
+//     updates = Object.fromEntries(
+//       Object.entries(updates).filter(([_, value]) => value !== '')
+//     );
+
+    
+//     // Restricted fields that cannot be updated
+//     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
+
+//     // Check if any restricted field is being updated
+//     const invalidFields = Object.keys(updates).filter(field => restrictedFields.includes(field));
+//     if (invalidFields.length > 0) {
+//       return res.status(400).json({ message: `Fields ${invalidFields.join(', ')} cannot be updated directly.` });
+//     }
+
+//     // Check if there are any valid fields left to update
+//  // Check if there are any valid fields left to update
+//  if (
+//   Object.keys(updates).length === 0 &&
+//   (!req.files || (!req.files['document'] && !req.files['documentUpload']))
+// ) {
+//   return res.status(400).json({ message: 'No valid fields to update.' });
+// }
+
+//     // Start session only if using transactions
+//     session = await mongoose.startSession();
+//     session.startTransaction();
+
+//     // Update student details
+//     const updatedStudent = await Students.findByIdAndUpdate(
+//       studentId,
+//       { $set: updates }, // Using $set to update only specific fields
+//       { new: true, runValidators: true, session }
+//     );
+
+//   // Handle document uploads
+// // Handle document uploads
+// let uploadedDocuments = [];
+// if (req.files && req.files['document']) {
+//   uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
+// }
+// // console.log(req.files); // Log the incoming file fields
+
+
+// let uploadedDocumentUploads = [];
+// if (req.files && req.files['documentUpload']) {
+//   uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
+// }
+
+
+//     if (!updatedStudent) {
+//       await session.abortTransaction();
+//       return res.status(404).json({ message: 'Student not found.' });
+//     }
+
+//     // Commit transaction only if the update was successful
+//     await session.commitTransaction();
+
+//     return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent,new:true});
+
+//   } catch (error) {
+//     console.error('Error updating student:', error);
+//     if (session) {
+//       await session.abortTransaction();
+//     }
+//     return res.status(500).json({ message: 'Internal server error.', error: error.message });
+//   } finally {
+//     if (session) {
+//       session.endSession();
+//     }
+//   }
+// };
 
 
 
