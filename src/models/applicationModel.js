@@ -38,11 +38,11 @@ const applicationSchema = new mongoose.Schema(
     grades:{
       type: String, 
       enum: ['Cgpa', 'Grades'], 
-      required: true 
+      // required: true 
     },
     marks:{
       type: String, 
-      required: true 
+      // required: true 
     },
 //  fromYear:{
 //   type: Number, 

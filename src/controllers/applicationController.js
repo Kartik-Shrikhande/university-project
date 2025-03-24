@@ -188,17 +188,23 @@ exports.applyForCourse = async (req, res) => {
 
 
  // ✅ Upload files to AWS S3 and get URLs
- const latestdegreeCertificates = req.files['latestdegreeCertificates']
- ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
- : [];
+      // ✅ Upload files to AWS S3 and get URLs only if files are provided
+      const latestdegreeCertificates = await uploadFilesToS3(req.files?.['latestdegreeCertificates'] || []);
+      const englishTest = await uploadFilesToS3(req.files?.['englishTest'] || []);
+      const proofOfAddress = await uploadFilesToS3(req.files?.['proofOfAddress'] || []);
 
-const englishTest = req.files['englishTest']
- ? await uploadFilesToS3(req.files['englishTest'])
- : [];
 
-const proofOfAddress = req.files['proofOfAddress']
- ? await uploadFilesToS3(req.files['proofOfAddress'])
- : [];
+ //  const latestdegreeCertificates = req.files['latestdegreeCertificates']
+//  ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
+//  : [];
+
+// const englishTest = req.files['englishTest']
+//  ? await uploadFilesToS3(req.files['englishTest'])
+//  : [];
+
+// const proofOfAddress = req.files['proofOfAddress']
+//  ? await uploadFilesToS3(req.files['proofOfAddress'])
+//  : [];
 
 // const statementOfPurpose = req.files['statementOfPurpose']
 //  ? await uploadFilesToS3(req.files['statementOfPurpose'])
@@ -221,26 +227,26 @@ const proofOfAddress = req.files['proofOfAddress']
 //  : [];
 
    // Validate required files
-   if (
-    !latestdegreeCertificates.length ||
-    !englishTest.length ||
-    !proofOfAddress.length 
-    // !statementOfPurpose.length ||
-    // !passportSizePhotographs.length ||
-    // !financialStatements.length
-) {
-    return res.status(400).json({
-        message: "All required documents must be uploaded.",
-        missingFiles: {
-            latestdegreeCertificates: latestdegreeCertificates.length ? "Provided" : "Missing",
-            englishTest: englishTest.length ? "Provided" : "Missing",
-            proofOfAddress: proofOfAddress.length ? "Provided" : "Missing",
-            // statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
-            // passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
-            // financialStatements: financialStatements.length ? "Provided" : "Missing",
-        },
-    });
-}
+//    if (
+//     !latestdegreeCertificates.length ||
+//     !englishTest.length ||
+//     !proofOfAddress.length 
+//     // !statementOfPurpose.length ||
+//     // !passportSizePhotographs.length ||
+//     // !financialStatements.length
+// ) {
+//     return res.status(400).json({
+//         message: "All required documents must be uploaded.",
+//         missingFiles: {
+//             latestdegreeCertificates: latestdegreeCertificates.length ? "Provided" : "Missing",
+//             englishTest: englishTest.length ? "Provided" : "Missing",
+//             proofOfAddress: proofOfAddress.length ? "Provided" : "Missing",
+//             // statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
+//             // passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
+//             // financialStatements: financialStatements.length ? "Provided" : "Missing",
+//         },
+//     });
+// }
       // Validate course ID
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
           return res.status(400).json({ message: 'Invalid CourseId.' });

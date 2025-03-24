@@ -4,6 +4,10 @@ const agencyController = require('../controllers/agencyController');
 // const associateController = require("../controllers/agencyController");
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const { body, validationResult } = require('express-validator');
+
+const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
+
 const {
 validateUniversity,
     validateUniversityLogin,
@@ -87,10 +91,10 @@ router.get('/students/:id', agencyController.getStudentById); // Get student by 
 
 //ASSOCIATE 
 // Define routes
-router.post('/associate/create', agencyController.createAssociate);
+router.post('/associate/create',validateAssociateCreation,validate, agencyController.createAssociate);
 router.get('/associate', agencyController.getAllAssociates);
 router.get('/associate/:id', agencyController.getAssociateById);
-router.put('/associate/:id', agencyController.updateAssociate);
+router.put('/associate/:id',validateAssociateUpdate,validate, agencyController.updateAssociate);
 router.delete('/associate/:id', agencyController.deleteAssociate);
 
 

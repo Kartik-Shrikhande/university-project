@@ -1046,10 +1046,10 @@ exports.createAssociate = async (req, res) => {
   try {
     const { firstName, lastName, email, phoneNumber, address, bankDetails } = req.body;
 
-    // Check if required fields are provided
-    if (!firstName || !lastName || !email || !phoneNumber || !bankDetails?.accountNumber || !bankDetails?.bankName) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
+    // // Check if required fields are provided
+    // if (!firstName || !lastName || !email || !phoneNumber || !bankDetails?.accountNumber || !bankDetails?.bankName) {
+    //   return res.status(400).json({ success: false, message: "Missing required fields" });
+    // }
 
     // Check if the email is already in use
     const existingAssociate = await AssociateSolicitor.findOne({ email });

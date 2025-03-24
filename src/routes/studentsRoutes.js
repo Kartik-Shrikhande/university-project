@@ -303,8 +303,8 @@ userActivity.updateLastActivity,
 
 // router.post('/application/:courseId', applicationController.applyForCourse);//previouse
 router.get('/application/getStudentDetailsForApplication', applicationController.getStudentDetailsForApplication);
-router.post('/application/:courseId', uploadFields,validateApplication.validateApplication,applicationController.applyForCourse);
-router.put('/application/update/:applicationId', uploadFields,validateApplication.validateUpdateApplication,applicationController.updateApplication);
+router.post('/application/:courseId', uploadFields,applicationController.applyForCourse);
+router.put('/application/update/:applicationId', uploadFields,applicationController.updateApplication);
 router.get('/students/applications',applicationController.getStudentApplications);
 router.get('/get/application/:applicationId',applicationController.getApplicationById);
 router.put('/application/withdraw/:applicationId',applicationController.withdrawApplication);//withdrawn
