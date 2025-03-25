@@ -14,7 +14,7 @@ const studentController = require('../controllers/studentControllers');
 const studentValidations = require('../validators/studentValidations');
 // const upload = require('../middlewares/uploadMiddleware');
 const uploadImage=require("../middlewares/uploadMiddleware")
-const validateApplication = require('../validators/applicationValidations'); // ✅ Import validation middleware
+const validateApplications = require('../validators/applicationValidations'); // ✅ Import validation middleware
 
 const{ uploadFilesToS3} = require('../utils/s3Upload'); // Import updated upload middleware
 
@@ -303,8 +303,8 @@ userActivity.updateLastActivity,
 
 // router.post('/application/:courseId', applicationController.applyForCourse);//previouse
 router.get('/application/getStudentDetailsForApplication', applicationController.getStudentDetailsForApplication);
-router.post('/application/:courseId', uploadFields,applicationController.applyForCourse);
-router.put('/application/update/:applicationId', uploadFields,applicationController.updateApplication);
+router.post('/application/:courseId',uploadFields,validateApplications.validateApplication,validate,applicationController.applyForCourse);
+router.put('/application/update/:applicationId', uploadFields,validateApplications.validateUpdateApplication,validate,applicationController.updateApplication);
 router.get('/students/applications',applicationController.getStudentApplications);
 router.get('/get/application/:applicationId',applicationController.getApplicationById);
 router.put('/application/withdraw/:applicationId',applicationController.withdrawApplication);//withdrawn

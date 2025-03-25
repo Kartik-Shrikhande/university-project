@@ -37,7 +37,7 @@ const applicationSchema = new mongoose.Schema(
     // },
     grades:{
       type: String, 
-      enum: ['Cgpa', 'Grades'], 
+      enum: ['CGPA', 'Percentage'], 
       // required: true 
     },
     marks:{

@@ -48,8 +48,8 @@ const validateApplication = [
   //   .withMessage('Previous degree must be either Masters, Bachelors, or Others.'),
 
   body('grades')
-    .isIn(['Cgpa', 'Grades'])
-    .withMessage('Grades must be either Cgpa or Grades.'),
+    .isIn(['CGPA', 'Percentage'])
+    .withMessage('Grades must be either CGPA or Percentage.'),
 
   body('marks')
     .notEmpty()
@@ -96,13 +96,13 @@ const validateUpdateApplication = [
 
   body('grades')
     .optional()
-    .isIn(['Cgpa', 'Grades'])
-    .withMessage('Grades must be either Cgpa or Grades.'),
+    .isIn(['CGPA', 'Percentage'])
+    .withMessage('Grades must be either CGPA or Percentage.'),
 
   body('marks')
     .optional()
     .notEmpty()
-    .withMessage('Marks cannot be empty if provided.'),
+    .withMessage('enter valid marks.'),
 
   // body('fromYear')
   //   .optional()
