@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body } = require("express-validator");
 
 // Validate account number format (8 to 18 digits)
 const validateAccountNumber = (accountNumber) => {
@@ -8,198 +8,216 @@ const validateAccountNumber = (accountNumber) => {
 
 // Associate Creation Validation
 exports.validateAssociateCreation = [
-  body('firstName')
+  body("nameOfAssociate")
     .trim()
     .notEmpty()
-    .withMessage('First name is required')
-    .isLength({ max: 50 })
-    .withMessage('First name must be less than 50 characters'),
+    .withMessage("Name of associate is required")
+    .isLength({ max: 100 })
+    .withMessage("Name of associate must be less than 100 characters"),
 
-  body('lastName')
+  body("email").trim().isEmail().withMessage("Valid email is required"),
+
+  body("phoneNumber")
     .trim()
     .notEmpty()
-    .withMessage('Last name is required')
-    .isLength({ max: 50 })
-    .withMessage('Last name must be less than 50 characters'),
-
-  body('email')
-    .trim()
-    .isEmail()
-    .withMessage('Valid email is required'),
-
- 
-  body('phoneNumber')
-    .trim()
-    .notEmpty()
-    .withMessage('Phone number is required')
+    .withMessage("Phone number is required")
     .isMobilePhone()
-    .withMessage('Valid phone number is required'),
+    .withMessage("Valid phone number is required"),
 
   // Address validations
-  body('address.country')
-    .optional()
+  body("address.country")
     .trim()
+    .notEmpty()
+    .withMessage("Country is required")
     .isLength({ max: 50 })
-    .withMessage('Country must be less than 50 characters'),
+    .withMessage("Country must be less than 50 characters"),
 
-  body('address.zip_postalCode')
+  body("address.city")
+    .trim()
+    .notEmpty()
+    .withMessage("City is required")
+    .isLength({ max: 50 })
+    .withMessage("City must be less than 50 characters"),
+
+  body("address.addressLine")
+    .trim()
+    .notEmpty()
+    .withMessage("Address line is required")
+    .isLength({ max: 100 })
+    .withMessage("Address line must be less than 100 characters"),
+
+  body("address.zip_postalCode")
     .optional()
     .trim()
     .isLength({ max: 15 })
-    .withMessage('ZIP/Postal code must be less than 15 characters'),
+    .withMessage("ZIP/Postal code must be less than 15 characters"),
 
-  body('address.state_province_region')
+  body("address.state_province_region")
     .optional()
     .trim()
     .isLength({ max: 50 })
-    .withMessage('State/Province/Region must be less than 50 characters'),
-
-  body('address.city')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('City must be less than 50 characters'),
-
-  body('address.addressLine')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Address line must be less than 100 characters'),
+    .withMessage("State/Province/Region must be less than 50 characters"),
 
   // Bank Details
-  body('bankDetails.accountHolderName')
+  body("bankDetails.accountHolderName")
     .trim()
     .notEmpty()
-    .withMessage('Account holder name is required')
+    .withMessage("Account holder name is required")
     .isLength({ max: 50 })
-    .withMessage('Account holder name must be less than 50 characters'),
+    .withMessage("Account holder name must be less than 50 characters"),
 
-  body('bankDetails.bankName')
+  body("bankDetails.bankName")
     .trim()
     .notEmpty()
-    .withMessage('Bank name is required')
+    .withMessage("Bank name is required")
     .isLength({ max: 50 })
-    .withMessage('Bank name must be less than 50 characters'),
+    .withMessage("Bank name must be less than 50 characters"),
 
-  body('bankDetails.accountNumber')
+  body("bankDetails.accountNumber")
     .trim()
     .notEmpty()
-    .withMessage('Account number is required')
+    .withMessage("Account number is required")
     .custom((value) => {
       if (!validateAccountNumber(value)) {
-        throw new Error('Invalid account number format');
+        throw new Error("Invalid account number format. Must be 8 to 18 digits.");
       }
       return true;
     }),
 
-  body('bankDetails.ifscSwiftCode')
+  body("bankDetails.ifscSwiftCode")
     .trim()
     .notEmpty()
-    .withMessage('IFSC/Swift code is required')
+    .withMessage("IFSC/Swift code is required")
     .isLength({ max: 20 })
-    .withMessage('IFSC/Swift code must be less than 20 characters'),
+    .withMessage("IFSC/Swift code must be less than 20 characters"),
 
-  body('bankDetails.iban')
+  body("bankDetails.iban")
     .optional()
     .trim()
     .isLength({ max: 34 })
-    .withMessage('IBAN must be less than 34 characters'),
+    .withMessage("IBAN must be less than 34 characters"),
 
   // Role validation (default is associate, but can be overridden if needed)
-  body('role')
+  body("role")
     .optional()
     .trim()
-    .isIn(['associate'])
-    .withMessage('Invalid role'),
+    .isIn(["associate"])
+    .withMessage("Invalid role"),
 ];
 
-// Associate Update Validation
 exports.validateAssociateUpdate = [
-  body('firstName')
+  // Name of Associate (optional in update)
+  body("nameOfAssociate")
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('First name cannot be empty')
-    .isLength({ max: 50 })
-    .withMessage('First name must be less than 50 characters'),
+    .withMessage("Name of associate cannot be empty if provided")
+    .isLength({ max: 100 })
+    .withMessage("Name of associate must be less than 100 characters"),
 
-  body('lastName')
+  // Email should not be updated, but included for consistency
+  body("email").optional().custom(() => {
+    throw new Error("Email cannot be updated");
+  }),
+
+  // Phone number (optional in update)
+  body("phoneNumber")
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('Last name cannot be empty')
-    .isLength({ max: 50 })
-    .withMessage('Last name must be less than 50 characters'),
-
-  body('phoneNumber')
-    .optional()
-    .trim()
+    .withMessage("Phone number cannot be empty if provided")
     .isMobilePhone()
-    .withMessage('Valid phone number is required'),
+    .withMessage("Valid phone number is required"),
 
-  // Address validations
-  body('address.country')
+  // Address validations (optional and partial update)
+  body("address.country")
     .optional()
     .trim()
+    .notEmpty()
+    .withMessage("Country cannot be empty if provided")
     .isLength({ max: 50 })
-    .withMessage('Country must be less than 50 characters'),
+    .withMessage("Country must be less than 50 characters"),
 
-  body('address.zip_postalCode')
+  body("address.city")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("City cannot be empty if provided")
+    .isLength({ max: 50 })
+    .withMessage("City must be less than 50 characters"),
+
+  body("address.addressLine")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Address line cannot be empty if provided")
+    .isLength({ max: 100 })
+    .withMessage("Address line must be less than 100 characters"),
+
+  body("address.zip_postalCode")
     .optional()
     .trim()
     .isLength({ max: 15 })
-    .withMessage('ZIP/Postal code must be less than 15 characters'),
+    .withMessage("ZIP/Postal code must be less than 15 characters"),
 
-  body('address.state_province_region')
+  body("address.state_province_region")
     .optional()
     .trim()
     .isLength({ max: 50 })
-    .withMessage('State/Province/Region must be less than 50 characters'),
+    .withMessage("State/Province/Region must be less than 50 characters"),
 
-  body('address.city')
+  // Bank Details (optional in update)
+  body("bankDetails.accountHolderName")
     .optional()
     .trim()
+    .notEmpty()
+    .withMessage("Account holder name cannot be empty if provided")
     .isLength({ max: 50 })
-    .withMessage('City must be less than 50 characters'),
+    .withMessage("Account holder name must be less than 50 characters"),
 
-  body('address.addressLine')
+  body("bankDetails.bankName")
     .optional()
     .trim()
-    .isLength({ max: 100 })
-    .withMessage('Address line must be less than 100 characters'),
-
-  // Bank Details
-  body('bankDetails.accountHolderName')
-    .optional()
-    .trim()
+    .notEmpty()
+    .withMessage("Bank name cannot be empty if provided")
     .isLength({ max: 50 })
-    .withMessage('Account holder name must be less than 50 characters'),
+    .withMessage("Bank name must be less than 50 characters"),
 
-  body('bankDetails.bankName')
+  body("bankDetails.accountNumber")
     .optional()
     .trim()
-    .isLength({ max: 50 })
-    .withMessage('Bank name must be less than 50 characters'),
-
-  body('bankDetails.accountNumber')
-    .optional()
-    .trim()
+    .notEmpty()
+    .withMessage("Account number cannot be empty if provided")
     .custom((value) => {
-      if (value && !validateAccountNumber(value)) {
-        throw new Error('Invalid account number format');
+      if (!validateAccountNumber(value)) {
+        throw new Error("Invalid account number format. Must be 8 to 18 digits.");
       }
       return true;
     }),
 
-  body('bankDetails.ifscSwiftCode')
+  body("bankDetails.ifscSwiftCode")
     .optional()
     .trim()
+    .notEmpty()
+    .withMessage("IFSC/Swift code cannot be empty if provided")
     .isLength({ max: 20 })
-    .withMessage('IFSC/Swift code must be less than 20 characters'),
+    .withMessage("IFSC/Swift code must be less than 20 characters"),
 
-  body('bankDetails.iban')
+  body("bankDetails.iban")
     .optional()
     .trim()
     .isLength({ max: 34 })
-    .withMessage('IBAN must be less than 34 characters'),
+    .withMessage("IBAN must be less than 34 characters"),
+
+  // Prevent password updates in update API
+  body("password").optional().custom(() => {
+    throw new Error("Password cannot be updated");
+  }),
+
+  // Role validation (optional)
+  body("role")
+    .optional()
+    .trim()
+    .isIn(["associate"])
+    .withMessage("Invalid role"),
 ];

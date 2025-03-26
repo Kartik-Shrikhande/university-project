@@ -1,17 +1,16 @@
 const mongoose = require("mongoose");
 
 const AssociateSolicitorSchema = new mongoose.Schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
+  nameOfAssociate: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phoneNumber: { type: String, required: true },
   address: {
-    country: { type: String, maxlength: 50 },
-    zip_postalCode: { type: String, maxlength: 15 },
-    state_province_region: { type: String, maxlength: 50 }, // Updated field
-    city: { type: String, maxlength: 50 },
-    addressLine: { type: String, maxlength: 100 } // Updated field
+    country: { type: String,required :true, maxlength: 50 },
+    // zip_postalCode: { type: String, maxlength: 15 },
+    // state_province_region: { type: String, maxlength: 50 }, // Updated field
+    city: { type: String,required :true, maxlength: 50 },
+    addressLine: { type: String,required :true, maxlength: 100 } // Updated field
 },
   // solicitors :[],
 bankDetails: {

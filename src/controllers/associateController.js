@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 exports.updateAssociate = async (req, res) => {
   try {
-    const  id  = req.user.id;
+    const id = req.user.id;
     const updates = req.body;
 
     // Validate MongoDB ObjectId
@@ -22,23 +22,45 @@ exports.updateAssociate = async (req, res) => {
     if (existingAssociate.isDeleted) {
       return res.status(400).json({ success: false, message: "Cannot update a deleted Associate Solicitor" });
     }
-  // Prevent email and password updates
-  if (updates.email || updates.password) {
-    return res.status(400).json({ success: false, message: "Email and password cannot be updated" });
-  }
+
+    // Prevent email and password updates
+    if (updates.email || updates.password) {
+      return res.status(400).json({ success: false, message: "Email and password cannot be updated" });
+    }
+
     // Encrypt account number if provided
     if (updates.bankDetails?.accountNumber) {
       updates.bankDetails.accountNumber = encryptData(updates.bankDetails.accountNumber);
     }
 
-    // Update Associate
-    const updatedAssociate = await AssociateSolicitor.findByIdAndUpdate(id, updates, { new: true });
+    // Merge updates while preserving existing nested objects
+    const updatedData = {
+      ...existingAssociate.toObject(),
+      ...updates,
+      bankDetails: {
+        ...existingAssociate.bankDetails,
+        ...updates.bankDetails,
+      },
+      address: {
+        ...existingAssociate.address,
+        ...updates.address,
+      },
+    };
 
-    res.status(200).json({ success: true, message: "Associate Solicitor updated successfully", data: updatedAssociate });
+    // Update Associate
+    const updatedAssociate = await AssociateSolicitor.findByIdAndUpdate(id, updatedData, { new: true });
+
+    res.status(200).json({
+      success: true,
+      message: "Associate Solicitor updated successfully",
+      data: updatedAssociate,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
 
 
 exports.associateUpdatePassword = async (req, res) => {

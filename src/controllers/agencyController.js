@@ -869,6 +869,83 @@ exports.assignAgentToApplication = async (req, res) => {
   }
 };
 
+exports.sendApplicationToUniversity = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { applicationId } = req.body;
+    const agentId = req.user.id; // Retrieved from the authentication middleware
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+
+
+    // Check if the application exists in agency's pendingApplications
+    const isPendingInAgency = defaultAgency.pendingApplications.includes(applicationId);
+    if (!isPendingInAgency) {
+      return res.status(404).json({
+        message: 'Application not found in agency\'s pending applications.',
+      });
+    }
+
+    // Fetch application
+    const application = await Application.findById(applicationId).session(session);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found.' });
+    }
+
+    // Automatically fetch the university from the application
+    const universityId = application.university;
+
+    // Fetch university
+    const university = await University.findById(universityId).session(session);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Add application to university's pending applications
+    university.pendingApplications.push({
+      student: application.student,
+      applicationId: application._id,
+    });
+
+    // Save updated university
+    await university.save({ session });
+
+    // Remove application from agency's pendingApplications
+    defaultAgency.pendingApplications = defaultAgency.pendingApplications.filter(
+      (id) => id.toString() !== applicationId
+    );
+
+    // Add application to agency's sentApplicationsToUniversities
+    defaultAgency.sentAppliactionsToUniversities.push(applicationId);
+
+    // Save updated agency
+    await defaultAgency.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: 'Application successfully sent to the university.',
+      application: {
+        id: application._id,
+        status: application.status,
+        submissionDate: application.submissionDate,
+        university: universityId,
+        course: application.course,
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error sending application to university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 
 
 
@@ -1044,17 +1121,20 @@ exports.getUniversityById = async (req, res) => {
 
 exports.createAssociate = async (req, res) => {
   try {
-    const { firstName, lastName, email, phoneNumber, address, bankDetails } = req.body;
-
-    // // Check if required fields are provided
-    // if (!firstName || !lastName || !email || !phoneNumber || !bankDetails?.accountNumber || !bankDetails?.bankName) {
-    //   return res.status(400).json({ success: false, message: "Missing required fields" });
-    // }
+    const {
+      nameOfAssociate,
+      email,
+      phoneNumber,
+      address,
+      bankDetails,
+    } = req.body;
 
     // Check if the email is already in use
     const existingAssociate = await AssociateSolicitor.findOne({ email });
     if (existingAssociate) {
-      return res.status(400).json({ success: false, message: "Email already in use" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already in use" });
     }
 
     // **Auto-generate a password**
@@ -1074,8 +1154,7 @@ exports.createAssociate = async (req, res) => {
 
     // Create a new Associate Solicitor
     const newAssociate = new AssociateSolicitor({
-      firstName,
-      lastName,
+      nameOfAssociate,
       email,
       password: hashedPassword, // Store hashed password
       phoneNumber,
@@ -1107,18 +1186,20 @@ exports.createAssociate = async (req, res) => {
     // Return success response
     res.status(201).json({
       success: true,
-      message: "Associate Solicitor created successfully",
-      data: {
-        id: newAssociate._id,
-        firstName: newAssociate.firstName,
-        lastName: newAssociate.lastName,
-        email: newAssociate.email,
-        phoneNumber: newAssociate.phoneNumber,
-        address: newAssociate.address,
-        bankDetails: { bankName: bankDetails.bankName }, // Exclude sensitive info
-      },
+      message:
+        "Associate Solicitor created successfully. Check your email for credentials.",
+      // data: {
+      //   id: newAssociate._id,
+      //   nameOfAssociate: newAssociate.nameOfAssociate,
+      //   email: newAssociate.email,
+      //   phoneNumber: newAssociate.phoneNumber,
+      //   address: newAssociate.address,
+      //   bankDetails: {
+      //     bankName: bankDetails.bankName,
+      //     accountHolderName: bankDetails.accountHolderName,
+      //   }, // Exclude sensitive info
+      // },
     });
-
   } catch (error) {
     console.error("Error creating associate:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -1174,7 +1255,7 @@ exports.getAssociateById = async (req, res) => {
 // **UPDATE Associate**
 exports.updateAssociate = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
     const updates = req.body;
 
     // Validate MongoDB ObjectId
@@ -1191,23 +1272,44 @@ exports.updateAssociate = async (req, res) => {
     if (existingAssociate.isDeleted) {
       return res.status(400).json({ success: false, message: "Cannot update a deleted Associate Solicitor" });
     }
-  // Prevent email and password updates
-  if (updates.email || updates.password) {
-    return res.status(400).json({ success: false, message: "Email and password cannot be updated" });
-  }
+
+    // Prevent email and password updates
+    if (updates.email || updates.password) {
+      return res.status(400).json({ success: false, message: "Email and password cannot be updated" });
+    }
+
     // Encrypt account number if provided
     if (updates.bankDetails?.accountNumber) {
       updates.bankDetails.accountNumber = encryptData(updates.bankDetails.accountNumber);
     }
 
-    // Update Associate
-    const updatedAssociate = await AssociateSolicitor.findByIdAndUpdate(id, updates, { new: true });
+    // Merge updates while preserving existing nested objects
+    const updatedData = {
+      ...existingAssociate.toObject(),
+      ...updates,
+      bankDetails: {
+        ...existingAssociate.bankDetails,
+        ...updates.bankDetails,
+      },
+      address: {
+        ...existingAssociate.address,
+        ...updates.address,
+      },
+    };
 
-    res.status(200).json({ success: true, message: "Associate Solicitor updated successfully", data: updatedAssociate });
+    // Update Associate
+    const updatedAssociate = await AssociateSolicitor.findByIdAndUpdate(id, updatedData, { new: true });
+
+    res.status(200).json({
+      success: true,
+      message: "Associate Solicitor updated successfully",
+      data: updatedAssociate,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 // **SOFT DELETE Associate**
