@@ -79,7 +79,9 @@ router.get('/pending-applications', agencyController.getPendingApplications);
 router.get('/application/:applicationId',agencyController.getApplicationDetailsById);
 //allocate an agent to application
 // Send application to university (Only accessible to Admin/Agency)
-router.post('/application/send',agencyController.sendApplicationToUniversity);
+router.post('/application/send/:applicationId',agencyController.sendApplicationToUniversity);
+router.post('/reject-application/:applicationId',agencyController.rejectApplication);
+
 
 router.post('/assign-agent', agencyController.assignAgentToApplication);
 

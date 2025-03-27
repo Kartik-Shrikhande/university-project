@@ -23,7 +23,7 @@ require('dotenv').config()
 exports.getAllStudents = async (req, res) => {
   try {
     const students = await Students.find()
-      .select('firstName middleName lastName email countryCode telephoneNumber documentType countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
+      .select('firstName middleName lastName email countryCode telephoneNumber address documentType countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
       .populate('agency', 'name') // Assuming you want to populate agency name
       .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
 
@@ -42,7 +42,7 @@ exports.getStudentById = async (req, res) => {
     const { id } = req.params;
 
     const student = await Students.findById(id)
-      .select('firstName middleName lastName email telephoneNumber presentAddress permanentAddress documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
+      .select('firstName middleName lastName email telephoneNumber address documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
       .populate('agency', 'name contactEmail') // Populate agency name and email
       .populate('assignedAgent', 'name') // Populate assigned agent name
       .populate('applications.applicationId'); // Populate application details
@@ -869,82 +869,130 @@ exports.assignAgentToApplication = async (req, res) => {
   }
 };
 
+
+
+
 exports.sendApplicationToUniversity = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const { applicationId } = req.body;
-    const agentId = req.user.id; // Retrieved from the authentication middleware
+    const { applicationId } = req.params;
 
-    // Validate IDs
-    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ message: 'Invalid application ID provided.' });
+      // Validate IDs
+       if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+         return res.status(400).json({ message: 'Invalid application ID provided.' });
+       }
+    
+
+    // Get default agency ID from .env
+    const defaultAgencyId = process.env.DEFAULT_AGENCY_ID;
+
+    if (!defaultAgencyId) {
+      return res.status(500).json({ message: 'Default agency ID is not set in environment variables' });
     }
 
+    // Check if the application exists
+    const application = await Application.findById(applicationId)
+      .populate('student')
+      .exec();
 
-    // Check if the application exists in agency's pendingApplications
-    const isPendingInAgency = defaultAgency.pendingApplications.includes(applicationId);
-    if (!isPendingInAgency) {
-      return res.status(404).json({
-        message: 'Application not found in agency\'s pending applications.',
-      });
-    }
-
-    // Fetch application
-    const application = await Application.findById(applicationId).session(session);
     if (!application) {
-      return res.status(404).json({ message: 'Application not found.' });
+      return res.status(404).json({ message: 'Application not found' });
     }
 
-    // Automatically fetch the university from the application
+    // Get the universityId from application
     const universityId = application.university;
-
-    // Fetch university
-    const university = await University.findById(universityId).session(session);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found.' });
+    if (!universityId) {
+      return res.status(404).json({ message: 'University ID not found in application' });
     }
 
-    // Add application to university's pending applications
+    // Check if the agency exists using defaultAgencyId
+    const agency = await Agency.findById(defaultAgencyId);
+    if (!agency) {
+      return res.status(404).json({ message: 'Default agency not found' });
+    }
+
+    // Check if the university exists
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found' });
+    }
+
+    // Check if application exists in agency.pendingApplications
+    const pendingIndex = agency.pendingApplications.indexOf(applicationId);
+    if (pendingIndex === -1) {
+      return res.status(400).json({ message: 'Application is not in pendingApplications of the agency' });
+    }
+
+    // Remove application from pendingApplications
+    agency.pendingApplications.splice(pendingIndex, 1);
+
+    // Add application to sentApplicationsToUniversities
+    agency.sentAppliactionsToUniversities.push(applicationId);
+
+    // Add application to university.pendingApplications
     university.pendingApplications.push({
-      student: application.student,
-      applicationId: application._id,
+      student: application.student._id,
+      applicationId: applicationId,
     });
 
-    // Save updated university
-    await university.save({ session });
-
-    // Remove application from agency's pendingApplications
-    defaultAgency.pendingApplications = defaultAgency.pendingApplications.filter(
-      (id) => id.toString() !== applicationId
-    );
-
-    // Add application to agency's sentApplicationsToUniversities
-    defaultAgency.sentAppliactionsToUniversities.push(applicationId);
-
-    // Save updated agency
-    await defaultAgency.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    // Save updated agency and university
+    await agency.save();
+    await university.save();
 
     return res.status(200).json({
-      message: 'Application successfully sent to the university.',
-      application: {
-        id: application._id,
-        status: application.status,
-        submissionDate: application.submissionDate,
-        university: universityId,
-        course: application.course,
+      message: 'Application sent to university successfully',
+      applicationId: applicationId,
+      universityId: universityId,
+      updatedAgency: {
+        pendingApplications: agency.pendingApplications,
+        sentApplicationsToUniversities: agency.sentAppliactionsToUniversities,
+      },
+      updatedUniversity: {
+        pendingApplications: university.pendingApplications,
       },
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error('Error sending application to university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
+exports.rejectApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params; // Get applicationId from params
+    const agencyId = req.user.id; // Get agencyId from authenticated user
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+    // Find the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Update application status to 'Rejected'
+    application.status = 'Rejected';
+    await application.save();
+
+    // Remove application from agency's pendingApplications
+    await Agency.findByIdAndUpdate(agencyId, {
+      $pull: { pendingApplications: applicationId },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Application rejected successfully',
+    });
+  } catch (error) {
+    console.error('Error rejecting application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
 
 
 
@@ -1101,23 +1149,8 @@ exports.getUniversityById = async (req, res) => {
 
 // ASSOCIATES 
 
-
-// // Function to encrypt bank details
-// function encryptData(data) {
-//   const algorithm = "aes-256-cbc";
-//   const key = process.env.ENCRYPTION_KEY || "default_key_32chars_long"; // Store securely in env variables
-//   const iv = crypto.randomBytes(16);
-//   const cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
-//   let encrypted = cipher.update(data);
-//   encrypted = Buffer.concat([encrypted, cipher.final()]);
-//   return iv.toString("hex") + ":" + encrypted.toString("hex");
-// }
-
-
-
-
 // **CREATE Associate Solicitor**
-
+//ASSOCIATE
 
 exports.createAssociate = async (req, res) => {
   try {
