@@ -871,7 +871,6 @@ exports.assignAgentToApplication = async (req, res) => {
 
 
 
-
 exports.sendApplicationToUniversity = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -979,16 +978,10 @@ exports.rejectApplication = async (req, res) => {
       $pull: { pendingApplications: applicationId },
     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Application rejected successfully',
-    });
-  } catch (error) {
-    console.error('Error rejecting application:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    res.status(200).json({success: true,message: 'Application rejected successfully'});
+  } 
+  catch (error) {
+    res.status(500).json({success: false, message: 'Internal server error'});
   }
 };
 
@@ -1244,7 +1237,7 @@ exports.createAssociate = async (req, res) => {
 exports.getAllAssociates = async (req, res) => {
   try {
 
-    const associates = await AssociateSolicitor.find().select('_id email firstName lastName isDeleted');
+    const associates = await AssociateSolicitor.find().select('_id email nameOfAssociate phoneNumber studentAssigned ');
 
     if (associates.length === 0) {
       return res.status(404).json({ success: false, message: "No associates found" });

@@ -108,6 +108,7 @@ app.use('/associate', associateRoutes)
 app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
 // app.use('/application', applicationRoutes);
+// app.use("/api/solicitors", solicitorRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
