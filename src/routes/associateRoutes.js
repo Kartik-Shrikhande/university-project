@@ -26,8 +26,16 @@ router.put('/update/password', associateController.associateUpdatePassword)
 //ASSOCIATE - SOLICITORS
 // Route to create a new solicitor
 router.post('/solicitor/create', validateCreateSolicitor,validate,associateController.createSolicitor);
+// Route to update a solicitor by ID
+router.put('/solicitor/update/:id',validateUpdateSolicitor,validate,associateController.updateSolicitorById);
 
+// Route to get all solicitors
+router.get('/solicitors',associateController.getAllSolicitors);
 
+// Route to get a solicitor by ID
+router.get('/solicitor/:id',associateController.getSolicitorById);
+// Route to delete a solicitor by ID
+router.delete('/solicitor/delete/:id',associateController.deleteSolicitor);
 
 router.use('*', (req, res) => {
     res.status(404).json({

@@ -1237,7 +1237,7 @@ exports.createAssociate = async (req, res) => {
 exports.getAllAssociates = async (req, res) => {
   try {
 
-    const associates = await AssociateSolicitor.find().select('_id email nameOfAssociate phoneNumber studentAssigned ');
+    const associates = await AssociateSolicitor.find({ isDeleted: false }).select('_id email nameOfAssociate phoneNumber studentAssigned ');
 
     if (associates.length === 0) {
       return res.status(404).json({ success: false, message: "No associates found" });
@@ -1255,24 +1255,38 @@ exports.getAssociateById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validate if the provided ID is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid Associate ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Associate ID" });
     }
 
-    const associate = await AssociateSolicitor.findById(id);
+    // Find associate by ID and check for isDeleted status
+    const associate = await AssociateSolicitor.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
+    // Check if associate exists and is not deleted
     if (!associate) {
-      return res.status(404).json({ success: false, message: "Associate not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Associate not found or has been deleted" });
     }
 
-    // Decrypt bank details before sending response
+    // Decrypt bank details before sending the response
     if (associate.bankDetails && associate.bankDetails.accountNumber) {
-      associate.bankDetails.accountNumber = decryptData(associate.bankDetails.accountNumber);
+      associate.bankDetails.accountNumber = decryptData(
+        associate.bankDetails.accountNumber
+      );
     }
 
+    // Return associate data
     res.status(200).json({ success: true, data: associate });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching associate:", error);
+    res.status(500).json({ success: false, message: "Error fetching associate" });
   }
 };
 

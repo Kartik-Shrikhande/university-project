@@ -57,11 +57,6 @@ exports.validateCreateSolicitor = [
 
 // Validation for updating a solicitor
 exports.validateUpdateSolicitor = [
-  param('solicitorId')
-    .notEmpty()
-    .withMessage('Solicitor ID is required.')
-    .isMongoId()
-    .withMessage('Invalid Solicitor ID format.'),
 
   body('firstName')
     .optional()
@@ -79,11 +74,11 @@ exports.validateUpdateSolicitor = [
     .withMessage('Last name cannot exceed 50 characters.')
     .trim(),
 
-  body('email')
-    .optional()
-    .isEmail()
-    .withMessage('Invalid email format.')
-    .trim(),
+//   body('email')
+//     .optional()
+//     .isEmail()
+//     .withMessage('Invalid email format.')
+//     .trim(),
 
   body('address')
     .optional()
@@ -102,23 +97,6 @@ exports.validateUpdateSolicitor = [
     .optional()
     .isString()
     .withMessage('Phone number must be a string.'),
-
-  body('visaRequestStatus')
-    .optional()
-    .isIn(['accepted', 'rejected', 'completed', 'inprogress'])
-    .withMessage('Invalid visa request status.'),
-
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean value.'),
-
-  body('reason')
-    .optional()
-    .isString()
-    .withMessage('Reason must be a string.')
-    .isLength({ max: 200 })
-    .withMessage('Reason cannot exceed 200 characters.'),
 ];
 
 // // Middleware to handle validation errors

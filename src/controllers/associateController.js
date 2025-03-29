@@ -223,13 +223,113 @@ exports.createSolicitor = async (req, res) => {
 };
 
 
+
+// @desc Update Solicitor by ID
+// @route PUT /api/solicitors/:id
+// @access Private (Associate only)
+exports.updateSolicitorById = async (req, res) => {
+  try {
+    const associateId = req.user.id; // Get Associate ID from token
+    const { id } = req.params;
+
+    // Validate if ID format is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Solicitor ID" });
+    }
+
+    // Find the solicitor and ensure it belongs to the logged-in associate
+    const solicitor = await Solicitor.findOne({
+      _id: id,
+      isDeleted: false,
+      nameOfAssociate: associateId,
+    });
+
+    // Check if solicitor exists and belongs to the associate
+    if (!solicitor) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Solicitor not found",
+        });
+    }
+
+    // Define restricted fields that cannot be updated
+    const restrictedFields = [
+      "email",
+      "password",
+      "nameOfAssociate",
+      "completedVisa",
+      "isActive",
+      "visaRequestStatus",
+      "reason",
+      "role",
+      "isDeleted",
+    ];
+
+    // Check if any restricted field is present in the request body
+    const invalidFields = Object.keys(req.body).filter((field) =>
+      restrictedFields.includes(field)
+    );
+
+    // Return error if restricted fields are found in the request
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `The following fields cannot be updated: ${invalidFields.join(
+          ", "
+        )}`,
+      });
+    }
+
+    // Extract allowed fields from request body
+    const { firstName, lastName, address, countryCode, phoneNumber } = req.body;
+
+    // Update only the allowed fields
+    solicitor.firstName = firstName || solicitor.firstName;
+    solicitor.lastName = lastName || solicitor.lastName;
+    solicitor.address = address || solicitor.address;
+    solicitor.countryCode = countryCode || solicitor.countryCode;
+    solicitor.phoneNumber = phoneNumber || solicitor.phoneNumber;
+
+    // Save the updated solicitor
+    await solicitor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor updated successfully",
+      solicitor,
+    });
+  } catch (error) {
+    console.error("Error updating solicitor:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error updating solicitor" });
+  }
+};
+
+
 // @desc Get All Solicitors
 // @route GET /api/solicitors
 exports.getAllSolicitors = async (req, res) => {
   try {
-    const solicitors = await Solicitor.find({ isDeleted: false }).populate("nameOfAssociate", "nameOfAssociate email");
-    res.status(200).json(solicitors);
+    // Get Associate ID from token
+    const associateId = req.user.id;
+
+    // Find all solicitors created by this associate and not deleted
+    const solicitors = await Solicitor.find({
+      isDeleted: false,
+      nameOfAssociate: associateId,
+    }).select("firstName lastName email countryCode phoneNumber studentAssigned");
+
+    res.status(200).json({
+      total: solicitors.length,
+      data: solicitors,
+    });
   } catch (error) {
+    console.error("Error fetching solicitors:", error);
     res.status(500).json({ error: "Error fetching solicitors" });
   }
 };
@@ -238,59 +338,79 @@ exports.getAllSolicitors = async (req, res) => {
 // @route GET /api/solicitors/:id
 exports.getSolicitorById = async (req, res) => {
   try {
-    const solicitor = await Solicitor.findById(req.params.id).populate("nameOfAssociate", "nameOfAssociate email");
+    const associateId = req.user.id; // Get Associate ID from token
+    const { id } = req.params;
 
-    if (!solicitor || solicitor.isDeleted) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Solicitor ID" });
+    }
+
+    // Find the solicitor by ID and ensure it belongs to the logged-in associate
+    const solicitor = await Solicitor.findOne({
+      _id: id,
+      isDeleted: false,
+      nameOfAssociate: associateId,
+    });
+
+    if (!solicitor) {
       return res.status(404).json({ error: "Solicitor not found" });
     }
+    
 
     res.status(200).json(solicitor);
   } catch (error) {
+    console.error("Error fetching solicitor:", error);
     res.status(500).json({ error: "Error fetching solicitor" });
   }
 };
-
 // @desc Update Solicitor
 // @route PUT /api/solicitors/:id
-exports.updateSolicitor = async (req, res) => {
-  try {
-    const { firstName, lastName, address, countryCode, phoneNumber, isActive, reason, visaRequestStatus } = req.body;
-    const solicitor = await Solicitor.findById(req.params.id);
 
-    if (!solicitor || solicitor.isDeleted) {
-      return res.status(404).json({ error: "Solicitor not found" });
-    }
 
-    solicitor.firstName = firstName || solicitor.firstName;
-    solicitor.lastName = lastName || solicitor.lastName;
-    solicitor.address = address || solicitor.address;
-    solicitor.countryCode = countryCode || solicitor.countryCode;
-    solicitor.phoneNumber = phoneNumber || solicitor.phoneNumber;
-    solicitor.isActive = isActive !== undefined ? isActive : solicitor.isActive;
-    solicitor.reason = reason || solicitor.reason;
-    solicitor.visaRequestStatus = visaRequestStatus || solicitor.visaRequestStatus;
-
-    await solicitor.save();
-    res.status(200).json({ message: "Solicitor updated successfully", solicitor });
-  } catch (error) {
-    res.status(500).json({ error: "Error updating solicitor" });
-  }
-};
 
 // @desc Delete Solicitor
 // @route DELETE /api/solicitors/:id
 exports.deleteSolicitor = async (req, res) => {
   try {
-    const solicitor = await Solicitor.findById(req.params.id);
+    const associateId = req.user.id; // Get Associate ID from token
+    const { id } = req.params;
 
-    if (!solicitor || solicitor.isDeleted) {
-      return res.status(404).json({ error: "Solicitor not found" });
+    // Validate if ID format is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Solicitor ID" });
     }
 
+    // Find the solicitor by ID
+    const solicitor = await Solicitor.findById(id);
+
+    
+    // Check if solicitor exists or is already deleted
+    if (!solicitor || solicitor.isDeleted) {
+      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    }
+
+  
+    // Check if the solicitor belongs to the logged-in associate
+    if (solicitor.nameOfAssociate.toString() !== associateId) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized: Solicitor does not belong to the logged-in associate" });
+    }
+
+
+    // Mark solicitor as deleted (Soft delete)
     solicitor.isDeleted = true;
     await solicitor.save();
-    res.status(200).json({ message: "Solicitor deleted successfully" });
+
+    res
+      .status(200)
+      .json({ success: true, message: "Solicitor deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Error deleting solicitor" });
+    console.error("Error deleting solicitor:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error deleting solicitor" });
   }
 };
