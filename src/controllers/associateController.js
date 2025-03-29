@@ -206,7 +206,7 @@ exports.createSolicitor = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Your Solicitor Account Credentials',
-      text: `Dear ${firstName} ${lastName},\n\nYour account has been successfully created.\n\nHere are your credentials:\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately for security.\n\nThank you.`,
+      text: `hi,${firstName} ${lastName},\n\nYour account has been successfully created.\n\nHere are your credentials:\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately for security.\n\nThank you.`,
     };
 
     await transporter.sendMail(mailOptions);

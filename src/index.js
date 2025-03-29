@@ -44,7 +44,7 @@ const agentsRoutes = require('../src/routes/agentRoutes')
 const associateRoutes = require('../src/routes/associateRoutes')
 const otpRoutes = require('../src/routes/otpRoutes')
 const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
-
+const solicitorRoutes = require('../src/routes/solicitorRoutes')
 // const applicationRoutes = require('../src/routes/applicationRoutes');
 
 const startCronJob = require('../src/controllers/inactivityMailController');
@@ -108,7 +108,7 @@ app.use('/associate', associateRoutes)
 app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
 // app.use('/application', applicationRoutes);
-// app.use("/api/solicitors", solicitorRoutes);
+app.use('/solicitor', solicitorRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 

@@ -20,9 +20,7 @@ exports.validateAssociateCreation = [
   body("phoneNumber")
     .trim()
     .notEmpty()
-    .withMessage("Phone number is required")
-    .isMobilePhone()
-    .withMessage("Valid phone number is required"),
+    .withMessage("Phone number is required"),
 
   // Address validations
   body("address.country")
@@ -125,9 +123,7 @@ exports.validateAssociateUpdate = [
     .optional()
     .trim()
     .notEmpty()
-    .withMessage("Phone number cannot be empty if provided")
-    .isMobilePhone()
-    .withMessage("Valid phone number is required"),
+    .withMessage("Phone number cannot be empty if provided"),
 
   // Address validations (optional and partial update)
   body("address.country")

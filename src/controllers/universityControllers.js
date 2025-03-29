@@ -8,6 +8,13 @@ const { uploadFilesToS3 } = require('../utils/s3Upload');
 
 
 
+//APPLICATION 
+
+
+
+
+
+
 //UNIVERSITY 
 
 exports.universityLogin = async (req, res) => {
@@ -60,7 +67,6 @@ exports.universityLogin = async (req, res) => {
 };
 
 // Update a university
-
 
 exports.updateUniversity = async (req, res) => {
   try {
@@ -131,7 +137,6 @@ exports.updateUniversity = async (req, res) => {
 };
 
 
-
 // exports.updateUniversity = async (req, res) => {
 //   try {
 //     const universityId = req.user.id; // Retrieve university ID from middleware
@@ -156,7 +161,6 @@ exports.updateUniversity = async (req, res) => {
 //     return res.status(500).json({ message: 'Internal server error.' });
 //   }
 // };
-
 
 
 exports.universityUpdatePassword = async (req, res) => {
@@ -243,7 +247,6 @@ exports.deleteUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 //P
  exports.seeUniversityProfile = async (req, res) => {
@@ -618,7 +621,6 @@ exports.getAllCourses = async (req, res) => {
 };
 
 
-
 // Get a specific course by ID for a university
 exports.getCourseById = async (req, res) => {
   try {
@@ -655,7 +657,6 @@ exports.getCourseById = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 ///active course details
 exports.getAllactiveCourses = async (req, res) => {
@@ -698,9 +699,6 @@ exports.getAllactiveCourses = async (req, res) => {
   }
 };
 
-
-
- 
  //req.params done
 
 ///inactive course details
@@ -744,109 +742,8 @@ exports.getAllInactiveCourses = async (req, res) => {
   }
 };
 
-
-
-// valodateion flag
-
-
-///inactive course details by id
-
-// exports.getInactiveCourseById = async (req, res) => {
-//   try {
-//     const { universityId, courseId } = req.params;
-
-//     // Validate university and course IDs
-//     if (!mongoose.Types.ObjectId.isValid(universityId)) {
-//       return res.status(400).json({ message: 'Invalid university ID.' });
-//     }
-
-//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-//       return res.status(400).json({ message: 'Invalid course ID.' });
-//     }
-
-//     // Fetch the course directly and validate its university and status
-//     const course = await Course.findOne({ 
-//       _id: courseId, 
-//       university: universityId, 
-//       status: 'Inactive' 
-//     }).select('name fees description ratings status university');
-
-//     if (!course) {
-//       return res.status(404).json({ message: 'Inactive course not found or does not belong to the specified university.' });
-//     }
-
-//     // Fetch the university details
-//     const university = await University.findById(universityId).select('name');
-//     if (!university) {
-//       return res.status(404).json({ message: 'University not found.' });
-//     }
-
-//     return res.status(200).json({
-//       message: 'Inactive course fetched successfully.',
-//       university: {
-//         id: university._id,
-//         name: university.name,
-//       },
-//       course,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching inactive course:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
 //activate course 
 
-// exports.activateCourse = async (req, res) => {
-//   try {
-//     const universityId = req.user.id;
-//     const { courseId } = req.params;
-
-//     // Validate IDs
-//     if (!mongoose.Types.ObjectId.isValid(universityId)) {
-//       return res.status(400).json({ message: 'Invalid university ID.' });
-//     }
-
-//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-//       return res.status(400).json({ message: 'Invalid course ID.' });
-//     }
-
-//     // Check if the university exists
-//     const university = await University.findById(universityId);
-//     if (!university) {
-//       return res.status(404).json({ message: 'University not found.' });
-//     }
-
-//     // Fetch the course
-//     const course = await Course.findOne({ _id: courseId, university: universityId });
-//     if (!course) {
-//       return res.status(404).json({ message: 'Course not found or does not belong to the specified university.' });
-//     }
-
-//      // Check if the course is deleted
-//      if (course.isDeleted) {
-//       return res.status(400).json({ message: 'Cannot activate a deleted course.' });
-//     }
-
-//     // Check if the course is already active
-//     if (course.status === 'Active') {
-//       return res.status(400).json({ message: 'The course is already active.' });
-//     }
-
-//     // Activate the course
-//     course.status = 'Active';
-//     await course.save();
-
-//     return res.status(200).json({
-//       message: 'Course activated successfully.',
-//       course,
-//     });
-//   } catch (error) {
-//     console.error('Error activating course:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 exports.activateCourse = async (req, res) => {
   try {
@@ -916,8 +813,6 @@ exports.activateCourse = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-
 
 // inactivate course 
 
