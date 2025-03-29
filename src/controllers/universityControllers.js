@@ -1,4 +1,5 @@
 const University = require('../models/universityModel');
+const Application = require('../models/applicationModel');
 const Course = require('../models/coursesModel');
 const jwt = require('jsonwebtoken');
 const { isValidObjectId } = require('mongoose');
@@ -11,6 +12,180 @@ const { uploadFilesToS3 } = require('../utils/s3Upload');
 //APPLICATION 
 
 
+exports.getPendingApplications = async (req, res) => {
+  try {
+    const universityId = req.user.id; // Get university ID from authenticated user
+
+    // Fetch pending applications with necessary details
+    const university = await University.findById(universityId)
+      .populate({
+        path: 'pendingApplications.applicationId',
+        select: 'status submissionDate course createdAt',
+        populate: [
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'course', select: 'name' }
+        ]
+      })
+      .select('pendingApplications');
+
+    if (!university) {
+      return res.status(404).json({ success: false, message: 'University not found' });
+    }
+
+    // Format response with necessary fields
+    const pendingApplications = university.pendingApplications.map(app => ({
+      applicationId: app.applicationId._id,
+      status: app.applicationId.status,
+      submissionDate: app.applicationId.submissionDate,
+      dateApplied: app.applicationId.createdAt,
+      student: app.applicationId.student
+        ? {
+            studentId: app.applicationId.student._id,
+            firstName: app.applicationId.student.firstName,
+            lastName: app.applicationId.student.lastName,
+            email: app.applicationId.student.email
+          }
+        : null,
+      course: app.applicationId.course
+        ? {
+            courseId: app.applicationId.course._id,
+            name: app.applicationId.course.name
+          }
+        : null
+    }));
+
+    res.status(200).json({
+      success: true,
+      total: pendingApplications.length,
+      pendingApplications
+    });
+  } catch (error) {
+    console.error('Error fetching pending applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
+
+exports.getApplicationDetails = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+
+     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Invalid Application ID" });
+          }
+      
+
+    // Find application and populate student, course, and university details
+    const application = await Application.findById(applicationId)
+      .populate('student', 'firstName lastName email')
+      .populate('course', 'name description fees')
+      .populate('university', 'name email');
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      application,
+    });
+  } catch (error) {
+    console.error('Error fetching application details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
+// GET BY ID AND GET ALL IS TOTALLY DONE
+//NOTE :- ACCEPT AND REJECT IS NOT COPLETELY DONE 
+exports.acceptApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const universityId = req.user.id; // Get university ID from authenticated user
+
+    // Find the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Check if already accepted/rejected
+    if (application.status !== 'Processing') {
+      return res.status(400).json({ success: false, message: `Application is already ${application.status.toLowerCase()}` });
+    }
+
+    // Update application status to 'Accepted'
+    application.status = 'Accepted';
+    application.reviewDate = new Date();
+    await application.save();
+
+    // Update university's pending and approved applications
+    await University.findByIdAndUpdate(universityId, {
+      $pull: { pendingApplications: { applicationId } },
+      $push: { approvedApplications: applicationId },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Application accepted successfully',
+    });
+  } catch (error) {
+    console.error('Error accepting application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
+exports.rejectApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const universityId = req.user.id; // Get university ID from authenticated user
+
+    // Find the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Check if already accepted/rejected
+    if (application.status !== 'Processing') {
+      return res.status(400).json({ success: false, message: `Application is already ${application.status.toLowerCase()}` });
+    }
+
+    // Update application status to 'Rejected'
+    application.status = 'Rejected';
+    application.reviewDate = new Date();
+    await application.save();
+
+    // Remove application from university's pending applications
+    await University.findByIdAndUpdate(universityId, {
+      $pull: { pendingApplications: { applicationId } },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Application rejected successfully',
+    });
+  } catch (error) {
+    console.error('Error rejecting application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
 
 
 

@@ -32,6 +32,24 @@ router.put('/update/password', universityController.universityUpdatePassword)
 router.delete('/delete', validateDeleteUniversity,universityController.deleteUniversity);
 
 
+
+//APPLICATION
+
+// ✅ Get all pending applications
+router.get('/pending-applications',  universityController.getPendingApplications);
+
+// // ✅ Get application details by ID
+router.get('/application/:applicationId', universityController.getApplicationDetails);
+
+// // ✅ Accept an application
+// router.put('/application/:applicationId/accept', authenticateUniversity, acceptApplication);
+
+// // ✅ Reject an application
+// router.put('/application/:applicationId/reject', authenticateUniversity, rejectApplication);
+
+
+
+
 //COURSES 
 
 router.post('/api/course/create',
