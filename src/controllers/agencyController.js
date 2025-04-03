@@ -10,9 +10,11 @@ const generator = require('generate-password');
 const nodemailer = require('nodemailer');
 const Course = require('../models/coursesModel');
 const university = require('../models/universityModel');
+const Notification = require('../models/notificationModel'); // Import Notification model
 //associate APIs
 const AssociateSolicitor = require('../models/associateModel');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
+const { sendRejectionEmail } = require('../services/emailService');
 
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
@@ -478,7 +480,6 @@ exports.deleteAgencyById = async (req, res) => {
 
 
 //done session
-
 // AGENT APIS FOR AGENCY
 
 exports.createAgent = async (req, res) => {
@@ -568,6 +569,7 @@ exports.getAgentById = async (req, res) => {
   }
 };
 
+
 // Update an agent
 exports.updateAgent = async (req, res) => {
   try {
@@ -592,7 +594,6 @@ exports.updateAgent = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 
 // Soft Delete an Agent
@@ -645,10 +646,6 @@ exports.deleteAgent = async (req, res) => {
 
 
 //done session  
-
-
-
-
 //Application 
 
 //see pending applications //get
@@ -740,7 +737,7 @@ exports.getApplicationDetailsById = async (req, res) => {
 
     // Fetch the application with populated fields
     const application = await Application.findById(applicationId)
-      .populate('student', 'firstName lastName email')
+      .populate('student')
       .populate('university', 'name country')
       .populate('course', 'name fees')
       .populate('assignedAgent', 'name email');
@@ -758,12 +755,13 @@ exports.getApplicationDetailsById = async (req, res) => {
       notes: application.notes || 'No notes provided',
       documents: application.documents || [],
       financialAid: application.financialAid,
-      student: application.student
-        ? {
-            name: `${application.student.firstName} ${application.student.lastName}`,
-            email: application.student.email,
-          }
-        : 'Unknown',
+      student: application.student,
+        
+        // {
+        //     name: `${application.student.firstName} ${application.student.lastName}`,
+        //     email: application.student.email,
+        //   }
+        // : 'Unknown',
       university: application.university
         ? {
             name: application.university.name,
@@ -869,8 +867,6 @@ exports.assignAgentToApplication = async (req, res) => {
   }
 };
 
-
-
 exports.sendApplicationToUniversity = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -955,35 +951,37 @@ exports.sendApplicationToUniversity = async (req, res) => {
   }
 };
 
-exports.rejectApplication = async (req, res) => {
-  try {
-    const { applicationId } = req.params; // Get applicationId from params
-    const agencyId = req.user.id; // Get agencyId from authenticated user
+// exports.rejectApplication = async (req, res) => {
+//   try {
+//     const { applicationId } = req.params; // Get applicationId from params
+//     const agencyId = req.user.id; // Get agencyId from authenticated user
 
-    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ message: 'Invalid application ID provided.' });
-    }
-    // Find the application
-    const application = await Application.findById(applicationId);
-    if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
-    }
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ message: 'Invalid application ID provided.' });
+//     }
+//     // Find the application
+//     const application = await Application.findById(applicationId);
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: 'Application not found' });
+//     }
 
-    // Update application status to 'Rejected'
-    application.status = 'Rejected';
-    await application.save();
+//     // Update application status to 'Rejected'
+//     application.status = 'Rejected';
+//     await application.save();
 
-    // Remove application from agency's pendingApplications
-    await Agency.findByIdAndUpdate(agencyId, {
-      $pull: { pendingApplications: applicationId },
-    });
+//     // Remove application from agency's pendingApplications
+//     await Agency.findByIdAndUpdate(agencyId, {
+//       $pull: { pendingApplications: applicationId },
+//     });
 
-    res.status(200).json({success: true,message: 'Application rejected successfully'});
-  } 
-  catch (error) {
-    res.status(500).json({success: false, message: 'Internal server error'});
-  }
-};
+//     res.status(200).json({success: true,message: 'Application rejected successfully'});
+//   } 
+//   catch (error) {
+//     res.status(500).json({success: false, message: 'Internal server error'});
+//   }
+// };
+
+
 
 
 
@@ -991,6 +989,58 @@ exports.rejectApplication = async (req, res) => {
 
 
 //university 
+
+
+
+
+exports.rejectApplication = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { reason } = req.body;
+    const agencyId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+
+    const application = await Application.findById(applicationId).populate({ path: 'student' }).exec();
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+ // ✅ Check if application is already rejected
+ if (application.status === 'Rejected') {
+  return res.status(400).json({ success: false, message: 'Application has already been rejected.' });
+ }
+ 
+    application.status = 'Rejected';
+    application.reason = reason;
+    await application.save();
+
+    await Agency.findByIdAndUpdate(agencyId, {
+      $pull: { pendingApplications: applicationId },
+    });
+
+    const studentId = application.student._id;
+    const studentEmail = application.student.email;
+
+    // ✅ Save Notification in MongoDB
+    await new Notification({
+      user: studentId,
+      message: `Your application has been rejected. Reason: ${reason}`,
+      type: 'Application',
+    }).save();
+
+    // ✅ Send Rejection Email
+    await sendRejectionEmail(studentEmail, reason);
+
+    res.status(200).json({ success: true, message: 'Application rejected, student notified via email & notification.' });
+  } catch (error) {
+    console.error('Error rejecting application:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 
 exports.createUniversity = async (req, res) => {
   try {
@@ -1157,11 +1207,18 @@ exports.createAssociate = async (req, res) => {
 
     // Check if the email is already in use
     const existingAssociate = await AssociateSolicitor.findOne({ email });
-    if (existingAssociate) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email already in use" });
+
+
+    if (existingAssociate && !existingAssociate.isDeleted) {
+      return res.status(400).json({ success: false, message: "Email already in use" });
     }
+
+    // If the associate exists but isDeleted: true, remove the old record
+    if (existingAssociate && existingAssociate.isDeleted) {
+      await AssociateSolicitor.deleteOne({ email });
+    }
+
+
 
     // **Auto-generate a password**
     const password = generator.generate({
