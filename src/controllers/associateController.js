@@ -153,7 +153,7 @@ exports.createSolicitor = async (req, res) => {
       lastName,
       email,
       address,
-      countryCode,
+      // countryCode,
       phoneNumber,
     } = req.body;
 
@@ -185,7 +185,7 @@ exports.createSolicitor = async (req, res) => {
       email,
       password: hashedPassword, // Store hashed password
       address,
-      countryCode,
+      // countryCode,
       phoneNumber,
       nameOfAssociate,
     });
@@ -291,7 +291,7 @@ exports.updateSolicitorById = async (req, res) => {
     solicitor.firstName = firstName || solicitor.firstName;
     solicitor.lastName = lastName || solicitor.lastName;
     solicitor.address = address || solicitor.address;
-    solicitor.countryCode = countryCode || solicitor.countryCode;
+    // solicitor.countryCode = countryCode || solicitor.countryCode;
     solicitor.phoneNumber = phoneNumber || solicitor.phoneNumber;
 
     // Save the updated solicitor

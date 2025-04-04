@@ -8,7 +8,7 @@ const SolicitorSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     address: { type: String,required:true},
-    countryCode: { type: String, maxlength: 5, required: true }, // e.g., +91
+    // countryCode: { type: String, maxlength: 5, required: true }, // e.g., +91
     phoneNumber: { type: String, required: true },
     nameOfAssociate: {
       type: mongoose.Schema.Types.ObjectId,

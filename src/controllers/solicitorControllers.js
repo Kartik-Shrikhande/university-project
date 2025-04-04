@@ -114,13 +114,13 @@ exports.solicitorUpdatePassword = async (req, res) => {
       }
   
       // Extract allowed fields from the request body
-      const { firstName, lastName, address, countryCode, phoneNumber } = req.body;
+      const { firstName, lastName, address, phoneNumber } = req.body;
   
       // Update only the allowed fields
       solicitor.firstName = firstName || solicitor.firstName;
       solicitor.lastName = lastName || solicitor.lastName;
       solicitor.address = address || solicitor.address;
-      solicitor.countryCode = countryCode || solicitor.countryCode;
+      // solicitor.countryCode = countryCode || solicitor.countryCode;
       solicitor.phoneNumber = phoneNumber || solicitor.phoneNumber;
   
       // Save the updated solicitor details
@@ -134,7 +134,7 @@ exports.solicitorUpdatePassword = async (req, res) => {
           firstName: solicitor.firstName,
           lastName: solicitor.lastName,
           address: solicitor.address,
-          countryCode: solicitor.countryCode,
+          // countryCode: solicitor.countryCode,
           phoneNumber: solicitor.phoneNumber,
         },
       });

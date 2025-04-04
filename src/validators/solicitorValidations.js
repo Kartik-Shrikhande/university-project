@@ -40,13 +40,13 @@ exports.validateCreateSolicitor = [
     .withMessage('Address must be a string.')
     .trim(),
 
-  body('countryCode')
-    .notEmpty()
-    .withMessage('Country code is required.')
-    .isString()
-    .withMessage('Country code must be a string.')
-    .isLength({ max: 5 })
-    .withMessage('Country code cannot exceed 5 characters.'),
+  // body('countryCode')
+  //   .notEmpty()
+  //   .withMessage('Country code is required.')
+  //   .isString()
+  //   .withMessage('Country code must be a string.')
+  //   .isLength({ max: 5 })
+  //   .withMessage('Country code cannot exceed 5 characters.'),
 
   body('phoneNumber')
     .notEmpty()
@@ -86,12 +86,12 @@ exports.validateUpdateSolicitor = [
     .withMessage('Address must be a string.')
     .trim(),
 
-  body('countryCode')
-    .optional()
-    .isString()
-    .withMessage('Country code must be a string.')
-    .isLength({ max: 5 })
-    .withMessage('Country code cannot exceed 5 characters.'),
+  // body('countryCode')
+  //   .optional()
+  //   .isString()
+  //   .withMessage('Country code must be a string.')
+  //   .isLength({ max: 5 })
+  //   .withMessage('Country code cannot exceed 5 characters.'),
 
   body('phoneNumber')
     .optional()
