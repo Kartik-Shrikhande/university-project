@@ -322,7 +322,7 @@ exports.getAllSolicitors = async (req, res) => {
     const solicitors = await Solicitor.find({
       isDeleted: false,
       nameOfAssociate: associateId,
-    }).select("firstName lastName email countryCode phoneNumber studentAssigned");
+    }).select("firstName lastName email countryCode phoneNumber studentAssigned isActive");
 
     res.status(200).json({
       total: solicitors.length,
