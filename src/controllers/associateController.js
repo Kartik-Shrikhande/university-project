@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const solicitorModel = require('../models/solicitorModel');
 
 
 //ASSOCIATE PROFILE 
@@ -162,10 +163,17 @@ exports.createSolicitor = async (req, res) => {
 
     // Check if the email is already registered
     const existingSolicitor = await Solicitor.findOne({ email });
-    if (existingSolicitor) {
-      return res.status(400).json({ success: false, message: 'Email is already registered.' });
-    }
-
+    
+        if (existingSolicitor && !existingSolicitor.isDeleted) {
+          return res.status(400).json({ success: false, message: "Email already in use" });
+        }
+    
+        // If the associate exists but isDeleted: true, remove the old record
+        if (existingSolicitor && existingSolicitor.isDeleted) {
+          await solicitorModel.deleteOne({ email });
+        }
+    
+    
     // **Auto-generate a password**
     const password = generator.generate({
       length: 12,
