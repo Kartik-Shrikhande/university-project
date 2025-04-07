@@ -15,6 +15,8 @@ const Notification = require('../models/notificationModel'); // Import Notificat
 const AssociateSolicitor = require('../models/associateModel');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
 const { sendRejectionEmail } = require('../services/emailService');
+const { sendNotification } = require('../services/socketNotification');
+
 
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
@@ -1024,15 +1026,17 @@ exports.rejectApplication = async (req, res) => {
     const studentId = application.student._id;
     const studentEmail = application.student.email;
 
-    // ✅ Save Notification in MongoDB
-    await new Notification({
-      user: studentId,
-      message: `Your application has been rejected. Reason: ${reason}`,
-      type: 'Application',
-    }).save();
-
+ // ✅ Save Notification in MongoDB
+ const notification = await new Notification({
+  user: studentId,
+  message: `Your application has been rejected. Reason: ${reason}`,
+  type: "Application",
+}).save();
     // ✅ Send Rejection Email
     await sendRejectionEmail(studentEmail, reason);
+    
+// ✅ Send real-time notification
+ sendNotification(studentId.toString(), notification.message, "Application");
 
     res.status(200).json({ success: true, message: 'Application rejected, student notified via email & notification.' });
   } catch (error) {

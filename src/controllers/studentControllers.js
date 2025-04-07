@@ -22,7 +22,7 @@ const Solicitors = require('../models/solicitorModel');
 const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
-
+const Notification = require('../models/notificationModel');
 // const { v4: uuidv4 } = require('uuid');
 
 // // Create S3 client
@@ -51,6 +51,28 @@ const AssociateSolicitor =require('../models/associateModel')
 
 //   return Promise.all(uploadPromises);
 // };
+
+//Notification
+
+
+
+exports.getNotifications = async (req, res) => {
+  try {
+    const studentId = req.user.id; // Logged-in student
+
+    // Fetch all notifications
+    const notifications = await Notification.find({ user: studentId }).sort({ createdAt: -1 });
+
+    // Update all unread notifications to "read"
+    await Notification.updateMany({ user: studentId, isRead: false }, { $set: { isRead: true } });
+
+    res.status(200).json({ success: true, total:notifications.length ,data:notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 
 
 
@@ -997,48 +1019,6 @@ exports.resendOtpForLogin = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-
-//
-// exports.verifyOtpforLogin = async (req, res) => {
-//   try {
-//     const { email, otp } = req.body;
-
-//     // Find student by email
-//     const student = await Students.findOne({ email });
-//     if (!student) {
-//       return res.status(400).json({ message: 'Invalid email.' });
-//     }
-
-//     // Check if student is verified
-//     if (!student.isVerified) {
-//       return res.status(400).json({ message: 'Account is not verified. Please complete registration first.' });
-//     }
-
-//     // Find OTP record
-//     const otpRecord = await Otp.findOne({ email, otp });
-//     if (!otpRecord) {
-//       return res.status(400).json({ message: 'Invalid OTP.' });
-//     }
-
-//     // Check if OTP is expired
-//     if (new Date() > otpRecord.expiry) {
-//       return res.status(400).json({ message: 'OTP has expired.' });
-//     }
-
-//     // Mark OTP as used
-//     otpRecord.isUsed = true;
-//     await otpRecord.save();
-
-//     // Generate token
-//     const token = jwt.sign({ id: student._id }, process.env.SECRET_KEY, { expiresIn: '5h' });
-
-//     return res.status(200).json({ message: 'OTP verified successfully. Login completed.',role:student.role, token });
-//   } catch (error) {
-//     console.error('Error verifying OTP:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 

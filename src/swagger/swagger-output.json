@@ -392,6 +392,25 @@
         }
       }
     },
+    "/notifications": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/status": {
       "get": {
         "description": "",
@@ -881,6 +900,9 @@
                 },
                 "marks": {
                   "example": "any"
+                },
+                "financialAid": {
+                  "example": "any"
                 }
               }
             }
@@ -925,6 +947,9 @@
                   "example": "any"
                 },
                 "marks": {
+                  "example": "any"
+                },
+                "financialAid": {
                   "example": "any"
                 }
               }

@@ -80,7 +80,7 @@ router.get('/application/:applicationId',agencyController.getApplicationDetailsB
 //allocate an agent to application
 // Send application to university (Only accessible to Admin/Agency)
 router.post('/application/send/:applicationId',agencyController.sendApplicationToUniversity);
-router.post('/reject-application/:applicationId',agencyController.rejectApplication);
+router.put('/reject-application/:applicationId',agencyController.rejectApplication);
 
 
 router.post('/assign-agent', agencyController.assignAgentToApplication);

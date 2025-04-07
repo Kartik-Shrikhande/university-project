@@ -182,6 +182,7 @@ exports.applyForCourse = async (req, res) => {
         //   previousDegree,
           grades,
           marks,
+          financialAid
         //   fromYear,
         //   toYear,
       } = req.body;
@@ -298,11 +299,8 @@ exports.applyForCourse = async (req, res) => {
         //   previousDegree,
           grades,
           marks,
-        //   fromYear,
-        //   toYear,
-
-
-          // Uploaded Documents
+          financialAid,
+     
           latestdegreeCertificates,
           englishTest,
           proofOfAddress
@@ -412,7 +410,7 @@ exports.updateApplication = async (req, res) => {
       }
   
       // Extract input fields
-      const { grades, marks } = req.body;
+      const { grades, marks, financialAid } = req.body;
   
       // ✅ Upload files to AWS S3 and get URLs
       const latestdegreeCertificates = req.files['latestdegreeCertificates']
@@ -431,6 +429,7 @@ exports.updateApplication = async (req, res) => {
       const updateFields = {
         grades,
         marks,
+        financialAid,
       };
   
       // ✅ Conditionally update document fields

@@ -7,33 +7,31 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger/swagger-output.json');
 const cookieParser = require('cookie-parser');
 const cors = require('cors')
-
+const http = require('http');
+const { initializeSocket } = require('../src/services/socketNotification'); // Import socket service
 
 // Now, you can access your documentation at http://localhost:3000/api-docs
 const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport');
 
+
+const server = http.createServer(app);
+initializeSocket(server); // Initialize socket
 // app.use(cors({
-//     origin: [
-//         "http://localhost:5173" 
-//     ],
+//     origin: function (origin, callback) {
+//         console.log("Origin attempting to connect:", origin);
+
+//         if (!origin || 
+//             origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/) ||
+//             origin === "http://localhost:5173") { 
+//             callback(null, true);
+//         } else {
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
 //     credentials: true
 // }));
-app.use(cors({
-    origin: function (origin, callback) {
-        console.log("Origin attempting to connect:", origin);
-
-        if (!origin || 
-            origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/) ||
-            origin === "http://localhost:5173") { 
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
 
 
 
@@ -66,10 +64,10 @@ app.use(express.json({
 }));
 app.use(cookieParser());
 
-// app.use(cors({
-//     origin: ["http://localhost:5173"], 
-//     credentials: true
-// }));
+app.use(cors({
+    origin: ["http://localhost:5173"],
+    credentials: true
+}));
 
 // app.use(cors({
 //     origin: [
@@ -113,7 +111,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 
-mongoose.connect(process.env.MONGODB_URL, {connectTimeoutMS: 60000, socketTimeoutMS: 60000})
+mongoose.connect(process.env.MONGODB_URL, { connectTimeoutMS: 60000, socketTimeoutMS: 60000 })
     .then(() => {
         console.log('MongoDB is connected')
 
@@ -130,5 +128,5 @@ try {
 
 
 app.listen(process.env.PORT, () => {
-    console.log('App is running on port', + process.env.PORT)
+    console.log('App is running on port', process.env.PORT)
 })

@@ -17,18 +17,9 @@ const applicationSchema = new mongoose.Schema(
        type: String,
        default:'none'
        }, // Comments by reviewers
-    
+    extraDocuments:[{ type: String, default: [] }], 
     // New field for document uploads
-    documents: [
-      {
-        fileName: { type: String }, // Name of the file
-        fileType: { type: String }, // Type of the file (e.g., PDF, image)
-        fileUrl: { 
-          type: String, 
-          // required: true 
-        }, // URL or path to the file
-      },
-    ],
+    universityDocuments: [{ type: String, default: [] }],//university will send in response from request body 
     //Application Input fields 
     // previousDegree: { 
     //   type: String, //enum : masters , bachelors,others
@@ -65,13 +56,13 @@ const applicationSchema = new mongoose.Schema(
   latestdegreeCertificates: [{ type: String, default: [] }], 
   englishTest: [{ type: String, default: [] }], 
   proofOfAddress: [{ type: String, default: [] }], 
-   
+  reason:{ type: String},
 
     // Financial Aid field
     financialAid: {
       type: String,
       enum: ['YES', 'NO'],
-      default: 'YES',
+      default: 'NO',
     },
     assignedAgent: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Agent' }],
     agency: { 

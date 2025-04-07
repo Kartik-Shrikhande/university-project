@@ -166,6 +166,13 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
+
+//NOTIFICATION 
+router.get('/notifications', studentController.getNotifications);
+
+
+
+
 // router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
 
 // Apply for a course (Authenticated User)
