@@ -43,8 +43,21 @@ const sendRejectionEmail = async (email, reason) => {
   await transporter.sendMail(mailOptions);
 };
 
+const sendPaymentSuccessEmail = async (student) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: 'Payment Successful - Thank You!',
+    text: `Hi ${student.firstName},\n\nThank you for your payment of £20. Your transaction has been successfully completed, and you now have full access to the student portal.\n\nBest regards,\nYour University Team`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+
 // ✅ Export functions
 module.exports = {
   sendVerificationEmail,
   sendRejectionEmail,
+  sendPaymentSuccessEmail
 };

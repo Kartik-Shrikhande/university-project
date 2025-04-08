@@ -77,6 +77,7 @@ router.delete('/agents/:id',  agencyController.deleteAgent); // Delete an agent
 //get the list of all pending applications
 router.get('/pending-applications', agencyController.getPendingApplications);
 router.get('/application/:applicationId',agencyController.getApplicationDetailsById);
+router.get('/get/application/:applicationId',agencyController.getApplicationByIdForAgency);
 //allocate an agent to application
 // Send application to university (Only accessible to Admin/Agency)
 router.post('/application/send/:applicationId',agencyController.sendApplicationToUniversity);

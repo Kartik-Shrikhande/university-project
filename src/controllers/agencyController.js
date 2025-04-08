@@ -791,6 +791,59 @@ exports.getApplicationDetailsById = async (req, res) => {
   }
 };
 
+
+exports.getApplicationByIdForAgency = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID.' });
+    }
+
+    const application = await Application.findById(applicationId)
+      .populate('student')
+      .populate('university', 'name country')
+      .populate('course', 'name fees')
+      .populate('assignedAgent', 'name email');
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found.' });
+    }
+
+    const response = {
+      applicationId: application._id,
+      status: application.status,
+      submissionDate: application.submissionDate,
+      reviewDate: application.reviewDate || 'Not reviewed yet',
+      notes: application.notes || 'No notes provided',
+      financialAid: application.financialAid,
+      reason: application.reason || '',
+      grades: application.grades || '',
+      marks: application.marks || '',
+      extraDocuments: application.extraDocuments || [],
+      universityDocuments: application.universityDocuments || [],
+      latestdegreeCertificates: application.latestdegreeCertificates || [],
+      englishTest: application.englishTest || [],
+      proofOfAddress: application.proofOfAddress || [],
+      student: application.student || 'Not found',
+      university: application.university || 'Not found',
+      course: application.course || 'Not found',
+      assignedAgent: application.assignedAgent || 'Not assigned',
+    };
+
+    return res.status(200).json({
+      message: 'Application details retrieved successfully.',
+      application: response,
+    });
+  } catch (error) {
+    console.error('Error retrieving application:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
 //agent will move forward the application to university
 exports.assignAgentToApplication = async (req, res) => {
   const session = await mongoose.startSession();

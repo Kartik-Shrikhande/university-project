@@ -12,7 +12,7 @@ const initializeSocket = (server) => {
 
     socket.on("join", (userId) => {
       socket.join(userId);
-      console.log(`User joined room: ${userId}`);
+      console.log(`User joined room: ${userId}`);   //on login and registration
     });
 
     socket.on("disconnect", () => {
@@ -23,7 +23,7 @@ const initializeSocket = (server) => {
 
 const sendNotification = (userId, message, type) => {
   if (io) {
-    io.to(userId).emit("notification", { message, type });
+    io.to(userId).emit("notification", { message, type });  // to receive notitfifacations
   }
 };
 

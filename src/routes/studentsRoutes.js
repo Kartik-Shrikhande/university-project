@@ -166,6 +166,10 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
+router.post("/create-payment-intent",paymentController.createPaymentIntent);
+router.post("/confirm-payment",paymentController.confirmPayment);
+
+
 
 //NOTIFICATION 
 router.get('/notifications', studentController.getNotifications);
@@ -194,8 +198,11 @@ const uploadFields = uploadImage.fields([
 router.get('/status',studentController.verifyStudentStatus);
 
  //PAYMENT 
-router.post('/create-payment-intent', paymentController.createPaymentIntent);
-router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
+// router.post('/create-payment-intent', paymentController.createPaymentIntent);
+// router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
+
+
+
 
 router.get('/profile',studentController.seeStudentProfile);
 
