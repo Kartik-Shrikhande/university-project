@@ -2,9 +2,9 @@ const express = require('express')
 const mongoose = require('mongoose')
 const session = require('express-session');
 const passport = require('./utils/passport');
-const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger/swagger-output.json');
+// const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
+// const swaggerUi = require('swagger-ui-express');
+// const swaggerDocument = require('./swagger/swagger-output.json');
 const cookieParser = require('cookie-parser');
 const cors = require('cors')
 const http = require('http');
@@ -107,7 +107,7 @@ app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
 // app.use('/application', applicationRoutes);
 app.use('/solicitor', solicitorRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 

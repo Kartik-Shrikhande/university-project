@@ -21,38 +21,6 @@ const{ uploadFilesToS3} = require('../utils/s3Upload'); // Import updated upload
 // Multer setup for file upload (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-/**
- * @swagger
- * /student/register:
- *   post:
- *     summary: Register a new student
- *     tags: [Student]
- *     description: Registers a new student and returns the created student object.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *             required:
- *               - name
- *               - email
- *               - password
- *     responses:
- *       201:
- *         description: Student created successfully
- *       400:
- *         description: Bad request
- */
-
-
 
 // Middleware to validate requests
 // const validate = (req, res, next) => {
