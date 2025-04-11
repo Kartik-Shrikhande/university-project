@@ -101,7 +101,7 @@ app.use(passport.session());
 app.use('/student', studentRoutes)
 app.use('/university', universityRoutes)
 app.use('/agency', agencyRoutes)
-app.use('/agent', agentsRoutes)
+// app.use('/agent', agentsRoutes)
 app.use('/associate', associateRoutes)
 app.use('/otp', otpRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route

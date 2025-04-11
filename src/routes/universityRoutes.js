@@ -47,7 +47,8 @@ router.get('/application/:applicationId', universityController.getApplicationDet
 
 
 // ✅ Accept an application
-router.put('/application/accept/:applicationId', universityController.acceptApplication);
+// router.put('/application/accept/:applicationId', universityController.acceptApplication);
+router.post('/application/accept/:applicationId', upload.single('acceptanceLetter'), universityController.acceptApplication);
 
 // ✅ Reject an application
 router.put('/application/reject/:applicationId', universityController.rejectApplication);

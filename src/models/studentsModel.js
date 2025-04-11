@@ -134,6 +134,7 @@ const studentSchema = new mongoose.Schema(
       },
     visitedCourses: { type: [mongoose.Schema.Types.ObjectId], ref: 'Course', default: [] },
     assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent' },
+    assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'Solicitor' },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'Agency' },
     termsAndConditionsAccepted: {
       type: Boolean,

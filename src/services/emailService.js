@@ -54,10 +54,29 @@ const sendPaymentSuccessEmail = async (student) => {
   await transporter.sendMail(mailOptions);
 };
 
+const sendAcceptanceEmailWithAttachment = async (email, fileUrl) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Application Accepted - Congratulations!',
+    html: `
+      <p>Congratulations! Your application has been <b>accepted</b>.</p>
+      ${fileUrl ? `<p>You can download your acceptance letter here: <a href="${fileUrl}" target="_blank">Download Letter</a></p>` : ''}
+      <p>We look forward to welcoming you to our university!</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+
+
+
 
 // ✅ Export functions
 module.exports = {
   sendVerificationEmail,
   sendRejectionEmail,
-  sendPaymentSuccessEmail
+  sendPaymentSuccessEmail,
+  sendAcceptanceEmailWithAttachment
 };
