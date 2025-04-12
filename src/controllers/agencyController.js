@@ -22,6 +22,28 @@ const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 
+//NOTIFICATION
+
+exports.getNotifications = async (req, res) => {
+  try {
+    const studentId = req.user.id; // Logged-in student
+
+    // Fetch all notifications
+    const notifications = await Notification.find({ user: studentId }).sort({ createdAt: -1 });
+
+    // Update all unread notifications to "read"
+    await Notification.updateMany({ user: studentId, isRead: false }, { $set: { isRead: true } });
+
+    res.status(200).json({ success: true, total:notifications.length ,data:notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
+
+
 //STUDENT
 
 exports.getAllStudents = async (req, res) => {

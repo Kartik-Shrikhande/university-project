@@ -69,7 +69,20 @@ const sendAcceptanceEmailWithAttachment = async (email, fileUrl) => {
   await transporter.sendMail(mailOptions);
 };
 
+// ✅ Send Notification Email to Agency
+const sendAgencyNotificationEmail = async (email, studentName, studentId, status) => {
+  const subject = `Student Application ${status}`;
+  const text = `Dear Partner,\n\nThe university has ${status.toLowerCase()} the application for ${studentName} (Student ID: ${studentId}).\n\nPlease log in to your agency dashboard for more details.\n\nThank you.`;
 
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject,
+    text,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
 
 
 
@@ -78,5 +91,6 @@ module.exports = {
   sendVerificationEmail,
   sendRejectionEmail,
   sendPaymentSuccessEmail,
-  sendAcceptanceEmailWithAttachment
+  sendAcceptanceEmailWithAttachment,
+  sendAgencyNotificationEmail
 };

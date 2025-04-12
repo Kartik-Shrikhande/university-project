@@ -36,6 +36,9 @@ router.post('/create', agencyController.createAgency);
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 
+//NOTIFICATION 
+router.get('/notifications', agencyController.getNotifications);
+
 //COURSES
 //get all university courses for agency
 router.get('/courses/:universityId',agencyController.getAllUniversityCoursesforAgency); //n

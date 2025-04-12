@@ -7,9 +7,9 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const { uploadFilesToS3 } = require('../utils/s3Upload'); 
 const Notification = require('../models/notificationModel'); // Import Notification model
-const { sendRejectionEmail ,sendAcceptanceEmailWithAttachment} = require('../services/emailService');
+const { sendRejectionEmail ,sendAcceptanceEmailWithAttachment,sendAgencyNotificationEmail} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
-
+const Agency = require('../models/agencyModel');
 //APPLICATION 
 
 
@@ -225,6 +225,25 @@ exports.acceptApplication = async (req, res) => {
       type: 'Application',
     }).save();
 
+   // Step 6: Notify agency if exists
+   const studentName = `${application.student.firstName} ${application.student.lastName}`;
+   const studentId = application.student._id;
+
+   if (application.agency) {
+     const agency = await Agency.findById(application.agency);
+     if (agency) {
+       await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Accepted');
+
+       await new Notification({
+         user: agency._id,
+         message: `Application for ${studentName} (ID: ${studentId}) has been accepted by the university.`,
+         type: 'Application',
+       }).save();
+     }
+   }
+
+
+
     res.status(200).json({
       success: true,
       message: 'Application accepted successfully',
@@ -318,7 +337,7 @@ exports.rejectApplication = async (req, res) => {
     if (application.status !== 'Processing') {
       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
     }
-
+    const studentName = `${application.student.firstName} ${application.student.lastName}`;
     const studentId = application.student._id;
     const studentEmail = application.student.email;
     const message = `Your application has been rejected by the university. Reason: ${reason}`;
@@ -350,6 +369,20 @@ exports.rejectApplication = async (req, res) => {
         },
       },
     });
+
+   // Step 6: Notify agency
+   if (application.agency) {
+    const agency = await Agency.findById(application.agency);
+    if (agency) {
+      await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Rejected');
+
+      await new Notification({
+        user: agency._id,
+        message: `Application for ${studentName} (ID: ${studentId}) has been rejected by the university.`,
+        type: 'Application',
+      }).save();
+    }
+  }
 
     return res.status(200).json({
       success: true,
