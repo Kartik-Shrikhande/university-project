@@ -37,7 +37,16 @@ router.post('/create', agencyController.createAgency);
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
 
 //NOTIFICATION 
-router.get('/notifications', agencyController.getNotifications);
+router.get('/notifications', agencyController.getAllNotifications);
+router.get('/notifications/:id', agencyController.getNotificationById);
+router.delete('/notification/delete/:id', agencyController.deleteNotificationByIdAgency);
+
+
+//SOLICITORS
+router.get('/solicitor-requests',agencyController.getAllSolicitorRequests);
+router.get('/solicitor-requests/:studentId',  agencyController.getSolicitorRequestByStudentId);
+
+
 
 //COURSES
 //get all university courses for agency

@@ -135,14 +135,22 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
 router.post("/create-payment-intent",paymentController.createPaymentIntent);
-router.post("/confirm-payment",paymentController.confirmPayment);
+// router.post("/confirm-payment",paymentController.confirmPayment);
 
 
 
 //NOTIFICATION 
-router.get('/notifications', studentController.getNotifications);
+router.get('/notifications', studentController.getAllNotifications);
+// Get a specific notification and mark it as read
+router.get('/notifications/:id', studentController.getNotificationById);
+// Student-only delete notification
+router.delete('/notification/delete/:id', studentController.deleteStudentNotificationById);
 
 
+
+//SOLICITOR 
+// routes/studentRoutes.js
+router.post('/apply/solicitor/:applicationId', studentController.applyForSolicitor);
 
 
 // router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);

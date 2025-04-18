@@ -23,52 +23,135 @@ const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
-// const { v4: uuidv4 } = require('uuid');
 
-// // Create S3 client
-// const s3 = new S3Client({
-//   region: process.env.AWS_REGION,
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   },
-// });
 
-// // Function to upload files to S3
-// const uploadFilesToS3 = async (files) => {
-//   const uploadPromises = files.map(async (file) => {
-//     const uniqueFileName = `${uuidv4()}-${file.originalname}`;
-//     const params = {
-//       Bucket: process.env.S3_BUCKET_NAME,
-//       Key: uniqueFileName,
-//       Body: file.buffer,
-//       ContentType: file.mimetype,
-//     };
 
-//     await s3.send(new PutObjectCommand(params)); // Upload file
-//     return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFileName}`;
-//   });
+//SOLICITOR 
+exports.applyForSolicitor = async (req, res) => {
+  try {
+    const studentId = req.user.id; // From authenticated student
+    const { applicationId } = req.params;
 
-//   return Promise.all(uploadPromises);
-// };
+    // Verify student exists
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ success: false, message: "Invalid Application ID" });
+    }
+    // Verify the application exists, belongs to the student, and is accepted
+    const application = await Application.findOne({ _id: applicationId, student: studentId, status: 'Accepted' });
+
+  
+    if (!application) {
+      return res.status(400).json({ success: false, message: "Application must be accepted and belong to the student" });
+    }
+
+    // Get associated agency
+    const agency = await Agency.findById(application.agency);
+    if (!agency) {
+      return res.status(404).json({ success: false, message: "Associated agency not found" });
+    }
+
+    // Prevent duplicate solicitor requests
+    if (agency.students.includes(studentId)) {
+      return res.status(400).json({ success: false, message: "Solicitor service request already submitted" });
+    }
+
+    agency.students.push(studentId);
+    await agency.save();
+
+// ✅ Update student to reflect that solicitor service was requested
+ // ✅ Update student's solicitorService to true
+ await Students.findByIdAndUpdate(studentId, { solicitorService: true });   
+
+
+    res.status(200).json({ success: true, message: "Solicitor service request submitted successfully" });
+  } catch (err) {
+    console.error("Error applying for solicitor service:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+
+
+
 
 //Notification
 
-
-
-exports.getNotifications = async (req, res) => {
+exports.getAllNotifications = async (req, res) => {
   try {
-    const studentId = req.user.id; // Logged-in student
+    const studentId = req.user.id;
 
-    // Fetch all notifications
-    const notifications = await Notification.find({ user: studentId }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ user: studentId })
+      .sort({ createdAt: -1 });
 
-    // Update all unread notifications to "read"
-    await Notification.updateMany({ user: studentId, isRead: false }, { $set: { isRead: true } });
-
-    res.status(200).json({ success: true, total:notifications.length ,data:notifications });
+    res.status(200).json({
+      success: true,
+      total: notifications.length,
+      data: notifications
+    });
   } catch (error) {
     console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
+exports.getNotificationById = async (req, res) => {
+  try {
+    const Id = req.user.id;
+    const notificationId = req.params.id;
+
+    const notification = await Notification.findOne({
+      _id: notificationId,
+      user: Id
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Mark as read if it's not already
+    if (!notification.isRead) {
+      notification.isRead = true;
+      await notification.save();
+    }
+
+    res.status(200).json({ success: true, data: notification });
+  } catch (error) {
+    console.error('Error fetching notification by ID:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.deleteStudentNotificationById = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const notificationId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification ID' });
+    }
+
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Ensure the notification belongs to the student
+    if (notification.user.toString() !== studentId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: This notification does not belong to you' });
+    }
+
+    await Notification.findByIdAndDelete(notificationId);
+    res.status(200).json({ success: true, message: 'Notification deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting student notification:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

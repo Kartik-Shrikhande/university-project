@@ -22,26 +22,160 @@ const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 
-//NOTIFICATION
 
-exports.getNotifications = async (req, res) => {
+//SOLICITORS
+
+exports.getAllSolicitorRequests = async (req, res) => {
   try {
-    const studentId = req.user.id; // Logged-in student
+    const agencyId = req.user.id; // From authenticated agency
 
-    // Fetch all notifications
-    const notifications = await Notification.find({ user: studentId }).sort({ createdAt: -1 });
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      return res.status(404).json({ success: false, message: "Agency not found" });
+    }
 
-    // Update all unread notifications to "read"
-    await Notification.updateMany({ user: studentId, isRead: false }, { $set: { isRead: true } });
+    // Get all students who requested solicitor service
+    const students = await Students.find({
+      _id: { $in: agency.students },
+      solicitorService: true
+    }).select('firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline');
 
-    res.status(200).json({ success: true, total:notifications.length ,data:notifications });
+    const results = await Promise.all(
+      students.map(async (student) => {
+        const application = await Application.findOne({
+          student: student._id,
+          agency: agencyId,
+          status: 'Accepted'
+        }).select('_id course');
+
+        return {
+          ...student.toObject(),
+          application: application ? {
+            applicationId: application._id,
+            course: application.course
+          } : null
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor requests fetched successfully",
+      students: results.filter(r => r.application !== null)
+    });
+  } catch (err) {
+    console.error("Error fetching solicitor requests:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+exports.getSolicitorRequestByStudentId = async (req, res) => {
+  try {
+    const agencyId = req.user.id;
+    const { studentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ success: false, message: "Invalid student ID" });
+    }
+
+    const agency = await Agency.findById(agencyId);
+    if (!agency || !agency.students.includes(studentId)) {
+      return res.status(403).json({ success: false, message: "This student has not requested solicitor services from this agency" });
+    }
+
+    const student = await Students.findById(studentId).select('firstName lastName email telephoneNumber presentAddress countryApplyingFrom mostRecentEducation yearOfGraduation');
+    const application = await Application.findOne({ student: studentId, agency: agencyId, status: 'Accepted' }).populate('university course');
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found for this student" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor request details",
+      student,
+      application
+    });
+  } catch (err) {
+    console.error("Error getting solicitor request by ID:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+//NOTIFICATION
+exports.getAllNotifications = async (req, res) => {
+  try {
+    const Id = req.user.id;
+
+    const notifications = await Notification.find({ user: Id })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: notifications.length,
+      data: notifications
+    });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
+exports.getNotificationById = async (req, res) => {
+  try {
+    const Id = req.user.id;
+    const notificationId = req.params.id;
 
+    const notification = await Notification.findOne({
+      _id: notificationId,
+      user: Id
+    });
+  
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Mark as read if it's not already
+    if (!notification.isRead) {
+      notification.isRead = true;
+      await notification.save();
+    }
+
+    res.status(200).json({ success: true, data: notification });
+  } catch (error) {
+    console.error('Error fetching notification by ID:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.deleteNotificationByIdAgency = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const notificationId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification ID' });
+    }
+
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Ensure the notification belongs to the student
+    if (notification.user.toString() !== studentId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: This notification does not belong to you' });
+    }
+
+    await Notification.findByIdAndDelete(notificationId);
+    res.status(200).json({ success: true, message: 'Notification deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting student notification:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
 
 
 //STUDENT

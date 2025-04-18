@@ -33,6 +33,10 @@ router.delete('/delete', validateDeleteUniversity,universityController.deleteUni
 
 
 
+
+
+
+
 //APPLICATION
 
 // ✅ Get all pending applications
