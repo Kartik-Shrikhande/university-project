@@ -42,11 +42,14 @@ router.get('/notifications/:id', agencyController.getNotificationById);
 router.delete('/notification/delete/:id', agencyController.deleteNotificationByIdAgency);
 
 
-//SOLICITORS
+//SOLICITORS REQUEST
 router.get('/solicitor-requests',agencyController.getAllSolicitorRequests);
 router.get('/solicitor-requests/:studentId',  agencyController.getSolicitorRequestByStudentId);
-
-
+router.post('/assign/solicitor-request',agencyController.assignSolicitorRequestToAssociate);
+router.get('/assigned/requests',agencyController.getAssignedSolicitorRequests);
+router.get('/assigned/request/:id',agencyController.getAssignedSolicitorRequestById);
+// Get students who applied for solicitor services
+router.get('/students/solicitor-requests',agencyController.getAllStudentsAppliedForSolicitorService);
 
 //COURSES
 //get all university courses for agency

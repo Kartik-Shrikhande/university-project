@@ -102,6 +102,167 @@ exports.getSolicitorRequestByStudentId = async (req, res) => {
   }
 };
 
+exports.assignSolicitorRequestToAssociate = async (req, res) => {
+  try {
+    const agencyId = req.user.id; // From agencyAuth middleware
+    const { associateId, studentId } = req.body;
+
+    // Validate input
+    if (!associateId || !studentId) {
+      return res.status(400).json({ success: false, message: "associateId and studentId are required" });
+    }
+
+    // Verify student exists
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Find associate and validate
+    const associate = await AssociateSolicitor.findById(associateId);
+    if (!associate) {
+      return res.status(404).json({ success: false, message: "Associate not found" });
+    }
+
+    // Prevent duplicate assignments
+    if (associate.studentAssigned.includes(studentId)) {
+      return res.status(400).json({ success: false, message: "This student is already assigned to this associate" });
+    }
+
+
+    // Assign student to associate
+    associate.studentAssigned.push(studentId);
+    await associate.save();
+
+//  // Remove student from agency's pending solicitor request list
+//  await Agency.findByIdAndUpdate(
+//   agencyId,
+//   { $pull: { students: studentId } } // remove student from `students` array
+// );
+
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor request successfully assigned to associate",
+      data: associate
+    });
+  } catch (error) {
+    console.error("Error assigning student to associate:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+exports.getAssignedSolicitorRequests = async (req, res) => {
+  try {
+    const agencyId = req.user.id;
+
+    const associates = await AssociateSolicitor.find({
+      studentAssigned: { $exists: true, $not: { $size: 0 } }
+    }).populate({
+      path: 'studentAssigned',
+      select: 'firstName lastName email'
+    });
+
+    const result = associates.map(associate => ({
+      associateId: associate._id,
+      associateName: associate.nameOfAssociate,
+      associateEmail: associate.email,
+      students: associate.studentAssigned.map(student => ({
+        studentId: student._id,
+        studentName: `${student.firstName} ${student.lastName}`,
+        studentEmail: student.email
+      }))
+    }));
+
+    res.status(200).json({
+      success: true,
+      total:result.length,
+      message: "Assigned solicitor requests fetched successfully",
+      data: result
+    });
+  } catch (error) {
+    console.error("Error fetching assigned solicitor requests:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+exports.getAssignedSolicitorRequestById = async (req, res) => {
+  try {
+    const associateId = req.params.id;
+
+    // Check if associate exists
+    const associate = await AssociateSolicitor.findById(associateId)
+      .populate({
+        path: 'studentAssigned',
+        match: { solicitorService: true }, // ✅ Only valid solicitor requests
+        select: 'firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline',
+        populate: {
+          path: 'applications',
+          match: { status: 'Accepted' },
+          select: '_id'
+        }
+      })
+      .select('nameOfAssociate email'); // Include associate info
+
+    if (!associate) {
+      return res.status(404).json({ success: false, message: 'Associate not found' });
+    }
+
+    // ✅ Check if no valid solicitor requests
+    if (!associate.studentAssigned || associate.studentAssigned.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No solicitor requests assigned to this associate yet.',
+        associateId: associate._id,
+        associateName: associate.nameOfAssociate,
+        associateEmail: associate.email,
+        students: []
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Assigned solicitor request fetched successfully',
+      associateId: associate._id,
+      associateName: associate.nameOfAssociate,
+      associateEmail: associate.email,
+      students: associate.studentAssigned
+    });
+  } catch (err) {
+    console.error('Error fetching assigned solicitor request by ID:', err);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+exports.getAllStudentsAppliedForSolicitorService = async (req, res) => {
+  try {
+    const agencyId = req.user.id;
+
+    const students = await Students.find({
+      solicitorService: true
+    }).select('_id firstName lastName email');
+
+    if (!students.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No students have applied for solicitor services"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      total:students.length,
+      message: "Students who applied for solicitor services fetched successfully",
+      students
+    });
+  } catch (error) {
+    console.error("Error fetching solicitor applicants:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+
 
 //NOTIFICATION
 exports.getAllNotifications = async (req, res) => {
