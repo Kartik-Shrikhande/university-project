@@ -134,8 +134,10 @@ router.post('/verify-token', authenticationMiddleware.verifyToken);
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 
+
+//PAYMENT 
 router.post("/create-payment-intent",paymentController.createPaymentIntent);
-// router.post("/confirm-payment",paymentController.confirmPayment);
+router.post("/confirm-payment",paymentController.confirmPayment);
 
 
 
