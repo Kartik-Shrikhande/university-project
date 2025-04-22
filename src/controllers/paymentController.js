@@ -4,7 +4,45 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../models/paymentModel");
 const Student = require("../models/studentsModel");
 const nodemailer = require('nodemailer');
-const { sendPaymentSuccessEmail } = require("../services/emailService");
+const { sendPaymentSuccessEmail,sendSolicitorPaymentEmail } = require("../services/emailService");
+
+//dummy payment 
+exports.createDummySolicitorPayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const studentId = req.user.id;
+
+    // Fetch the student
+    const student = await Student.findById(studentId).session(session);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+    // if(student.isPaid) res.status(200).json({message: 'Payment already done for this user'});
+
+    // Simulate payment (mark as paid)
+    await Student.findByIdAndUpdate(studentId, { solicitorService: true });
+    await student.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: ' solicitor Payment successful',
+      // student,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error processing payment:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
+//PLATFORM PAYMENT 
 
 // Fixed payment amount (in smallest currency unit, e.g., 2000 = £20.00)
 const PAYMENT_AMOUNT = 2000;
@@ -80,83 +118,76 @@ exports.confirmPayment = async (req, res) => {
 };
 
 
-// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-// const Payment = require('../models/paymentModel');
-// const Student = require('../models/studentsModel');
+
+//SOLICITOR PAYMENT
+
+const SOLICITOR_PAYMENT_AMOUNT = 5000; // = £50.00
 
 
+exports.createSolicitorPaymentIntent = async (req, res) => {
+  const studentId = req.user.id;
 
-// // Fixed amount to charge every student
-// const FIXED_AMOUNT = 100; // Amount in GBP
+  try {
+    const student = await Student.findById(studentId);
+    if (!student) return res.status(404).json({ error: "Student not found" });
 
-// exports.createPaymentIntent = async (req, res) => {
-//     try {
-//         const studentId = req.user.id; // ✅ Extracting from JWT token
+    if (student.solicitorService) {
+      return res.status(400).json({ error: "Solicitor service already paid for." });
+    }
 
-//         // Check if student exists
-//         const student = await Student.findById(studentId);
-//         if (!student) {
-//             return res.status(404).json({ success: false, message: 'Student not found' });
-//         }
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: SOLICITOR_PAYMENT_AMOUNT,
+      currency: CURRENCY,
+      payment_method_types: ["card"],
+      description: `Solicitor service payment for Student ID: ${studentId}`,
+    });
 
-//         // Check if student has already paid
-//         if (student.isPaid) {
-//             return res.status(400).json({ success: false, message: 'Payment already completed' });
-//         }
+    await Payment.create({
+      student: studentId,
+      amount: SOLICITOR_PAYMENT_AMOUNT,
+      currency: CURRENCY,
+      status: "pending",
+      stripePaymentIntentId: paymentIntent.id,
+      description: `Solicitor service payment for Student ID: ${studentId}`,
+    });
 
-//         // Create Stripe PaymentIntent
-//         const paymentIntent = await stripe.paymentIntents.create({
-//             amount: FIXED_AMOUNT * 100, // Convert GBP to pence
-//             currency: 'GBP',
-//             metadata: { studentId: studentId }
-//         });
-
-//         // Save payment details in MongoDB
-//         const payment = new Payment({
-//             student: studentId,
-//             amount: FIXED_AMOUNT, // ✅ Fixed amount stored in DB
-//             currency: 'GBP',
-//             stripePaymentIntentId: paymentIntent.id,
-//             status: 'pending'
-//         });
-
-//         await payment.save();
-
-//         res.status(200).json({
-//             success: true,
-//             clientSecret: paymentIntent.client_secret,
-//             paymentId: payment._id
-//         });
-
-//     } catch (error) {
-//         console.error('Error creating payment intent:', error);
-//         res.status(500).json({ success: false, message: 'Internal Server Error' });
-//     }
-// };
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
+exports.confirmSolicitorPayment = async (req, res) => {
+  const { paymentIntentId } = req.body;
+  const studentId = req.user.id;
 
-// exports.handleStripeWebhook = async (req, res) => {
-//     const sig = req.headers['stripe-signature'];
+  try {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-//     try {
-//         const event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const payment = await Payment.findOneAndUpdate(
+      { stripePaymentIntentId: paymentIntentId },
+      {
+        status: paymentIntent.status === "succeeded" ? "succeeded" : "failed",
+        updatedAt: new Date(),
+      },
+      { new: true }
+    );
 
-//         if (event.type === 'payment_intent.succeeded') {
-//             const paymentIntent = event.data.object;
-//             const payment = await Payment.findOne({ stripePaymentIntentId: paymentIntent.id });
+    if (paymentIntent.status === "succeeded") {
+      await Student.findByIdAndUpdate(studentId, { solicitorService: true });
 
-//             if (payment) {
-//                 payment.status = 'succeeded'; // 
-//                 await payment.save();
-//                 await Student.findByIdAndUpdate(payment.student, { isPaid: true });
-//             }
-//         }
+      const student = await Student.findById(studentId);
+      if (student) {
+        // You can reuse your email service or add a new one if needed
+        await sendSolicitorPaymentEmail(student); // Optional, or create a new `sendSolicitorPaymentEmail`
+      }
+    }
 
-//         res.status(200).send('Webhook received');
-//     } catch (error) {
-//         console.error('Webhook error:', error);
-//         res.status(500).send('Webhook Error');
-//     }
-// };
-
+    res.status(200).json({ message: "Solicitor service payment processed", status: paymentIntent.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to verify payment" });
+  }
+};

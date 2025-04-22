@@ -26,7 +26,7 @@ const Notification = require('../models/notificationModel');
 
 
 
-//SOLICITOR 
+//SOLICTOR  
 exports.applyForSolicitor = async (req, res) => {
   try {
     const studentId = req.user.id; // From authenticated student
@@ -37,6 +37,11 @@ exports.applyForSolicitor = async (req, res) => {
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
+
+ // ✅ Check if solicitor service is paid
+ if (!student.solicitorService) {
+  return res.status(403).json({ success: false, message: "Solicitor service not available. Please complete the payment first." });
+}
 
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
@@ -63,9 +68,6 @@ exports.applyForSolicitor = async (req, res) => {
     agency.students.push(studentId);
     await agency.save();
 
-// ✅ Update student to reflect that solicitor service was requested
- // ✅ Update student's solicitorService to true
- await Students.findByIdAndUpdate(studentId, { solicitorService: true });   
 
 
     res.status(200).json({ success: true, message: "Solicitor service request submitted successfully" });

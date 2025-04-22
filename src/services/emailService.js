@@ -54,6 +54,18 @@ const sendPaymentSuccessEmail = async (student) => {
   await transporter.sendMail(mailOptions);
 };
 
+const sendSolicitorPaymentEmail = async (student) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: 'Solicitor Service Payment Successful',
+    text: `Hi ${student.firstName},\n\nThank you for purchasing the solicitor service. Now you can apply for solicitor services.\n\nRegards,\nYour University Team`,
+  };
+  await transporter.sendMail(mailOptions);
+};
+
+
+
 const sendAcceptanceEmailWithAttachment = async (email, fileUrl) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -85,12 +97,34 @@ const sendAgencyNotificationEmail = async (email, studentName, studentId, status
 };
 
 
+// ✅ Send Email to Student When Solicitor Request is Approved
+const sendSolicitorRequestApprovedEmail = async (student) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: 'Solicitor Request Approved',
+    html: `
+      <p>Hi ${student.firstName},</p>
+      <p>🎉 Congratulations! Your request for solicitor assistance has been <b>approved</b>.</p>
+      <p>Sooner a solicitor will be assigned to guide you through the visa process shortly.</p>
+      <p>We’ll notify you once the assignment is complete.</p>
+      <br />
+      <p>Best regards,<br />Student Services Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+
 
 // ✅ Export functions
 module.exports = {
   sendVerificationEmail,
   sendRejectionEmail,
   sendPaymentSuccessEmail,
+  sendSolicitorPaymentEmail,
   sendAcceptanceEmailWithAttachment,
-  sendAgencyNotificationEmail
+  sendAgencyNotificationEmail,
+  sendSolicitorRequestApprovedEmail
 };

@@ -14,7 +14,7 @@ const Notification = require('../models/notificationModel'); // Import Notificat
 //associate APIs
 const AssociateSolicitor = require('../models/associateModel');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
-const { sendRejectionEmail } = require('../services/emailService');
+const { sendRejectionEmail,sendSolicitorRequestApprovedEmail } = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
 
 
@@ -128,6 +128,10 @@ exports.assignSolicitorRequestToAssociate = async (req, res) => {
     if (associate.studentAssigned.includes(studentId)) {
       return res.status(400).json({ success: false, message: "This student is already assigned to this associate" });
     }
+ // Check if student was already assigned to any associate
+ const alreadyAssignedToAnyAssociate = await AssociateSolicitor.findOne({
+  studentAssigned: studentId
+});
 
 
     // Assign student to associate
@@ -140,6 +144,16 @@ exports.assignSolicitorRequestToAssociate = async (req, res) => {
 //   { $pull: { students: studentId } } // remove student from `students` array
 // );
 
+  // ✅ Only send notification/email if this is the first assignment
+  if (!alreadyAssignedToAnyAssociate) {
+    await Notification.create({
+      user: studentId,
+      message: `🎉 Congratulations! Your solicitor request has been approved. An associate will be assigned to you shortly.`,
+      type: 'General',
+    });
+
+    await sendSolicitorRequestApprovedEmail(student);
+  }
 
     res.status(200).json({
       success: true,

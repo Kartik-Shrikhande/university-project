@@ -139,6 +139,11 @@ router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.a
 router.post("/create-payment-intent",paymentController.createPaymentIntent);
 router.post("/confirm-payment",paymentController.confirmPayment);
 
+//SOLICITOR PAYMENT
+router.post('/dummy-solicitor-payment',paymentController.createDummySolicitorPayment)
+
+router.post('/solicitor/create-payment-intent',paymentController.createSolicitorPaymentIntent);
+router.post('/solicitor/confirm-payment',paymentController.confirmSolicitorPayment);
 
 
 //NOTIFICATION 
