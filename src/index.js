@@ -2,15 +2,11 @@ const express = require('express')
 const mongoose = require('mongoose')
 const session = require('express-session');
 const passport = require('./utils/passport');
-// const setupSwagger = require('./swagger/swagger'); // Adjust the path if needed
-// const swaggerUi = require('swagger-ui-express');
-// const swaggerDocument = require('./swagger/swagger-output.json');
 const cookieParser = require('cookie-parser');
 const cors = require('cors')
 const http = require('http');
 const { initializeSocket } = require('../src/services/socketNotification'); // Import socket service
 
-// Now, you can access your documentation at http://localhost:3000/api-docs
 const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport');
@@ -65,7 +61,7 @@ app.use(express.json({
 app.use(cookieParser());
 
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: process.env.CLIENT_ORIGIN,
     credentials: true
 }));
 
@@ -128,6 +124,6 @@ try {
 }
 
 
-app.listen(process.env.PORT, () => {
+server.listen(process.env.PORT, () => {
     console.log('App is running on port', process.env.PORT)
 })
