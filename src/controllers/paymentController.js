@@ -191,3 +191,22 @@ exports.confirmSolicitorPayment = async (req, res) => {
     res.status(500).json({ error: "Failed to verify payment" });
   }
 };
+
+
+
+exports.getPaymentHistory = async (req, res) => {
+  const studentId = req.user.id;
+
+  try {
+    const payments = await Payment.find({ student: studentId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: payments.length,
+      payments,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch payment history" });
+  }
+};

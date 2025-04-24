@@ -138,6 +138,8 @@ router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.a
 //PAYMENT 
 router.post("/create-payment-intent",paymentController.createPaymentIntent);
 router.post("/confirm-payment",paymentController.confirmPayment);
+router.get("/payment-history",paymentController.getPaymentHistory);
+
 
 //SOLICITOR PAYMENT
 router.post('/dummy-solicitor-payment',paymentController.createDummySolicitorPayment)
