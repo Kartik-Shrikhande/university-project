@@ -573,6 +573,11 @@ if (String(solicitor.nameOfAssociate) !== String(associateId)) {
   return res.status(403).json({ success: false, message: "Unauthorized: You can only assign requests to solicitors you created" });
 }
 
+ // ✅ Check if solicitor is active
+ if (!solicitor.isActive) {
+  return res.status(400).json({ success: false, message: "This solicitor is currently inactive and cannot be assigned requests" });
+}
+
     // Prevent duplicate assignment
     if (solicitor.studentAssigned.includes(studentId)) {
       return res.status(400).json({ success: false, message: "This student is already assigned to the solicitor" });
