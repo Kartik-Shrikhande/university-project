@@ -117,6 +117,25 @@ const sendSolicitorRequestApprovedEmail = async (student) => {
 };
 
 
+// ✅ Send Email to Student When Solicitor is Assigned After Request Approval
+const sendSolicitorAssignedEmail = async (student, solicitor) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: 'Solicitor Assigned to Your Request',
+    html: `
+      <p>Hi ${student.firstName},</p>
+      <p>🎉 Good news — your solicitor service request has been <b>approved</b>!</p>
+      <p>Your assigned solicitor is <b>${solicitor.firstName} ${solicitor.lastName}</b>. They will be reaching out to you shortly to assist with your visa application process.</p>
+      <br />
+      <p>Best regards,<br />Student Services Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+
 
 // ✅ Export functions
 module.exports = {
@@ -126,5 +145,6 @@ module.exports = {
   sendSolicitorPaymentEmail,
   sendAcceptanceEmailWithAttachment,
   sendAgencyNotificationEmail,
-  sendSolicitorRequestApprovedEmail
+  sendSolicitorRequestApprovedEmail,
+  sendSolicitorAssignedEmail
 };

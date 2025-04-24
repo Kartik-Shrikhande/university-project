@@ -18,10 +18,13 @@ const validate = (req, res, next) => {
 
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['Associate']))
+
 //ASSOCIATE - PROFILE
 router.put('/update',validateAssociateUpdate,validate, associateController.updateAssociate);
 router.get('/profile', associateController.getAssociateById);
 router.put('/update/password', associateController.associateUpdatePassword)
+
+
 
 //ASSOCIATE - SOLICITORS
 // Route to create a new solicitor
@@ -36,6 +39,22 @@ router.get('/solicitors',associateController.getAllSolicitors);
 router.get('/solicitor/:id',associateController.getSolicitorById);
 // Route to delete a solicitor by ID
 router.delete('/solicitor/delete/:id',associateController.deleteSolicitor);
+
+
+
+
+//ASSOCIATE - SOLICITORS REQUESTS 
+
+
+// Get all assigned requests
+router.get('/solicitor-requests', associateController.getAllAssignedSolicitorRequests);
+// Get assigned request by studentId
+router.get('/solicitor-requests/:studentId', associateController.getSolicitorRequestById);
+// Reject a solicitor request
+router.delete('/request/reject/:studentId', associateController.rejectSolicitorRequest);
+router.post('/assign-request', associateController.assignRequestToSolicitor);
+
+
 
 router.use('*', (req, res) => {
     res.status(404).json({
