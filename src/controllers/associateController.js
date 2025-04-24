@@ -180,6 +180,7 @@ exports.createSolicitor = async (req, res) => {
       symbols: true,
       uppercase: true,
       excludeSimilarCharacters: true,
+      exclude: `"'\\\``  // excludes ", ', \, and `
     });
 
     // **Hash the generated password**

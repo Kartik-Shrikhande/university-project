@@ -1456,6 +1456,7 @@ exports.createUniversity = async (req, res) => {
       symbols: true, // Include symbols
       uppercase: true, // Include uppercase letters
       excludeSimilarCharacters: true, // Exclude similar characters like 'i' and 'l'
+      exclude: `"'\\\``  // excludes ", ', \, and `
     });
 
     // Hash the auto-generated password
@@ -1615,6 +1616,7 @@ exports.createAssociate = async (req, res) => {
       symbols: true,
       uppercase: true,
       excludeSimilarCharacters: true,
+      exclude: `"'\\\``  // excludes ", ', \, and `
     });
 
     // **Hash the generated password**

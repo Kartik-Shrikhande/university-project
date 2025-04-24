@@ -972,56 +972,6 @@ exports.deleteCourse = async (req, res) => {
 
 
 
-// exports.createCourse = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const { name, description, fees, ratings } = req.body;
-//     const  universityId  = req.user.id;; // Get universityId from URL parameters
-
-//     const universityRecord = await University.findById(universityId).session(session);
-//     if (!universityRecord) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(404).json({ message: 'University not found' });
-//     }
-
-//     // Check if the course already exists in the same university
-//     const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
-//     if (existingCourse) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
-//     }
-
-//     // Create a new course
-//     const course = new Course({
-//       name,
-//       description,
-//       university: universityId,
-//       fees,
-//       ratings,
-//     });
-//     await course.save({ session });
-
-//     // Add course to the university's course list
-//     universityRecord.courses.push(course._id);
-//     await universityRecord.save({ session });
-
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return res.status(201).json({
-//       message: 'Course created successfully',
-//       course,
-//     });
-//   } catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     console.error('Error creating course:', error);
-//     return res.status(500).json({ message: 'Internal server error' });
-//   }
-// };
 
 
 // Get all courses for a university
