@@ -346,7 +346,7 @@ const mailOptions = {
   to: email,
   subject: 'Email Verification',
   text: `Click the following link to verify your email: 
-  https://university-project-m8o9.onrender.com/student/verify-email?token=${verificationToken}`,
+  ${process.env.EMAIL_VERIFICATION_SERVER_LINK}/student/verify-email?token=${verificationToken}`,
 };
 
 await transporter.sendMail(mailOptions);
@@ -982,7 +982,7 @@ exports.resendVerificationEmail = async (req, res) => {
       to: email,
       subject: 'Email Verification - Resend',
       text: `Click the following link to verify your email: 
-      https://university-project-m8o9.onrender.com/student/verify-email?token=${newVerificationToken}`,
+      ${process.env.EMAIL_VERIFICATION_SERVER_LINK}/student/verify-email?token=${newVerificationToken}`,
     };
 
     // Send the email
