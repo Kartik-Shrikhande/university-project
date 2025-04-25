@@ -16,7 +16,7 @@ const SolicitorSchema = new mongoose.Schema(
     },
     studentAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Array of student IDs
     completedVisa:{ type:Number, default:0},
-    isActive: { type: Boolean, default: true }, // Active status
+    // isActive: { type: Boolean, default: true }, // Active status
     visaRequestStatus: {
       type: String,
       enum: ["accepted", "rejected", "completed", "inprogress"],
