@@ -17,12 +17,18 @@ const validate = (req, res, next) => {
 
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['solicitor']))
-//ASSOCIATE - PROFILE
+
+
+//SOLICITOR - PROFILE
 router.put('/update/password',solicitorController.solicitorUpdatePassword)
 router.put('/update',validateUpdateSolicitor,validate,solicitorController.updateSolicitor);
 router.get('/profile', solicitorController.seeProfileSolicitor);
 
 
+//SOLICITOR - SOLICITOR REQUEST
+router.get('/all-assigned-requests', solicitorController.getAllAssignedSolicitorRequestsForSolicitor);
+router.get('/assigned-request/:studentId', solicitorController.getSolicitorRequestByIdForSolicitor);
+router.post('/approve-request/:studentId', solicitorController.approveSolicitorRequest);
 
 
 module.exports = router;
