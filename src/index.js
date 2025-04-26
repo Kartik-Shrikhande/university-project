@@ -65,24 +65,34 @@ app.use(cookieParser());
 //     credentials: true
 // }));
 
-
-app.use(cors({
-    origin: "https://connect2-uni.vercel.app",
-}));
-
+//pre working
 // app.use(cors({
-//     origin: [
-//         "https://6de8-152-59-199-254.ngrok-free.app/" 
-//     ],
-//     credentials: true
+//     origin: "https://connect2-uni.vercel.app",
 // }));
 
-// app.use(express.json())
-// app.use(cookieParser());
+//current in use
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://connect2-uni.vercel.app/"
+  ];
+  
+  app.use(cors({
+    origin: function (origin, callback) {
+      console.log("HTTP Origin attempting to connect:", origin);
+      
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+  
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true
+  }));
+  
 
-// // Set up Swagger
-// setupSwagger(app);
-// Swagger route
 
 
 // Set up express-session
