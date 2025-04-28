@@ -203,9 +203,6 @@ exports.solicitorUpdatePassword = async (req, res) => {
   };
 
 
-  // @desc Update solicitor details (self-update)
-  // @route PUT /api/solicitors/me
-  // @access Private (Solicitor Only)
   exports.updateSolicitor = async (req, res) => {
     try {
       const solicitorId = req.user.id; // Get Solicitor ID from token
@@ -294,9 +291,6 @@ exports.solicitorUpdatePassword = async (req, res) => {
   };
   
 
-
-// @desc Get Solicitor by ID
-// @route GET /api/solicitors/:id
 exports.seeProfileSolicitor = async (req, res) => {
   try {
     const id = req.user.id; // Get Associate ID from token
