@@ -72,9 +72,9 @@ app.use(cookieParser());
 
 //current in use
 const allowedOrigins = [
-    // "http://localhost:5173",
-    // "https://connect2-uni.vercel.app/"
-"*"  
+    "http://localhost:5173",
+    "https://connect2-uni.vercel.app"
+
 ];
   
   app.use(cors({

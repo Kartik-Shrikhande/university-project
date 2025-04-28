@@ -3,9 +3,9 @@ const { Server } = require("socket.io");
 let io;
 
 const allowedOrigins = [
-  // "http://localhost:5173",
-  // "https://connect2-uni.vercel.app/"
-  "*"
+  "http://localhost:5173",
+  "https://connect2-uni.vercel.app"
+
 ];
 
 const initializeSocket = (server) => {
