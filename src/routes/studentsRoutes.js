@@ -4,6 +4,7 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const applicationController = require('../controllers/applicationController')
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const receiptController = require('../controllers/receiptController');
 // const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
 const userControllers = require('../controllers/studentControllers');
@@ -141,9 +142,19 @@ router.post("/confirm-payment",paymentController.confirmPayment);
 router.get("/payment-history",paymentController.getPaymentHistory);
 
 
+
+
+
+//PAYMENT-RECEIPT 
+router.post('/upload/receipt', upload.single('uploadPaymentReceipt'), receiptController.uploadReceipt);
+router.get('/receipts', receiptController.getAllReceiptswithFilteration);
+router.get('/receipt/:id',receiptController.getReceiptById);
+
+
+
+
 //SOLICITOR PAYMENT
 router.post('/dummy-solicitor-payment',paymentController.createDummySolicitorPayment)
-
 router.post('/solicitor/create-payment-intent',paymentController.createSolicitorPaymentIntent);
 router.post('/solicitor/confirm-payment',paymentController.confirmSolicitorPayment);
 
