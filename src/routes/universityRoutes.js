@@ -4,6 +4,7 @@ const router = express.Router();
 const universityController= require('../controllers/universityControllers')
 // const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const receiptController = require('../controllers/receiptController');
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;
 const { validationResult } = require('express-validator');
@@ -26,6 +27,8 @@ const {
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
+
+//PROFILE
 router.get('/profile',universityController.seeUniversityProfile);
 router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);
 router.put('/update/password', universityController.universityUpdatePassword)
@@ -33,6 +36,22 @@ router.delete('/delete', validateDeleteUniversity,universityController.deleteUni
 
 
 
+
+//RECEIPT 
+
+// // Get all receipts for the university
+router.get('/receipts', receiptController.getAllStudentReceipts);
+
+// // Get a receipt by ID
+router.get('/receipt/:id',receiptController.getstudentReceiptById);
+
+// Accept a receipt
+router.put('/receipts/accept/:id',receiptController.acceptReceipt);
+
+// Reject a receipt with a remark
+router.put('/receipts/reject/:id',receiptController.rejectReceipt);
+
+router.delete('/delete/receipt/:id', receiptController.deleteReceipt);
 
 
 

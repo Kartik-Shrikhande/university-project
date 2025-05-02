@@ -149,6 +149,7 @@ router.get("/payment-history",paymentController.getPaymentHistory);
 router.post('/upload/receipt', upload.single('uploadPaymentReceipt'), receiptController.uploadReceipt);
 router.get('/receipts', receiptController.getAllReceiptswithFilteration);
 router.get('/receipt/:id',receiptController.getReceiptById);
+router.put('/update/receipts/:id',upload.single('uploadPaymentReceipt'),receiptController.updateReceipt);
 
 
 
