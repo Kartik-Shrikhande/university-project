@@ -400,3 +400,57 @@ exports.deleteReceipt = async (req, res) => {
 
 
 //AGENCY
+
+exports.getAllReceipts = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const query = {};
+
+    if (status) {
+      if (!["Pending", "Accepted", "Rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status filter." });
+      }
+      query.status = status;
+    }
+
+    const receipts = await Receipt.find(query)
+      .populate("student", "fullName email")
+      .populate("paidToUniversity", "name email")
+      .populate("course", "name")
+      .populate("applicationsId", "status submissionDate")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ total: receipts.length, receipts });
+  } catch (error) {
+    console.error("Get All Receipts (Agency) Error:", error);
+    res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+
+
+exports.getReceiptById = async (req, res) => {
+  try {
+    const receiptId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(receiptId)) {
+      return res.status(400).json({ message: "Invalid receipt ID format." });
+    }
+
+    const receipt = await Receipt.findById(receiptId)
+      .populate("student", "fullName email")
+      .populate("paidToUniversity", "name email")
+      .populate("course", "name")
+      .populate("applicationsId", "status submissionDate");
+
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found." });
+    }
+
+    res.status(200).json({ receipt });
+  } catch (error) {
+    console.error("Get Receipt By ID (Agency) Error:", error);
+    res.status(500).json({ message: "Something went wrong." });
+  }
+};

@@ -4,6 +4,7 @@ const agencyController = require('../controllers/agencyController');
 // const associateController = require("../controllers/agencyController");
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
+const receiptController = require('../controllers/receiptController');
 const { body, validationResult } = require('express-validator');
 
 const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
@@ -35,6 +36,13 @@ router.post('/create', agencyController.createAgency);
 
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
+
+
+//RECEIPT 
+router.get('/receipts', receiptController.getAllReceipts);
+router.get('/receipt/:id',receiptController.getReceiptById);
+
+
 
 //NOTIFICATION 
 router.get('/notifications', agencyController.getAllNotifications);
