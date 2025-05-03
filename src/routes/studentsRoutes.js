@@ -172,7 +172,7 @@ router.delete('/notification/delete/:id', studentController.deleteStudentNotific
 //SOLICITOR 
 // routes/studentRoutes.js
 router.post('/apply/solicitor/:applicationId', studentController.applyForSolicitor);
-
+router.get("/solicitor/status", studentController.checkSolicitorAssignment);
 
 // router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
 

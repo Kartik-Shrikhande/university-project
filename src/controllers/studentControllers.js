@@ -78,6 +78,38 @@ exports.applyForSolicitor = async (req, res) => {
 };
 
 
+exports.checkSolicitorAssignment = async (req, res) => {
+  try {
+    const studentId = req.user.id; // From authenticated student
+
+    // Validate student
+    const student = await Students.findById(studentId).populate("assignedSolicitor", "firstName lastName email phoneNumber");
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Check if solicitor is assigned
+    if (!student.assignedSolicitor) {
+      return res.status(200).json({
+        success: true,
+        message: "solicitor is not assigned yet, your request is in process, sooner an solicitor will be assigned to you.",
+        isAssigned: false
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor has been assigned.",
+      isAssigned: true,
+      solicitor: student.assignedSolicitor
+    });
+
+  } catch (error) {
+    console.error("Error checking solicitor assignment status:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 
 
 
