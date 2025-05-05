@@ -77,10 +77,9 @@ exports.applyForSolicitor = async (req, res) => {
   }
 };
 
-
-exports.checkSolicitorAssignment = async (req, res) => {
+exports.checkSolicitorStatus = async (req, res) => {
   try {
-    const studentId = req.user.id; // From authenticated student
+    const studentId = req.user.id;
 
     // Validate student
     const student = await Students.findById(studentId).populate("assignedSolicitor", "firstName lastName email phoneNumber");
@@ -88,29 +87,56 @@ exports.checkSolicitorAssignment = async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
-    // Check if solicitor is assigned
-    if (!student.assignedSolicitor) {
+    // Check if solicitor service is purchased
+    if (!student.solicitorService) {
       return res.status(200).json({
         success: true,
-        message: "solicitor is not assigned yet, your request is in process, sooner an solicitor will be assigned to you.",
-        isAssigned: false
+        message: "You have not enrolled for solicitor service.",
+        status: null,
+        isAssigned: false,
+        solicitor: null
       });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Solicitor has been assigned.",
-      isAssigned: true,
-      solicitor: student.assignedSolicitor
-    });
+    // If solicitor is already assigned
+    if (student.assignedSolicitor) {
+      return res.status(200).json({
+        success: true,
+        message: "Solicitor has been assigned.",
+        status: "Accepted",
+        isAssigned: true,
+        solicitor: student.assignedSolicitor
+      });
+    }
+
+    // Check if request is in any agency's students array (solicitor request processing)
+    const agencyWithRequest = await Agency.findOne({ students: studentId });
+    if (agencyWithRequest) {
+      return res.status(200).json({
+        success: true,
+        message: "Your solicitor request is being processed by the agency.",
+        status: "Processing",
+        isAssigned: false,
+        solicitor: null
+      });
+    }
+
+     // If solicitor is already assigned
+     if (!student.assignedSolicitor) {
+      return res.status(200).json({
+        success: true,
+        message: "Your solicitor request is being processed by the agency.",
+        status: "Processing",
+        isAssigned: true,
+        solicitor: student.assignedSolicitor
+      });
+    };
 
   } catch (error) {
     console.error("Error checking solicitor assignment status:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
-
 
 
 
