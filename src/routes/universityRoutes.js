@@ -28,6 +28,13 @@ router.post('/login',validateUniversityLogin, universityController.universityLog
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
 
+//NOTIFICATION 
+router.get('/notifications', universityController.getAllNotifications);
+router.get('/notifications/:id', universityController.getNotificationById);
+router.delete('/notification/delete/:id', universityController.deleteStudentNotificationById);
+
+
+
 //PROFILE
 router.get('/profile',universityController.seeUniversityProfile);
 router.put('/update', upload.single('bannerImage'), validateUniversityUpdate, universityController.updateUniversity);

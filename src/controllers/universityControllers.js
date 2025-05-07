@@ -11,6 +11,86 @@ const { sendRejectionEmail ,sendAcceptanceEmailWithAttachment,sendAgencyNotifica
 const { sendNotification } = require('../services/socketNotification');
 const Agency = require('../models/agencyModel');
 
+
+
+
+
+//Notification
+
+exports.getAllNotifications = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const notifications = await Notification.find({ user: studentId })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: notifications.length,
+      data: notifications
+    });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
+exports.getNotificationById = async (req, res) => {
+  try {
+    const Id = req.user.id;
+    const notificationId = req.params.id;
+
+    const notification = await Notification.findOne({
+      _id: notificationId,
+      user: Id
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Mark as read if it's not already
+    if (!notification.isRead) {
+      notification.isRead = true;
+      await notification.save();
+    }
+
+    res.status(200).json({ success: true, data: notification });
+  } catch (error) {
+    console.error('Error fetching notification by ID:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.deleteStudentNotificationById = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const notificationId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(notificationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid notification ID' });
+    }
+
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    // Ensure the notification belongs to the student
+    if (notification.user.toString() !== studentId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: This notification does not belong to you' });
+    }
+
+    await Notification.findByIdAndDelete(notificationId);
+    res.status(200).json({ success: true, message: 'Notification deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting student notification:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 //APPLICATION 
 
 

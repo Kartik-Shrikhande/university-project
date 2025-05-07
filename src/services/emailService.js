@@ -135,6 +135,61 @@ const sendSolicitorAssignedEmail = async (student, solicitor) => {
   await transporter.sendMail(mailOptions);
 };
 
+const sendReceiptUploadedEmailToUniversity = async (university, student, courseName) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: university.email,
+    subject: 'New Payment Receipt Uploaded',
+    html: `
+      <p>Hi ${university.name},</p>
+      <p>📄 A new payment receipt has been uploaded by <b>${student.firstName} ${student.lastName}</b> for the course <b>${courseName}</b>.</p>
+      <p>Please log in to your university dashboard to review and process the receipt at your earliest convenience.</p>
+      <br />
+      <p>Best regards,<br />Student Services Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+
+// 📩 Email when receipt accepted
+const sendReceiptAcceptedEmail = async (student, application) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: '🎉 Payment Receipt Accepted',
+    html: `
+      <p>Hi ${student.firstName},</p>
+      <p>Good news — your payment receipt for <b>${application.course.name}</b> at <b>${application.university.name}</b> has been <b>accepted</b> by the university.</p>
+      <p>Thank you for completing your payment.</p>
+      <br />
+      <p>Best regards,<br />Admissions Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// 📩 Email when receipt rejected
+const sendReceiptRejectedEmail = async (student, application, remark) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: student.email,
+    subject: '⚠️ Payment Receipt Rejected',
+    html: `
+      <p>Hi ${student.firstName},</p>
+      <p>Your payment receipt for <b>${application.course.name}</b> at <b>${application.university.name}</b> has been <b>rejected</b>.</p>
+      <p><b>Reason:</b> ${remark}</p>
+      <p>Please review and upload a corrected receipt at your earliest convenience.</p>
+      <br />
+      <p>Best regards,<br />Admissions Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 
 
 // ✅ Export functions
@@ -146,5 +201,8 @@ module.exports = {
   sendAcceptanceEmailWithAttachment,
   sendAgencyNotificationEmail,
   sendSolicitorRequestApprovedEmail,
-  sendSolicitorAssignedEmail
+  sendSolicitorAssignedEmail,
+  sendReceiptUploadedEmailToUniversity,
+  sendReceiptAcceptedEmail,
+  sendReceiptRejectedEmail
 };
