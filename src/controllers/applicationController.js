@@ -195,59 +195,7 @@ exports.applyForCourse = async (req, res) => {
       const proofOfAddress = await uploadFilesToS3(req.files?.['proofOfAddress'] || []);
 
 
- //  const latestdegreeCertificates = req.files['latestdegreeCertificates']
-//  ? await uploadFilesToS3(req.files['latestdegreeCertificates'])
-//  : [];
-
-// const englishTest = req.files['englishTest']
-//  ? await uploadFilesToS3(req.files['englishTest'])
-//  : [];
-
-// const proofOfAddress = req.files['proofOfAddress']
-//  ? await uploadFilesToS3(req.files['proofOfAddress'])
-//  : [];
-
-// const statementOfPurpose = req.files['statementOfPurpose']
-//  ? await uploadFilesToS3(req.files['statementOfPurpose'])
-//  : [];
-
-// const resumeCV = req.files['resumeCV']
-//  ? await uploadFilesToS3(req.files['resumeCV'])
-//  : [];
-
-// const passportSizePhotographs = req.files['passportSizePhotographs']
-//  ? await uploadFilesToS3(req.files['passportSizePhotographs'])
-//  : [];
-
-// const financialStatements = req.files['financialStatements']
-//  ? await uploadFilesToS3(req.files['financialStatements'])
-//  : [];
-
-// const additionalDocuments = req.files['additionalDocuments']
-//  ? await uploadFilesToS3(req.files['additionalDocuments'])
-//  : [];
-
-   // Validate required files
-//    if (
-//     !latestdegreeCertificates.length ||
-//     !englishTest.length ||
-//     !proofOfAddress.length 
-//     // !statementOfPurpose.length ||
-//     // !passportSizePhotographs.length ||
-//     // !financialStatements.length
-// ) {
-//     return res.status(400).json({
-//         message: "All required documents must be uploaded.",
-//         missingFiles: {
-//             latestdegreeCertificates: latestdegreeCertificates.length ? "Provided" : "Missing",
-//             englishTest: englishTest.length ? "Provided" : "Missing",
-//             proofOfAddress: proofOfAddress.length ? "Provided" : "Missing",
-//             // statementOfPurpose: statementOfPurpose.length ? "Provided" : "Missing",
-//             // passportSizePhotographs: passportSizePhotographs.length ? "Provided" : "Missing",
-//             // financialStatements: financialStatements.length ? "Provided" : "Missing",
-//         },
-//     });
-// }
+ 
       // Validate course ID
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
           return res.status(400).json({ message: 'Invalid CourseId.' });
@@ -304,17 +252,6 @@ exports.applyForCourse = async (req, res) => {
           latestdegreeCertificates,
           englishTest,
           proofOfAddress
-
-
-        //   academicTranscripts,
-        //   proofofEnglishProficiency,
-        //   lettersOfRecommendation,
-        //   statementOfPurpose,
-        //   resumeCV,
-        //   passportSizePhotographs,
-        //   financialStatements,
-        //   additionalDocuments,
-
           
       });
 
@@ -342,9 +279,18 @@ await Agency.findByIdAndUpdate(
 );
 
 
-    //   defaultAgency.pendingApplications.push(newApplication._id);
-    //   await defaultAgency.save({ session });
-
+      // ✅ If any English Test files were uploaded, add them to student's record
+      if (englishTest.length > 0) {
+        await Students.findByIdAndUpdate(
+          studentId,
+          {
+            $push: { document: { $each: englishTest } }
+          },
+          { session }
+        );
+      }
+      
+  
       await session.commitTransaction();
       session.endSession();
 
@@ -357,27 +303,7 @@ await Agency.findByIdAndUpdate(
               university: newApplication.university,
               course: newApplication.course,
           },
-        //   student: {
-        //     firstName: student.firstName,
-        //     middleName: student.middleName,
-        //     lastName: student.lastName,
-        //     dateOfBirth: student.dateOfBirth,
-        //     gender: student.gender,
-        //     email: student.email,
-        //     countryCode: student.countryCode,
-        //     telephoneNumber: student.telephoneNumber,
-        //     address: student.address,
-        //     // permanentAddress: student.permanentAddress,
-        //     documentType: student.documentType,
-        //     documentUpload: student.documentUpload,
-        //     mostRecentEducation: student.mostRecentEducation,
-        //     otherEducationName: student.otherEducationName,
-        //     collegeUniversity: student.collegeUniversity,
-        //     discipline: student.discipline,
-        //     otherDisciplineName: student.otherDisciplineName,
-        //     // assignedAgent: student.assignedAgent,
-            
-        // },
+  
       });
 
   } catch (error) {
