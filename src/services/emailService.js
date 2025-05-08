@@ -191,6 +191,58 @@ const sendReceiptRejectedEmail = async (student, application, remark) => {
 };
 
 
+const sendReceiptUploadedEmailToAgency = async (agency, student, universityName, courseName) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: agency.email,
+    subject: `🔔 New Payment Receipt Uploaded by ${student.firstName} ${student.lastName}`,
+    html: `
+      <p>Hi ${agency.name},</p>
+      <p>A new payment receipt has been uploaded by <b>${student.firstName} ${student.lastName}</b> for the course <b>"${courseName}"</b> at <b>${universityName}</b>.</p>
+      <p>Please log in to your portal to review the details and take further action if necessary.</p>
+      <br />
+      <p>Best regards,<br />Admissions Team</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendReceiptAcceptedEmailToAgency = async (agency, student, universityName, courseName) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: agency.email,
+    subject: `Receipt Accepted for ${student.firstName} ${student.lastName}`,
+    html: `
+      <p>Hi ${agency.name},</p>
+      <p>The payment receipt submitted by <b>${student.firstName} ${student.lastName}</b> for the course <b>"${courseName}"</b> at <b>${universityName}</b> has been <b>accepted</b>.</p>
+      <p>Please log in to your portal to view the updated application details.</p>
+      <br />
+      <p>Best regards,<br />Admissions Team</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+const sendReceiptRejectedEmailToAgency = async (agency, student, universityName, courseName, remark) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: agency.email,
+    subject: `Receipt Rejected for ${student.firstName} ${student.lastName}`,
+    html: `
+      <p>Hi ${agency.name},</p>
+      <p>The payment receipt submitted by <b>${student.firstName} ${student.lastName}</b> for the course <b>"${courseName}"</b> at <b>${universityName}</b> has been <b>rejected</b>.</p>
+      <p><b>Reason:</b> ${remark}</p>
+      <p>Please coordinate with the student to resubmit a correct receipt if needed.</p>
+      <br />
+      <p>Best regards,<br />Admissions Team</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 
 // ✅ Export functions
 module.exports = {
@@ -204,5 +256,8 @@ module.exports = {
   sendSolicitorAssignedEmail,
   sendReceiptUploadedEmailToUniversity,
   sendReceiptAcceptedEmail,
-  sendReceiptRejectedEmail
+  sendReceiptRejectedEmail,
+  sendReceiptUploadedEmailToAgency,
+  sendReceiptAcceptedEmailToAgency,
+  sendReceiptRejectedEmailToAgency
 };

@@ -1,11 +1,16 @@
 const Receipt = require('../models/receiptModel');
 const Application = require('../models/applicationModel');
+const Agency = require('../models/agencyModel');
 const University = require('../models/universityModel');
 const Student = require('../models/studentsModel');
 const Course = require('../models/coursesModel');
 const mongoose = require('mongoose');
+const Notification = require('../models/notificationModel'); // Import Notification model
 const { uploadFilesToS3 } = require('../utils/s3Upload'); // adjust path as needed
+const { sendReceiptRejectedEmail,sendReceiptAcceptedEmail,sendReceiptUploadedEmailToUniversity ,
+  sendReceiptUploadedEmailToAgency,sendReceiptAcceptedEmailToAgency,sendReceiptRejectedEmailToAgency
 
+} = require('../services/emailService');
 //STUDENT
 
 exports.uploadReceipt = async (req, res) => {
@@ -15,7 +20,7 @@ exports.uploadReceipt = async (req, res) => {
       paymentMethod,
       otherPaymentMethod,
       applicationsId,
-      amountPaid,
+      amountPaid,   
       dateofPayment,
     } = req.body;
 
@@ -46,7 +51,7 @@ exports.uploadReceipt = async (req, res) => {
     const application = await Application.findOne({
       _id: applicationsId,
       student: studentId,
-    }).populate("course university");
+    }).populate("course university agency");
 
     if (!application) {
       return res.status(404).json({
@@ -95,6 +100,47 @@ exports.uploadReceipt = async (req, res) => {
     });
 
     await receipt.save();
+
+   // Fetch full student details for notification and email
+   const student = await Student.findById(studentId);
+   if (!student) {
+     return res.status(404).json({ message: "Student not found." });
+   }
+    // Send email to university
+    await sendReceiptUploadedEmailToUniversity(
+      application.university,
+      student,
+      application.course.name
+    );
+
+  // 🔔 Create in-app notification for university
+  const notification = new Notification({
+    user: application.university._id,
+    message: `New payment receipt uploaded by ${student.firstName} ${student.lastName} for course ${application.course.name}.`,
+    type: "Payment" 
+  });
+
+  await notification.save();
+
+  // Send email to agency (if present)
+  if (application.agency) {
+    await sendReceiptUploadedEmailToAgency(
+      application.agency,
+      student,
+      application.university.name,
+      application.course.name
+    );
+
+    // Optional: Create in-app notification for agency too
+    const agencyNotification = new Notification({
+      user: application.agency._id,
+      message: `New payment receipt uploaded by ${student.firstName} ${student.lastName} for course ${application.course.name} at ${application.university.name}.`,
+      type: "Payment",
+    });
+    await agencyNotification.save();
+  }
+
+
 
     res.status(201).json({ message: "Receipt uploaded successfully.", receipt });
   } catch (error) {
@@ -292,7 +338,6 @@ exports.getstudentReceiptById = async (req, res) => {
 };
 
 
-// // Accept a receipt
 exports.acceptReceipt = async (req, res) => {
   try {
     const universityId = req.user.id;
@@ -318,13 +363,48 @@ exports.acceptReceipt = async (req, res) => {
     receipt.status = "Accepted";
     await receipt.save();
 
+    const student = await Student.findById(receipt.student);
+    const application = await Application.findById(receipt.applicationsId)
+      .populate("course university agency");
+
+    // 📧 Send acceptance email to student
+    await sendReceiptAcceptedEmail(student, application);
+
+    // 📲 Create in-app notification for student
+    await new Notification({
+      user: student._id,
+      message: `Your payment receipt for ${application.course.name} has been accepted.`,
+      type: "Payment"
+    }).save();
+
+    // 📡 Notify agency if assigned to application
+    if (application.agency) {
+      const agency = await Agency.findById(application.agency);
+
+      if (agency && agency.email) {
+        const message = `Payment receipt for student ${student.firstName} ${student.lastName} for ${application.course.name} has been accepted by ${application.university.name}.`;
+
+        // 📧 Email to agency
+        await sendReceiptAcceptedEmailToAgency(agency, student, application.university.name, application.course.name);
+
+        // 📲 In-app notification for agency
+        await new Notification({
+          user: agency._id,
+          message,
+          type: "Payment"
+        }).save();
+      } else {
+        console.log("No agency or agency email found for application.");
+      }
+    }
+
     res.status(200).json({ message: "Receipt accepted successfully.", receipt });
+
   } catch (error) {
     console.error("Accept Receipt Error:", error);
     res.status(500).json({ message: "Something went wrong." });
   }
 };
-
 
 
 // // Reject a receipt with remarks
@@ -359,8 +439,41 @@ exports.rejectReceipt = async (req, res) => {
     receipt.remarks.push(remark);
     await receipt.save();
 
+
+    const student = await Student.findById(receipt.student);
+    const application = await Application.findById(receipt.applicationsId).populate("course university");
+
+    // 📧 Send Email
+    await sendReceiptRejectedEmail(student, application, remark);
+
+    // 📲 Create In-App Notification
+    await new Notification({
+      user: student._id,
+      message: `Your payment receipt for ${application.course.name} was rejected. Remark: ${remark}`,
+      type: "Payment"
+    }).save();
+
+  // 📡 Notify Agency
+  const agency = await Agency.findOne();  // assuming one agency
+  if (agency) {
+    const message = `Payment receipt for student ${student.firstName} ${student.lastName} for ${application.course.name} has been rejected by ${application.university.name}. Reason: ${remark}`;
+
+    // 📧 Email to agency
+    await sendReceiptRejectedEmailToAgency(agency, message);
+
+    // 📲 In-app notification for agency
+    await new Notification({
+      user: agency._id,
+      message,
+      type: "Payment"
+    }).save();
+  }
+
+
+
     res.status(200).json({ message: "Receipt rejected successfully.", receipt });
-  } catch (error) {
+  }
+   catch (error) {
     console.error("Reject Receipt Error:", error);
     res.status(500).json({ message: "Something went wrong." });
   }
