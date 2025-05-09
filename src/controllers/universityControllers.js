@@ -245,7 +245,7 @@ exports.getApplicationDetails = async (req, res) => {
   }
 };
 
-
+//NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
 exports.acceptApplication = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -282,6 +282,8 @@ exports.acceptApplication = async (req, res) => {
     if (req.file) {
       const [url] = await uploadFilesToS3([req.file]);
       uploadedFileUrl = url;
+
+      application.extraDocuments.push(uploadedFileUrl);
     }
 
     // Step 2: Update status
@@ -439,6 +441,7 @@ exports.rejectApplication = async (req, res) => {
     // ✅ Now safely update application status
     application.status = 'Rejected';
     application.reviewDate = new Date();
+   application.isDeleted = true;
     await application.save();
 
     // ✅ Remove from university's pending applications
