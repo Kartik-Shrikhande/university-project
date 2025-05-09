@@ -218,17 +218,42 @@ exports.applyForCourse = async (req, res) => {
     );
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
+  // ✅ Check for 3 accepted applications
+  const acceptedApplicationsCount = await Application.countDocuments({
+    student: studentId,
+    status: 'Accepted'
+  }).session(session);
+
+  if (acceptedApplicationsCount >= 3) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.status(400).json({ message: 'You already have 3 accepted applications. You cannot apply for more courses.' });
+  }
+  const existingApplication = await Application.findOne({
+    student: studentId,
+    university: universityId,
+    course: courseId,
+  }).session(session);
   
 
-      const existingApplication = await Application.findOne({
-          student: studentId,
-          university: universityId,
-          course: courseId,
-      }).session(session);
-
-      if (existingApplication) {
-          return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
-      }
+  
+  if (existingApplication) {
+    if (existingApplication.status === 'Rejected') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: 'You cannot apply for this course again as it was rejected by the university.',
+      });
+    } else {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: 'Application already exists for this course at the selected university.',
+      });
+    }
+  }
+  
+  
 
       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
       if (!defaultAgency) {
