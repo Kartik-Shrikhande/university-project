@@ -57,7 +57,6 @@ router.put('/receipts/accept/:id',receiptController.acceptReceipt);
 
 // Reject a receipt with a remark
 router.put('/receipts/reject/:id',receiptController.rejectReceipt);
-
 router.delete('/delete/receipt/:id', receiptController.deleteReceipt);
 
 
@@ -78,6 +77,7 @@ router.get('/application/:applicationId', universityController.getApplicationDet
 
 // ✅ Accept an application
 // router.put('/application/accept/:applicationId', universityController.acceptApplication);
+//NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
 router.post('/application/accept/:applicationId', upload.single('acceptanceLetter'), universityController.acceptApplication);
 
 // ✅ Reject an application
