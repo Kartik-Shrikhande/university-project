@@ -18,7 +18,7 @@ const multer = require('multer');
 const {uploadFile}=require("../middlewares/uploadMiddleware")
 // const multer = require('multer');
 const Agents = require('../models/agentModel');
-const Solicitors = require('../models/solicitorModel');
+const Solicitor = require('../models/solicitorModel');
 const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
@@ -567,7 +567,7 @@ exports.login = async (req, res) => {
       { model: University, roleName: 'University' },
       { model: Students, roleName: 'student' },
       { model: Agents, roleName: 'agent' },
-      { model: Solicitors, roleName: 'solicitor' },
+      { model: Solicitor, roleName: 'solicitor' },
       { model: Agency, roleName: 'admin' } ,// Updated to match Agency model
       { model: AssociateSolicitor, roleName: 'Associate' } // Added Associate Role
     ];
@@ -581,6 +581,13 @@ exports.login = async (req, res) => {
       }
     }
 
+
+    console.log("Password entered:", password);
+    console.log("Password hash from DB:", user.password);
+    
+
+
+
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
@@ -590,6 +597,7 @@ exports.login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
+
     //  // Check if email is verified
     //  if (!user.isVerified) {
     //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
@@ -715,6 +723,25 @@ exports.login = async (req, res) => {
     }
   });
 }
+
+if (role === 'solicitor') {
+  return res.status(200).json({
+    message: 'Login successful.',
+    role: role,
+    token: token,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
+      visaRequestStatus: user.visaRequestStatus,
+      completedVisa: user.completedVisa
+    }
+  });
+}
+
 
  // **Custom Response for Associate Solicitor Role**
     if (role === 'Associate') {
