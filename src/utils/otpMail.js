@@ -40,7 +40,7 @@ exports.sendResetPasswordEmail = async (to, resetLink) => {
       <h3>Reset Password Request</h3>
       <p>Click the link below to reset your password:</p>
       <a href="${resetLink}" target="_blank">${resetLink}</a>
-      <p>This link will expire in 15 minutes.</p>
+      <p>This link will expire in 5 minutes.</p>
     `
   };
 
