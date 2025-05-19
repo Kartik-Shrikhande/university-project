@@ -14,20 +14,6 @@ require('./utils/passport');
 
 const server = http.createServer(app);
 initializeSocket(server); // Initialize socket
-// app.use(cors({
-//     origin: function (origin, callback) {
-//         console.log("Origin attempting to connect:", origin);
-
-//         if (!origin || 
-//             origin.match(/^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/) ||
-//             origin === "http://localhost:5173") { 
-//             callback(null, true);
-//         } else {
-//             callback(new Error('Not allowed by CORS'));
-//         }
-//     },
-//     credentials: true
-// }));
 
 
 
@@ -36,9 +22,10 @@ const universityRoutes = require('../src/routes/universityRoutes')
 const agencyRoutes = require('../src/routes/agencyRoutes')
 const agentsRoutes = require('../src/routes/agentRoutes')
 const associateRoutes = require('../src/routes/associateRoutes')
-const otpRoutes = require('../src/routes/otpRoutes')
+const resetPasswordRoutes = require('../src/routes/resetPasswordRoutes')
 const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
 const solicitorRoutes = require('../src/routes/solicitorRoutes')
+
 // const applicationRoutes = require('../src/routes/applicationRoutes');
 
 const startCronJob = require('../src/controllers/inactivityMailController');
@@ -116,10 +103,11 @@ app.use('/agency', agencyRoutes)
 app.use('/admin', agencyRoutes)
 // app.use('/agent', agentsRoutes)
 app.use('/associate', associateRoutes)
-app.use('/otp', otpRoutes)
+app.use('/password', resetPasswordRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
 // app.use('/application', applicationRoutes);
 app.use('/solicitor', solicitorRoutes);
+
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 

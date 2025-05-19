@@ -23,7 +23,8 @@ const agencySchema = new mongoose.Schema(
          },
     agents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Agent' }], // List of agents under the agency
     pendingApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
-    students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // NEW: Tracks students associated with the agency
+    students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], //here im storing applicationId for solicitor
+    solicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     sentAppliactionsToUniversities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     role:{type: String, default: 'admin'},
     isDeleted: { 
