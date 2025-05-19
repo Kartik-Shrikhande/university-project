@@ -60,7 +60,8 @@ app.use(cookieParser());
 //current in use
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://connect2-uni.vercel.app"
+    "https://connect2-uni.vercel.app",
+    "https://connect2-uni-ivory.vercel.app"
 
 ];
   
