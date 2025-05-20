@@ -49,9 +49,9 @@ router.delete('/solicitor/delete/:id',associateController.deleteSolicitor);
 // Get all assigned requests
 router.get('/solicitor-requests', associateController.getAllAssignedSolicitorRequests);
 // Get assigned request by studentId
-router.get('/solicitor-requests/:studentId', associateController.getSolicitorRequestById);
+router.get('/solicitor-requests/:applicationId', associateController.getSolicitorRequestById);
 // Reject a solicitor request
-router.delete('/request/reject/:studentId', associateController.rejectSolicitorRequest);
+router.delete('/request/reject/:applicationId', associateController.rejectSolicitorRequest);
 router.post('/assign-request', associateController.assignRequestToSolicitor);
 
 

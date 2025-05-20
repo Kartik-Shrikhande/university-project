@@ -169,10 +169,10 @@ router.delete('/notification/delete/:id', studentController.deleteStudentNotific
 
 
 
-//SOLICITOR 
+//SOLICITOR REQUEST
 // routes/studentRoutes.js
 router.post('/apply/solicitor/:applicationId', studentController.applyForSolicitor);
-router.get("/solicitor/status", studentController.checkSolicitorStatus);
+router.get("/solicitor/status/:applicationId", studentController.checkSolicitorStatus);
 
 // router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
 

@@ -27,8 +27,8 @@ router.get('/profile', solicitorController.seeProfileSolicitor);
 
 //SOLICITOR - SOLICITOR REQUEST
 router.get('/all-assigned-requests', solicitorController.getAllAssignedSolicitorRequestsForSolicitor);
-router.get('/assigned-request/:studentId', solicitorController.getSolicitorRequestByIdForSolicitor);
-router.post('/approve-request/:studentId', solicitorController.approveSolicitorRequest);
+router.get('/assigned-request/:applicationId', solicitorController.getSolicitorRequestByIdForSolicitor);
+router.post('/approve-request/:applicationId', solicitorController.approveSolicitorRequest);
 
 
 module.exports = router;

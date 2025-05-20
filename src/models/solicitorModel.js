@@ -15,6 +15,7 @@ const SolicitorSchema = new mongoose.Schema(
       ref: "associate" // Associate ID who created this solicitor
     },
     studentAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Array of student IDs
+    assignedSolicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application',default:null}],
     completedVisa:{ type:Number, default:0},
     // isActive: { type: Boolean, default: true }, // Active status
     visaRequestStatus: {

@@ -13,28 +13,30 @@ const { sendNotification } = require('../services/socketNotification');
 
 
 //SOLICITOR REQUEST 
-
 exports.getAllAssignedSolicitorRequestsForSolicitor = async (req, res) => {
   try {
     const solicitorId = req.user.id;
 
     const solicitor = await Solicitor.findById(solicitorId).populate({
-      path: "studentAssigned",
-      select: "firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline"
+      path: "assignedSolicitorRequests",
+      populate: {
+        path: "student",
+        select: "firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline"
+      }
     });
 
-    if (!solicitor || solicitor.studentAssigned.length === 0) {
-      return res.status(404).json({ success: false, message: "No assigned requests found" });
+    if (!solicitor || solicitor.assignedSolicitorRequests.length === 0) {
+      return res.status(404).json({ success: false, message: "No assigned request found" });
     }
 
     res.status(200).json({
       success: true,
-      total:solicitor.studentAssigned.length,
-      message: "Assigned solicitor requests fetched successfully",
-      students: solicitor.studentAssigned
+      total: solicitor.assignedSolicitorRequests.length,
+      message: "Assigned solicitor request fetched successfully",
+      applications: solicitor.assignedSolicitorRequests
     });
   } catch (error) {
-    console.error("Error fetching assigned solicitor requests:", error);
+    console.error("Error fetching assigned solicitor request:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -44,45 +46,37 @@ exports.getAllAssignedSolicitorRequestsForSolicitor = async (req, res) => {
 exports.getSolicitorRequestByIdForSolicitor = async (req, res) => {
   try {
     const solicitorId = req.user.id;
-    const { studentId } = req.params;
+    const { applicationId } = req.params;
 
-    // Validate studentId
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({ success: false, message: "Invalid student ID" });
+    // Validate applicationId
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ success: false, message: "Invalid application ID" });
     }
 
-    // Find solicitor and check if this student is assigned
-    const solicitor = await Solicitor.findById(solicitorId)
-      .populate({
-        path: 'studentAssigned',
-        match: { _id: studentId },
-        select: 'firstName lastName email telephoneNumber courseStartTimeline countryApplyingFrom'
-      });
-
-    const studentData = solicitor?.studentAssigned?.[0];
-
-    if (!solicitor || !studentData) {
-      return res.status(404).json({ success: false, message: "No such assigned solicitor request found" });
+    // Check if this application is assigned to this solicitor
+    const solicitor = await Solicitor.findById(solicitorId);
+    if (!solicitor || !solicitor.assignedSolicitorRequests.includes(applicationId)) {
+      return res.status(404).json({ success: false, message: "No such assigned request found" });
     }
 
-    // Fetch accepted application for the student
-    const application = await Application.findOne({
-      student: studentId,
-      status: 'Accepted'
-    })
-      .select('_id course university status submissionDate reviewDate') // adjust fields if needed
-      .populate('university', 'name') // populate university name
-      .populate('course', 'name');    // populate course name
+    // Fetch application details
+    const application = await Application.findById(applicationId)
+      .populate("student", "firstName lastName email telephoneNumber courseStartTimeline countryApplyingFrom")
+      .populate("university", "name")
+      .populate("course", "name");
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
 
     res.status(200).json({
       success: true,
       message: "Solicitor request fetched successfully",
-      student: studentData,
-      application: application || null
+      application
     });
 
   } catch (error) {
-    console.error("Error fetching solicitor request by ID:", error);
+    console.error("Error fetching solicitor application by ID:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -92,49 +86,43 @@ exports.getSolicitorRequestByIdForSolicitor = async (req, res) => {
 exports.approveSolicitorRequest = async (req, res) => {
   try {
     const solicitorId = req.user.id;
-    const { studentId } = req.params;
+    const { applicationId } = req.params;
 
-    // Validate studentId
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({ success: false, message: "Invalid student ID" });
+    // Validate applicationId
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ success: false, message: "Invalid application ID" });
     }
 
-    // Find student
-    const student = await Students.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ success: false, message: "Student not found" });
-    }
-
-    // Find solicitor
+    // Find solicitor and verify this application is assigned to them
     const solicitor = await Solicitor.findById(solicitorId);
-    if (!solicitor) {
-      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    if (!solicitor || !solicitor.assignedSolicitorRequests.includes(applicationId)) {
+      return res.status(404).json({ success: false, message: "This request is not assigned to this solicitor" });
     }
 
-    // Check if student is assigned to this solicitor
-    if (!solicitor.studentAssigned.includes(studentId)) {
-      return res.status(400).json({ success: false, message: "This student is not assigned to this solicitor" });
+    // Fetch application with student details
+    const application = await Application.findById(applicationId).populate("student");
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
     }
 
-    // Remove student from agency's students array
-    await Agency.updateOne(
-      { students: studentId },
-      { $pull: { students: studentId } }
-    );
+    const student = application.student;
 
-    // Set assignedSolicitor in student model
-    student.assignedSolicitor = solicitorId;
-    await student.save();
+    // Assign solicitor to this application
+    application.assignedSolicitor = solicitorId;
+    application.status = "Accepted";
+    await application.save();
 
+    // Remove applicationId from solicitor's assignedSolicitorRequests (optional, if it should be cleared post approval)
+    solicitor.assignedSolicitorRequests.pull(applicationId);
+    await solicitor.save();
 
+    // Send confirmation email to student
+    await sendSolicitorAssignedEmail(student, solicitor);
 
-   // Send confirmation email to student
-   await sendSolicitorAssignedEmail(student, solicitor);
-
-    // Create in-app notification
+    // Create in-app notification for student
     await Notification.create({
-      user: studentId,
-      message: "Your solicitor service request has been approved.Your assigned solicitor will be reaching out to you shortly to assist with your visa application process",
+      user: student._id,
+      message: "Your solicitor service request has been approved. Your assigned solicitor will be reaching out to you shortly to assist with your visa application process.",
       type: "General"
     });
 
@@ -148,6 +136,7 @@ exports.approveSolicitorRequest = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 
 

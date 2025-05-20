@@ -24,6 +24,7 @@ bankDetails: {
     ifscSwiftCode: { type: String, required: true }, // IFSC for India, SWIFT for international transfers
     iban: { type: String }, // Only for international transactions
   },
+  assignedSolicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' ,default:null}],
   studentAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Array of student IDs
   role:{type: String, default: 'associate'},
   isDeleted: { 

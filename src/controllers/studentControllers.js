@@ -38,18 +38,18 @@ exports.applyForSolicitor = async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
- // ✅ Check if solicitor service is paid
- if (!student.solicitorService) {
-  return res.status(403).json({ success: false, message: "Solicitor service not available. Please complete the payment first." });
-}
+    // ✅ Check if solicitor service is paid
+    if (!student.solicitorService) {
+      return res.status(403).json({ success: false, message: "Solicitor service not available. Please complete the payment first." });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
+
     // Verify the application exists, belongs to the student, and is accepted
     const application = await Application.findOne({ _id: applicationId, student: studentId, status: 'Accepted' });
 
-  
     if (!application) {
       return res.status(400).json({ success: false, message: "Application must be accepted and belong to the student" });
     }
@@ -60,15 +60,14 @@ exports.applyForSolicitor = async (req, res) => {
       return res.status(404).json({ success: false, message: "Associated agency not found" });
     }
 
-    // Prevent duplicate solicitor requests
-    if (agency.students.includes(studentId)) {
-      return res.status(400).json({ success: false, message: "Solicitor service request already submitted" });
+    // Prevent duplicate solicitor requests by Application ID
+    if (agency.solicitorRequests.includes(applicationId)) {
+      return res.status(400).json({ success: false, message: "Solicitor service request for this application already submitted" });
     }
 
-    agency.students.push(studentId);
+    // Store applicationId in solicitorRequests
+    agency.solicitorRequests.push(applicationId);
     await agency.save();
-
-
 
     res.status(200).json({ success: true, message: "Solicitor service request submitted successfully" });
   } catch (err) {
@@ -77,17 +76,38 @@ exports.applyForSolicitor = async (req, res) => {
   }
 };
 
+
+
+
 exports.checkSolicitorStatus = async (req, res) => {
   try {
+    const { applicationId } = req.params;
     const studentId = req.user.id;
 
-    // Validate student
-    const student = await Students.findById(studentId).populate("assignedSolicitor", "firstName lastName email phoneNumber");
+    // Validate applicationId
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ success: false, message: "Invalid application ID" });
+    }
+
+    // Find application
+    const application = await Application.findById(applicationId)
+      .populate("assignedSolicitor", "firstName lastName email phoneNumber");
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    // Check if this application belongs to the logged-in student
+    if (application.student.toString() !== studentId) {
+      return res.status(403).json({ success: false, message: "You are not authorized to access this application" });
+    }
+
+    // Check if solicitor service is purchased
+    const student = await Students.findById(studentId);
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
-    // Check if solicitor service is purchased
     if (!student.solicitorService) {
       return res.status(200).json({
         success: true,
@@ -98,14 +118,14 @@ exports.checkSolicitorStatus = async (req, res) => {
       });
     }
 
-    // If solicitor is already assigned
-    if (student.assignedSolicitor) {
+    // If solicitor is already assigned to this application
+    if (application.assignedSolicitor) {
       return res.status(200).json({
         success: true,
         message: "Solicitor has been assigned.",
         status: "Accepted",
         isAssigned: true,
-        solicitor: student.assignedSolicitor
+        solicitor: application.assignedSolicitor
       });
     }
 
@@ -121,16 +141,14 @@ exports.checkSolicitorStatus = async (req, res) => {
       });
     }
 
-     // If solicitor is already assigned
-     if (!student.assignedSolicitor) {
-      return res.status(200).json({
-        success: true,
-        message: "Your solicitor request is being processed by the agency.",
-        status: "Processing",
-        isAssigned: true,
-        solicitor: student.assignedSolicitor
-      });
-    };
+    // Fallback: request still in processing if solicitor not assigned and no agency record
+    return res.status(200).json({
+      success: true,
+      message: "Your solicitor request is being processed by the agency.",
+      status: "Processing",
+      isAssigned: false,
+      solicitor: null
+    });
 
   } catch (error) {
     console.error("Error checking solicitor assignment status:", error);
@@ -580,13 +598,6 @@ exports.login = async (req, res) => {
         break;
       }
     }
-
-
-    console.log("Password entered:", password);
-    console.log("Password hash from DB:", user.password);
-    
-
-
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password.' });
