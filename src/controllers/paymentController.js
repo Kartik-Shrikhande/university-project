@@ -194,17 +194,46 @@ exports.confirmSolicitorPayment = async (req, res) => {
 
 
 
+
 exports.getPaymentHistory = async (req, res) => {
   const studentId = req.user.id;
 
   try {
-    const payments = await Payment.find({ student: studentId }).sort({ createdAt: -1 });
+    const payments = await Payment.find({ 
+      student: studentId,
+      status: 'succeeded'  // only succeeded payments
+    })
+    .sort({ createdAt: -1 });
+
+    // Derive paymentType in response
+    const paymentHistory = payments.map(payment => {
+      let paymentType = 'unknown';
+
+      // Derive type based on amount (or description if you prefer)
+      if (payment.amount === 2000) {
+        paymentType = 'platform_fee';
+      } else if (payment.amount === 5000) {
+        paymentType = 'solicitor_payment';
+      }
+
+      return {
+        id: payment._id,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        description: payment.description,
+        paymentType, // derived field
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt
+      };
+    });
 
     res.status(200).json({
       success: true,
-      count: payments.length,
-      payments,
+      count: paymentHistory.length,
+      payments: paymentHistory,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch payment history" });
