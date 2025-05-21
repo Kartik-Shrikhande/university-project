@@ -129,8 +129,8 @@ exports.checkSolicitorStatus = async (req, res) => {
       });
     }
 
-    // Check if request is in any agency's students array (solicitor request processing)
-    const agencyWithRequest = await Agency.findOne({ students: studentId });
+    // Check if request is being processed by agency
+    const agencyWithRequest = await Agency.findOne({ solicitorRequests: applicationId });
     if (agencyWithRequest) {
       return res.status(200).json({
         success: true,
@@ -141,10 +141,34 @@ exports.checkSolicitorStatus = async (req, res) => {
       });
     }
 
-    // Fallback: request still in processing if solicitor not assigned and no agency record
+    // Check if request is being processed by an associate
+    const associateWithRequest = await Associate.findOne({ assignedSolicitorRequests: applicationId });
+    if (associateWithRequest) {
+      return res.status(200).json({
+        success: true,
+        message: "Your solicitor request is being processed by the associate.",
+        status: "Processing",
+        isAssigned: false,
+        solicitor: null
+      });
+    }
+
+    // Check if request is being processed by a solicitor (but not yet assigned)
+    const solicitorWithRequest = await Solicitor.findOne({ assignedSolicitorRequests: applicationId });
+    if (solicitorWithRequest) {
+      return res.status(200).json({
+        success: true,
+        message: "Your solicitor request is being processed by the solicitor.",
+        status: "Processing",
+        isAssigned: false,
+        solicitor: null
+      });
+    }
+
+    // Fallback if no one has it and solicitor not assigned
     return res.status(200).json({
       success: true,
-      message: "Your solicitor request is being processed by the agency.",
+      message: "Your solicitor request is being processed.",
       status: "Processing",
       isAssigned: false,
       solicitor: null

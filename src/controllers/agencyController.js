@@ -22,8 +22,204 @@ const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 
+//AGENT APIS
+const { sendAgentCredentialsEmail } = require('../services/emailService'); // assuming you have a service function
+// Or use nodemailer directly if preferred
 
-//SOLICITORS
+exports.createAgent = async (req, res) => {
+  try {
+    const {
+      username,
+      email,
+      phoneNumber,
+      address
+    } = req.body;
+
+    const agencyId = req.user.id; // Assuming agencyId is in req.user via your auth middleware
+
+    if (!agencyId) {
+      return res.status(400).json({ success: false, message: "Agency ID not provided." });
+    }
+
+    // Check if the email is already in use
+    const existingAgent = await Agent.findOne({ email });
+
+    if (existingAgent && !existingAgent.isDeleted) {
+      return res.status(400).json({ success: false, message: "Email already in use." });
+    }
+
+    // Remove old deleted agent if exists
+    if (existingAgent && existingAgent.isDeleted) {
+      await Agent.deleteOne({ email });
+    }
+
+    // Auto-generate password
+    const password = generator.generate({
+      length: 10,
+      numbers: true,
+      symbols: true,
+      uppercase: true,
+      excludeSimilarCharacters: true,
+      exclude: `"'\\\``
+    });
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new agent
+    const newAgent = new Agent({
+      username,
+      email,
+      password: hashedPassword,
+      phoneNumber,
+      address,
+      agency: agencyId
+    });
+
+    await newAgent.save();
+
+    // Send credentials email directly here
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your Agent Account Credentials",
+      text: `Your agent account has been created successfully.\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately.`
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(201).json({
+      success: true,
+      message: "Agent created successfully. Credentials sent via email."
+    });
+
+  } catch (error) {
+    console.error("Error creating agent:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+
+exports.getAllAgents = async (req, res) => {
+  try {
+    const agents = await Agent.find().select('name assignedStudents ')
+      // .populate('agency', 'name contactEmail')
+      // .populate('assignedStudents', 'name email');
+
+    return res.status(200).json({
+      totalAgents: agents.length,
+      data: agents,
+    });
+  } catch (error) {
+    console.error('Error fetching agents:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+exports.getAgentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const agent = await Agent.findById(id)
+      .populate('agency', 'name contactEmail')
+      .populate('assignedStudents', 'name email');
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    return res.status(200).json({ agent });
+  } catch (error) {
+    console.error('Error fetching agent:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// Update an agent
+exports.updateAgent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (updates.password) {
+      updates.password = await bcrypt.hash(updates.password, 10);
+    }
+
+    const updatedAgent = await Agent.findByIdAndUpdate(id, updates, { new: true });
+    if (!updatedAgent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    return res.status(200).json({
+      message: 'Agent updated successfully',
+      agent: updatedAgent,
+    });
+  } catch (error) {
+    console.error('Error updating agent:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// Soft Delete an Agent
+exports.deleteAgent = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params;
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid agent ID.' });
+    }
+
+    // Fetch the agent
+    const agent = await Agent.findById(id).session(session);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found.' });
+    }
+
+    // Check if the agent is already marked as deleted
+    if (agent.isDeleted) {
+      return res.status(400).json({ message: 'Agent is already deleted.' });
+    }
+
+    // Mark the agent as deleted
+    agent.isDeleted = true;
+    await agent.save({ session });
+
+    // Optionally remove the agent from the agency's agent list
+    const associatedAgency = await Agency.findById(agent.agency).session(session);
+    if (associatedAgency) {
+      associatedAgency.agents = associatedAgency.agents.filter(
+        (agentId) => agentId.toString() !== id
+      );
+      await associatedAgency.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Agent deleted successfully.' });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error deleting agent:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+//SOLICITORS REQUEST
 
 exports.getAllSolicitorRequests = async (req, res) => {
   try {
@@ -162,10 +358,10 @@ exports.assignSolicitorRequestToAssociate = async (req, res) => {
     await associate.save();
 
     // // ✅ Remove application from agency's pending solicitor requests list
-    // await Agency.findByIdAndUpdate(
-    //   agencyId,
-    //   { $pull: { solicitorRequests: applicationId } }
-    // );
+    await Agency.findByIdAndUpdate(
+      agencyId,
+      { $pull: { solicitorRequests: applicationId } }
+    );
 
     // ✅ Only send notification/email if this is the first assignment
     if (!alreadyAssignedToAnyAssociate) {
@@ -870,170 +1066,6 @@ exports.deleteAgencyById = async (req, res) => {
 
 
 
-//done session
-// AGENT APIS FOR AGENCY
-
-exports.createAgent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const { name, email, password } = req.body;
-
-    // Check for duplicate email
-    const existingAgent = await Agent.findOne({ email }).session(session);
-    if (existingAgent) {
-      return res.status(400).json({ message: 'Email already in use.' });
-    }
-
-    // Fetch the default agency
-    const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
-    if (!defaultAgency) {
-      return res.status(500).json({ message: 'Default agency not found.' });
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create a new agent
-    const newAgent = new Agent({
-      name,
-      email,
-      password: hashedPassword,
-      agency: defaultAgency._id,
-    });
-
-    await newAgent.save({ session });
-
-    // Add the new agent to the agency's `agents` array
-    defaultAgency.agents.push(newAgent._id);
-    await defaultAgency.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(201).json({
-      message: 'Agent created successfully',
-      agent: newAgent,
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error creating agent:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
-
-exports.getAllAgents = async (req, res) => {
-  try {
-    const agents = await Agent.find().select('name assignedStudents ')
-      // .populate('agency', 'name contactEmail')
-      // .populate('assignedStudents', 'name email');
-
-    return res.status(200).json({
-      totalAgents: agents.length,
-      data: agents,
-    });
-  } catch (error) {
-    console.error('Error fetching agents:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-exports.getAgentById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const agent = await Agent.findById(id)
-      .populate('agency', 'name contactEmail')
-      .populate('assignedStudents', 'name email');
-
-    if (!agent) {
-      return res.status(404).json({ message: 'Agent not found' });
-    }
-
-    return res.status(200).json({ agent });
-  } catch (error) {
-    console.error('Error fetching agent:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-// Update an agent
-exports.updateAgent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (updates.password) {
-      updates.password = await bcrypt.hash(updates.password, 10);
-    }
-
-    const updatedAgent = await Agent.findByIdAndUpdate(id, updates, { new: true });
-    if (!updatedAgent) {
-      return res.status(404).json({ message: 'Agent not found' });
-    }
-
-    return res.status(200).json({
-      message: 'Agent updated successfully',
-      agent: updatedAgent,
-    });
-  } catch (error) {
-    console.error('Error updating agent:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-// Soft Delete an Agent
-exports.deleteAgent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const { id } = req.params;
-
-    // Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid agent ID.' });
-    }
-
-    // Fetch the agent
-    const agent = await Agent.findById(id).session(session);
-    if (!agent) {
-      return res.status(404).json({ message: 'Agent not found.' });
-    }
-
-    // Check if the agent is already marked as deleted
-    if (agent.isDeleted) {
-      return res.status(400).json({ message: 'Agent is already deleted.' });
-    }
-
-    // Mark the agent as deleted
-    agent.isDeleted = true;
-    await agent.save({ session });
-
-    // Optionally remove the agent from the agency's agent list
-    const associatedAgency = await Agency.findById(agent.agency).session(session);
-    if (associatedAgency) {
-      associatedAgency.agents = associatedAgency.agents.filter(
-        (agentId) => agentId.toString() !== id
-      );
-      await associatedAgency.save({ session });
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({ message: 'Agent deleted successfully.' });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error deleting agent:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
 
 
 //done session  
