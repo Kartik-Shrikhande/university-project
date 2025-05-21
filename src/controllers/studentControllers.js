@@ -142,7 +142,7 @@ exports.checkSolicitorStatus = async (req, res) => {
     }
 
     // Check if request is being processed by an associate
-    const associateWithRequest = await Associate.findOne({ assignedSolicitorRequests: applicationId });
+    const associateWithRequest = await AssociateSolicitor.findOne({ assignedSolicitorRequests: applicationId });
     if (associateWithRequest) {
       return res.status(200).json({
         success: true,
@@ -168,8 +168,8 @@ exports.checkSolicitorStatus = async (req, res) => {
     // Fallback if no one has it and solicitor not assigned
     return res.status(200).json({
       success: true,
-      message: "Your solicitor request is being processed.",
-      status: "Processing",
+      message: "You have not requested for solicitor service.",
+      status: null,
       isAssigned: false,
       solicitor: null
     });
