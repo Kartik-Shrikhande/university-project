@@ -36,7 +36,16 @@ const validateResult = (req, res, next) => {
 // Validation rules for creating a university
 const validateUniversity = [
   check('name').trim().notEmpty().withMessage('University name is required.'),
-  check('email').trim().notEmpty().withMessage('Email is required.').isEmail().withMessage('Invalid email format.'),
+ check('email')
+   .notEmpty()
+   .withMessage('Email is required.')
+   .custom((value) => {
+     // Simple custom check, for example: must contain "@" and "."
+     if (!value.includes('@') || !value.includes('.')) {
+       throw new Error('Email must contain @ and .');
+     }
+     return true;
+   }),
   // check('password').trim().notEmpty().withMessage('Password is required.').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.'),
   check('website').trim().notEmpty().withMessage('Website is required.').isURL().withMessage('Invalid website URL.'),
   check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').isNumeric().withMessage('Invalid phone number format.'),
@@ -50,7 +59,16 @@ const validateUniversity = [
 
 // Validation rules for university login
 const validateUniversityLogin = [
-  check('email').isEmail().withMessage('Invalid email format').notEmpty().withMessage('Email is required'),
+  check('email')
+  .notEmpty()
+  .withMessage('Email is required.')
+  .custom((value) => {
+    // Simple custom check, for example: must contain "@" and "."
+    if (!value.includes('@') || !value.includes('.')) {
+      throw new Error('Email must contain @ and .');
+    }
+    return true;
+  }),
   check('password').notEmpty().withMessage('Password is required'),
   validateResult, // Call the generic validation handler
 ];

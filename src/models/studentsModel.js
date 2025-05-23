@@ -8,16 +8,10 @@ const studentSchema = new mongoose.Schema(
     dateOfBirth: { type: Date, required: true },
     gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },
     email: {
-      type: String,
-      unique: true,
-      required: true,
-      validate: {
-        validator: function (v) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-        },
-        message: 'Invalid email format',
-      },
-    },
+  type: String,
+  unique: true,
+  required: true
+},
     confirmEmail: { type: String, required: true }, // Added from input model
     password: { type: String, required: true, minlength: 8 },
     countryCode:{ type: String, required: true, maxlength: 10 },

@@ -20,12 +20,16 @@ exports.validateCreateSolicitor = [
     .withMessage('Last name cannot exceed 50 characters.')
     .trim(),
 
-  body('email')
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Invalid email format.')
-    .trim(),
+body('email')
+  .notEmpty()
+  .withMessage('Email is required.')
+  .custom((value) => {
+    // Simple custom check, for example: must contain "@" and "."
+    if (!value.includes('@') || !value.includes('.')) {
+      throw new Error('Email must contain @ and .');
+    }
+    return true;
+  }),
 
 //   body('password')
 //     .notEmpty()

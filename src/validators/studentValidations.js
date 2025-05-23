@@ -41,19 +41,23 @@ const validateRegisterStudent = [
     .isIn(['Male', 'Female', 'Other'])
     .withMessage('Gender must be one of the following: Male, Female, or Other. Please choose one of these options.'),
 
-  // Validate email
-  body('email')
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Email must be a valid email address.'),
+body('email')
+  .notEmpty()
+  .withMessage('Email is required.')
+  .custom((value) => {
+    // Simple custom check, for example: must contain "@" and "."
+    if (!value.includes('@') || !value.includes('.')) {
+      throw new Error('Email must contain @ and .');
+    }
+    return true;
+  }),
 
-  // Validate confirmEmail
-  body('confirmEmail')
-    .notEmpty()
-    .withMessage('Confirm email is required.')
-    .custom((value, { req }) => value === req.body.email)
-    .withMessage('Email and confirm email do not match.'),
+body('confirmEmail')
+  .notEmpty()
+  .withMessage('Confirm email is required.')
+  .custom((value, { req }) => value === req.body.email)
+  .withMessage('Email and confirm email do not match.'),
+
 
   // Validate password
   body('password')
@@ -279,11 +283,16 @@ body('toYear')
 
 const validateLoginStudent = [
   // Validate email
-  body('email')
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Email must be a valid email address.'),
+body('email')
+  .notEmpty()
+  .withMessage('Email is required.')
+  .custom((value) => {
+    // Simple custom check, for example: must contain "@" and "."
+    if (!value.includes('@') || !value.includes('.')) {
+      throw new Error('Email must contain @ and .');
+    }
+    return true;
+  }),
 
   // Validate password
   body('password')
@@ -342,11 +351,16 @@ const validateCourseFilters = [
 
 
 const validateVerifyOtpForRegistration = [
-  body('email')
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Invalid email format.'),
+body('email')
+  .notEmpty()
+  .withMessage('Email is required.')
+  .custom((value) => {
+    // Simple custom check, for example: must contain "@" and "."
+    if (!value.includes('@') || !value.includes('.')) {
+      throw new Error('Email must contain @ and .');
+    }
+    return true;
+  }),
   body('otp')
     .notEmpty()
     .withMessage('OTP is required.')
