@@ -26,6 +26,7 @@ require('dotenv').config()
 const { sendAgentCredentialsEmail } = require('../services/emailService'); // assuming you have a service function
 // Or use nodemailer directly if preferred
 
+//done
 exports.createAgent = async (req, res) => {
   try {
     const {
@@ -108,69 +109,82 @@ exports.createAgent = async (req, res) => {
 };
 
 
+// latests
+
 exports.getAllAgents = async (req, res) => {
   try {
-    const agents = await Agent.find().select('name assignedStudents ')
-      // .populate('agency', 'name contactEmail')
-      // .populate('assignedStudents', 'name email');
+    const agents = await Agent.find({ agency: req.user.agencyId, isDeleted: false })
+      .select('-password')  // Exclude password from result
+      .sort({ createdAt: -1 }); // Optional: latest first
 
-    return res.status(200).json({
-      totalAgents: agents.length,
-      data: agents,
+    res.status(200).json({
+      success: true,
+      message: "Agents fetched successfully.",
+      data: agents
     });
+
   } catch (error) {
-    console.error('Error fetching agents:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching agents:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 
 
+//latests 
 exports.getAgentById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { agentId } = req.params;
 
-    const agent = await Agent.findById(id)
-      .populate('agency', 'name contactEmail')
-      .populate('assignedStudents', 'name email');
+    const agent = await Agent.findOne({ _id: agentId, agency: req.user.agencyId, isDeleted: false })
+      .select('-password');
 
     if (!agent) {
-      return res.status(404).json({ message: 'Agent not found' });
+      return res.status(404).json({ success: false, message: "Agent not found." });
     }
 
-    return res.status(200).json({ agent });
+    res.status(200).json({
+      success: true,
+      message: "Agent fetched successfully.",
+      data: agent
+    });
+
   } catch (error) {
-    console.error('Error fetching agent:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching agent:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 
 
 // Update an agent
+
+//laytests
 exports.updateAgent = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updates = req.body;
+    const { agentId } = req.params;
+    const { username, phoneNumber, address, isActive } = req.body;
 
-    if (updates.password) {
-      updates.password = await bcrypt.hash(updates.password, 10);
+    const agent = await Agent.findOne({ _id: agentId, agency: req.user.agencyId, isDeleted: false });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, message: "Agent not found." });
     }
 
-    const updatedAgent = await Agent.findByIdAndUpdate(id, updates, { new: true });
-    if (!updatedAgent) {
-      return res.status(404).json({ message: 'Agent not found' });
-    }
+    if (username) agent.username = username;
+    if (phoneNumber) agent.phoneNumber = phoneNumber;
+    if (address) agent.address = address;
+    if (isActive !== undefined) agent.isActive = isActive;
 
-    return res.status(200).json({
-      message: 'Agent updated successfully',
-      agent: updatedAgent,
-    });
+    await agent.save();
+
+    res.status(200).json({ success: true, message: "Agent updated successfully.", data: agent });
+
   } catch (error) {
-    console.error('Error updating agent:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error("Error updating agent:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 
-
+// l;atests
 // Soft Delete an Agent
 exports.deleteAgent = async (req, res) => {
   const session = await mongoose.startSession();
@@ -219,30 +233,40 @@ exports.deleteAgent = async (req, res) => {
   }
 };
 
+
+
+
+
 //SOLICITORS REQUEST
 
 exports.getAllSolicitorRequests = async (req, res) => {
   try {
-    const agencyId = req.user.id; // From authenticated agency
+    const agencyId = req.user.id;
 
     const agency = await Agency.findById(agencyId);
     if (!agency) {
       return res.status(404).json({ success: false, message: "Agency not found" });
     }
 
-    // Fetch all applications from solicitorRequests
     const applications = await Application.find({
       _id: { $in: agency.solicitorRequests },
       agency: agencyId,
       status: 'Accepted'
     })
-    .populate('student', 'firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline')
-    .populate('course', 'name');
+      .populate('student', 'firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline')
+      .populate('course', 'name');
 
-    const results = applications.map(app => ({
-      applicationId: app._id,
-      course: app.course ? app.course.name : null,
-      student: app.student ? {
+    if (!applications.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No solicitor requests found",
+        total: 0,
+        requests: []
+      });
+    }
+
+    const results = applications.map(app => {
+      const student = app.student ? {
         id: app.student._id,
         firstName: app.student.firstName,
         lastName: app.student.lastName,
@@ -250,13 +274,19 @@ exports.getAllSolicitorRequests = async (req, res) => {
         telephoneNumber: app.student.telephoneNumber,
         countryApplyingFrom: app.student.countryApplyingFrom,
         courseStartTimeline: app.student.courseStartTimeline
-      } : null
-    }));
+      } : null;
+
+      return {
+        applicationId: app._id,
+        course: app.course ? app.course.name : null,
+        student
+      };
+    });
 
     res.status(200).json({
       success: true,
       message: "Solicitor requests fetched successfully",
-      total:results.length,
+      total: results.length,
       requests: results
     });
   } catch (err) {
@@ -434,7 +464,6 @@ exports.getAssignedSolicitorRequests = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
 
 
 exports.getAssignedSolicitorRequestByAssociateId = async (req, res) => {

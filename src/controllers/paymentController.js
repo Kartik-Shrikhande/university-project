@@ -126,29 +126,33 @@ const SOLICITOR_PAYMENT_AMOUNT = 5000; // = £50.00
 
 exports.createSolicitorPaymentIntent = async (req, res) => {
   const studentId = req.user.id;
+  const { applicationId } = req.params;
 
   try {
-    const student = await Student.findById(studentId);
-    if (!student) return res.status(404).json({ error: "Student not found" });
+    const application = await Application.findOne({ _id: applicationId, student: studentId });
+    if (!application) {
+      return res.status(404).json({ error: "Application not found or does not belong to the student." });
+    }
 
-    if (student.solicitorService) {
-      return res.status(400).json({ error: "Solicitor service already paid for." });
+    if (application.solicitorPaid) {
+      return res.status(400).json({ error: "Solicitor service already paid for this application." });
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: SOLICITOR_PAYMENT_AMOUNT,
       currency: CURRENCY,
       payment_method_types: ["card"],
-      description: `Solicitor service payment for Student ID: ${studentId}`,
+      description: `Solicitor service payment for Application ID: ${applicationId}`,
     });
 
     await Payment.create({
       student: studentId,
+      application: applicationId,
       amount: SOLICITOR_PAYMENT_AMOUNT,
       currency: CURRENCY,
       status: "pending",
       stripePaymentIntentId: paymentIntent.id,
-      description: `Solicitor service payment for Student ID: ${studentId}`,
+      description: `Solicitor service payment for Application ID: ${applicationId}`,
     });
 
     res.send({ clientSecret: paymentIntent.client_secret });
@@ -175,13 +179,21 @@ exports.confirmSolicitorPayment = async (req, res) => {
       { new: true }
     );
 
+    if (!payment) {
+      return res.status(404).json({ error: "Payment record not found." });
+    }
+
     if (paymentIntent.status === "succeeded") {
-      await Student.findByIdAndUpdate(studentId, { solicitorService: true });
+      // Update solicitorPaid in application
+      await Application.findOneAndUpdate(
+        { _id: payment.application, student: studentId },
+        { solicitorPaid: true }
+      );
 
       const student = await Student.findById(studentId);
       if (student) {
-        // You can reuse your email service or add a new one if needed
-        await sendSolicitorPaymentEmail(student); // Optional, or create a new `sendSolicitorPaymentEmail`
+        // Optional email notification
+        await sendSolicitorPaymentEmail(student);
       }
     }
 
@@ -191,8 +203,6 @@ exports.confirmSolicitorPayment = async (req, res) => {
     res.status(500).json({ error: "Failed to verify payment" });
   }
 };
-
-
 
 
 exports.getPaymentHistory = async (req, res) => {

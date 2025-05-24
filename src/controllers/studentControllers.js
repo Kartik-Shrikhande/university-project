@@ -38,11 +38,6 @@ exports.applyForSolicitor = async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
-    // ✅ Check if solicitor service is paid
-    if (!student.solicitorService) {
-      return res.status(403).json({ success: false, message: "Solicitor service not available. Please complete the payment first." });
-    }
-
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
@@ -52,6 +47,11 @@ exports.applyForSolicitor = async (req, res) => {
 
     if (!application) {
       return res.status(400).json({ success: false, message: "Application must be accepted and belong to the student" });
+    }
+
+    // ✅ Check if solicitor service is paid for this application
+    if (!application.solicitorPaid) {
+      return res.status(403).json({ success: false, message: "Solicitor service not available for this application. Please complete the payment first." });
     }
 
     // Get associated agency
@@ -70,14 +70,12 @@ exports.applyForSolicitor = async (req, res) => {
     await agency.save();
 
     res.status(200).json({ success: true, message: "Solicitor service request submitted successfully" });
+    
   } catch (err) {
     console.error("Error applying for solicitor service:", err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
-
-
 
 exports.checkSolicitorStatus = async (req, res) => {
   try {
@@ -108,7 +106,7 @@ exports.checkSolicitorStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
-    if (!student.solicitorService) {
+    if (!application.solicitorPaid) {
       return res.status(200).json({
         success: true,
         message: "You have not enrolled for solicitor service.",
@@ -201,7 +199,6 @@ exports.getAllNotifications = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
 
 exports.getNotificationById = async (req, res) => {
   try {
@@ -725,37 +722,37 @@ exports.login = async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      contactNumber: user.contactPhone || '',
+      phoneNumber: user.phoneNumber || '',
       agencyId: user.agency || '', // Reference to agency (can be an ID)
       created_at: user.createdAt
     },
-    platform_access: {
-      allowed_actions: [
-        "view_student_applications",
-        "approve_applications",
-        "reject_applications",
-        "assign_associates"
-      ],
-      blocked_actions: [
-        "edit_profile",
-        "apply_to_courses" // Agents cannot apply to courses
-      ]
-    },
-    notifications: [
-      {
-        id: "NOTIF-001",
-        type: "system",
-        title: "New Application Received",
-        content: "A new application has been submitted by Jane Smith.",
-        is_read: false,
-        timestamp: new Date().toISOString()
-      }
-    ],
-    metadata: {
-      total_students: user.assignedStudents?.length || 0, // Number of students assigned to this agent
-      pending_applications: user.pendingApplications?.length || 0, // Pending applications (can be an array of IDs)
-      approved_applications: user.approvedApplications?.length || 0 // Approved applications (can be an array of IDs)
-    }
+    // platform_access: {
+    //   allowed_actions: [
+    //     "view_student_applications",
+    //     "approve_applications",
+    //     "reject_applications",
+    //     "assign_associates"
+    //   ],
+    //   blocked_actions: [
+    //     "edit_profile",
+    //     "apply_to_courses" // Agents cannot apply to courses
+    //   ]
+    // },
+    // notifications: [
+    //   {
+    //     id: "NOTIF-001",
+    //     type: "system",
+    //     title: "New Application Received",
+    //     content: "A new application has been submitted by Jane Smith.",
+    //     is_read: false,
+    //     timestamp: new Date().toISOString()
+    //   }
+    // ],
+    // metadata: {
+    //   total_students: user.assignedStudents?.length || 0, // Number of students assigned to this agent
+    //   pending_applications: user.pendingApplications?.length || 0, // Pending applications (can be an array of IDs)
+    //   approved_applications: user.approvedApplications?.length || 0 // Approved applications (can be an array of IDs)
+    // }
   });
 }
 

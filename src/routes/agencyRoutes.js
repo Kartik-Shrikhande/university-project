@@ -96,6 +96,24 @@ router.delete('/agents/:id',  agencyController.deleteAgent); // Delete an agent
 
 
 
+// // Create Agent
+// router.post('/create-agent', verifyAgency, agentController.createAgent);
+
+// // Update Agent
+// router.put('/update-agent/:agentId', verifyAgency, agentController.updateAgent);
+
+// // Delete Agent (Soft Delete)
+// router.delete('/delete-agent/:agentId', verifyAgency, agentController.deleteAgent);
+
+// // Get all agents for agency
+// router.get('/agents', verifyAgency, agentController.getAllAgents);
+
+// // Get single agent by ID for agency
+// router.get('/agent/:agentId', verifyAgency, agentController.getAgentById);
+
+
+
+
 //APPLICATION RELATED APIS 
 //get the list of all pending applications
 router.get('/pending-applications', agencyController.getPendingApplications);

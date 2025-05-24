@@ -127,6 +127,7 @@ const sendSolicitorAssignedEmail = async (student, solicitor) => {
       <p>Hi ${student.firstName},</p>
       <p>🎉 Good news — your solicitor service request has been <b>approved</b>!</p>
       <p>Your assigned solicitor is <b>${solicitor.firstName} ${solicitor.lastName}</b>. They will be reaching out to you shortly to assist with your visa application process.</p>
+       <p> You can reach Assigned solicitor at ${solicitor.email} </p>
       <br />
       <p>Best regards,<br />Student Services Team</p>
     `

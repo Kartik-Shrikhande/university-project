@@ -156,7 +156,7 @@ router.put('/update/receipts/:id',upload.single('uploadPaymentReceipt'),receiptC
 
 //SOLICITOR PAYMENT
 router.post('/dummy-solicitor-payment',paymentController.createDummySolicitorPayment)
-router.post('/solicitor/create-payment-intent',paymentController.createSolicitorPaymentIntent);
+router.post('/solicitor/create-payment-intent/:applicationId',paymentController.createSolicitorPaymentIntent);
 router.post('/solicitor/confirm-payment',paymentController.confirmSolicitorPayment);
 
 

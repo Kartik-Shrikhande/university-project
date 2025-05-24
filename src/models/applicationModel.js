@@ -65,6 +65,7 @@ const applicationSchema = new mongoose.Schema(
       default: 'NO',
     },
     assignedAgent: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Agent' }],
+    solicitorPaid:{ type: Boolean, default: false },
     assignedSolicitor: { type: mongoose.Schema.Types.ObjectId, ref: 'Solicitor', default: null },
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 
