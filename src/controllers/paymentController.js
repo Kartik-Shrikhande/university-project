@@ -1,5 +1,6 @@
 
 const Stripe = require("stripe");
+const Application = require('../models/applicationModel');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../models/paymentModel");
 const Student = require("../models/studentsModel");
