@@ -1,4 +1,5 @@
-
+const mongoose = require('mongoose');
+const { isValidObjectId } = require('mongoose');
 const Stripe = require("stripe");
 const Application = require('../models/applicationModel');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
@@ -128,6 +129,10 @@ const SOLICITOR_PAYMENT_AMOUNT = 5000; // = £50.00
 exports.createSolicitorPaymentIntent = async (req, res) => {
   const studentId = req.user.id;
   const { applicationId } = req.params;
+
+       if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+        return res.status(400).json({ success: false, message: "Invalid application ID" });
+      }
 
   try {
     const application = await Application.findOne({ _id: applicationId, student: studentId });
