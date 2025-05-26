@@ -86,29 +86,38 @@ exports.createPaymentIntent = async (req, res) => {
 };
 
 
-
 exports.confirmPayment = async (req, res) => {
   const { paymentIntentId } = req.body;
   const studentId = req.user.id;
 
   try {
+    // 1️⃣ Fetch latest status from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
+    // 2️⃣ Update your Payment document based on Stripe status
     const payment = await Payment.findOneAndUpdate(
       { stripePaymentIntentId: paymentIntentId },
       {
         status: paymentIntent.status === "succeeded" ? "succeeded" : "failed",
-        updatedAt: new Date(),
       },
       { new: true }
     );
 
-    if (payment.status === "succeeded") {
-      await Student.findByIdAndUpdate(studentId, { isPaid: true });
+    if (!payment) {
+      return res.status(404).json({ error: "Payment record not found." });
+    }
 
+    // 3️⃣ Confirm from your DB if the payment is succeeded
+    if (payment.status === "succeeded") {
       const student = await Student.findById(studentId);
-      if (student) {
-        await sendPaymentSuccessEmail(student); // 🎯 Send the email here
+      if (!student) {
+        return res.status(404).json({ error: "Student not found." });
+      }
+
+      // ✅ Extra check: only set isPaid = true if it's not already true
+      if (!student.isPaid) {
+        await Student.findByIdAndUpdate(studentId, { isPaid: true });
+        await sendPaymentSuccessEmail(student);
       }
     }
 
@@ -119,9 +128,43 @@ exports.confirmPayment = async (req, res) => {
   }
 };
 
+// exports.confirmPayment = async (req, res) => {
+//   const { paymentIntentId } = req.body;
+//   const studentId = req.user.id;
+
+//   try {
+//     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+//     const payment = await Payment.findOneAndUpdate(
+//       { stripePaymentIntentId: paymentIntentId },
+//       {
+//         status: paymentIntent.status === "succeeded" ? "succeeded" : "failed",
+//         updatedAt: new Date(),
+//       },
+//       { new: true }
+//     );
+
+//     if (payment.status === "succeeded") {
+//       await Student.findByIdAndUpdate(studentId, { isPaid: true });
+
+//       const student = await Student.findById(studentId);
+//       if (student) {
+//         await sendPaymentSuccessEmail(student); // 🎯 Send the email here
+//       }
+//     }
+
+//     res.status(200).json({ message: "Payment processed", status: paymentIntent.status });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Failed to verify payment" });
+//   }
+// };
+
 
 
 //SOLICITOR PAYMENT
+
+
 
 const SOLICITOR_PAYMENT_AMOUNT = 5000; // = £50.00
 
