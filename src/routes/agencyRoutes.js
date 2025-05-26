@@ -89,10 +89,10 @@ router.delete('/delete/:id', agencyController.deleteAgencyById);
 
 //AGENT RELATED APIS
 router.post('/agent/create',  agencyController.createAgent); // Create a new agent
-router.put('/agents/:id', agencyController.updateAgent); // Update an agent
 router.get('/agents',  agencyController.getAllAgents); // Get all agents 
-router.get('/agents/:id',  agencyController.getAgentById); // Get an agent by ID
-router.delete('/agents/:id',  agencyController.deleteAgent); // Delete an agent 
+router.put('/agents/:agentId', agencyController.updateAgent); // Update an agent
+router.get('/agents/:agentId',  agencyController.getAgentById); // Get an agent by ID
+router.delete('/agents/:agentId',  agencyController.deleteAgent); // Delete an agent 
 
 
 

@@ -103,7 +103,7 @@ exports.confirmPayment = async (req, res) => {
       { new: true }
     );
 
-    if (paymentIntent.status === "succeeded") {
+    if (payment.status === "succeeded") {
       await Student.findByIdAndUpdate(studentId, { isPaid: true });
 
       const student = await Student.findById(studentId);

@@ -109,16 +109,17 @@ exports.createAgent = async (req, res) => {
 };
 
 
-// latests
+//Done
 
 exports.getAllAgents = async (req, res) => {
   try {
-    const agents = await Agent.find({ agency: req.user.agencyId, isDeleted: false })
+    const agents = await Agent.find({ agency: req.user.id, isDeleted: false })
       .select('-password')  // Exclude password from result
       .sort({ createdAt: -1 }); // Optional: latest first
 
     res.status(200).json({
       success: true,
+      total:agents.length,
       message: "Agents fetched successfully.",
       data: agents
     });
@@ -130,12 +131,17 @@ exports.getAllAgents = async (req, res) => {
 };
 
 
-//latests 
+//done 
 exports.getAgentById = async (req, res) => {
   try {
     const { agentId } = req.params;
 
-    const agent = await Agent.findOne({ _id: agentId, agency: req.user.agencyId, isDeleted: false })
+       if (!mongoose.Types.ObjectId.isValid(agentId)) {
+      return res.status(400).json({ success: false, message: "Invalid agent ID" });
+    }
+
+
+    const agent = await Agent.findOne({ _id: agentId, agency: req.user.id, isDeleted: false })
       .select('-password');
 
     if (!agent) {
@@ -157,26 +163,76 @@ exports.getAgentById = async (req, res) => {
 
 // Update an agent
 
-//laytests
+//done
 exports.updateAgent = async (req, res) => {
   try {
     const { agentId } = req.params;
-    const { username, phoneNumber, address, isActive } = req.body;
 
-    const agent = await Agent.findOne({ _id: agentId, agency: req.user.agencyId, isDeleted: false });
+    // Validate agentId
+    if (!mongoose.Types.ObjectId.isValid(agentId)) {
+      return res.status(400).json({ success: false, message: "Invalid agent ID" });
+    }
+
+    // Destructure fields from body
+    const { username, phoneNumber, address} = req.body;
+
+    // Prevent updating email and password
+    // if (email || password) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Email and password cannot be updated via this API."
+    //   });
+    // }
+
+    // Ensure at least one updatable field is provided
+    if (
+      username === undefined &&
+      phoneNumber === undefined &&
+      address === undefined 
+      //&& isActive === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields provided to update."
+      });
+    }
+
+    // Find the agent under the same agency
+    const agent = await Agent.findOne({
+      _id: agentId,
+      agency: req.user.id,
+      isDeleted: false
+    });
 
     if (!agent) {
       return res.status(404).json({ success: false, message: "Agent not found." });
     }
 
+    // Update permitted fields
     if (username) agent.username = username;
     if (phoneNumber) agent.phoneNumber = phoneNumber;
     if (address) agent.address = address;
-    if (isActive !== undefined) agent.isActive = isActive;
 
+    // if (isActive !== undefined) {
+    //   agent.isActive = isActive;
+    // }
+
+    // Save updates
     await agent.save();
 
-    res.status(200).json({ success: true, message: "Agent updated successfully.", data: agent });
+    res.status(200).json({
+      success: true,
+      message: "Agent updated successfully.",
+      data: {
+        id: agent._id,
+        username: agent.username,
+        phoneNumber: agent.phoneNumber,
+        address: agent.address,
+        // isActive: agent.isActive,
+        createdAt: agent.createdAt,
+        updatedAt: agent.updatedAt
+      }
+    });
 
   } catch (error) {
     console.error("Error updating agent:", error);
@@ -184,52 +240,31 @@ exports.updateAgent = async (req, res) => {
   }
 };
 
-// l;atests
+//Done
 // Soft Delete an Agent
 exports.deleteAgent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    const { id } = req.params;
+    const { agentId } = req.params;
 
-    // Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid agent ID.' });
+        if (!mongoose.Types.ObjectId.isValid(agentId)) {
+      return res.status(400).json({ success: false, message: "Invalid agent ID" });
     }
 
-    // Fetch the agent
-    const agent = await Agent.findById(id).session(session);
+
+    const agent = await Agent.findOne({ _id: agentId, agency: req.user.id, isDeleted: false });
+
     if (!agent) {
-      return res.status(404).json({ message: 'Agent not found.' });
+      return res.status(404).json({ success: false, message: "Agent not found." });
     }
 
-    // Check if the agent is already marked as deleted
-    if (agent.isDeleted) {
-      return res.status(400).json({ message: 'Agent is already deleted.' });
-    }
-
-    // Mark the agent as deleted
     agent.isDeleted = true;
-    await agent.save({ session });
+    await agent.save();
 
-    // Optionally remove the agent from the agency's agent list
-    const associatedAgency = await Agency.findById(agent.agency).session(session);
-    if (associatedAgency) {
-      associatedAgency.agents = associatedAgency.agents.filter(
-        (agentId) => agentId.toString() !== id
-      );
-      await associatedAgency.save({ session });
-    }
+    res.status(200).json({ success: true, message: "Agent deleted successfully." });
 
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({ message: 'Agent deleted successfully.' });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error deleting agent:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    console.error("Error deleting agent:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 

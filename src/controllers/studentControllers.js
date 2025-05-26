@@ -595,6 +595,25 @@ exports.verifyOtpForRegistration = async (req, res) => {
 
 //previouse approach in use -08/02/2025
 
+exports.logout = async (req, res) => {
+  try {
+    // Clear the JWT token cookie
+    res.clearCookie('refreshtoken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      path: '/' // Important: match the cookie path from login
+    });
+
+    return res.status(200).json({ message: 'Logout successful.' });
+  } catch (error) {
+    console.error('Logout Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;

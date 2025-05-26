@@ -5,17 +5,9 @@ const agentSchema = new mongoose.Schema(
     username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    isActive:{
-      type: Boolean, 
-      default: false, 
-    },
-    availabilityForApplication:{
-      type: Boolean, 
-      default: false, 
-    },
-    role: { type: String, enum: ['Admin', 'agent'], default: 'agent' },
-    assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], // Students handled by the agent
-    pendingApplications: [
+    phoneNumber: { type: String, required: true },
+    address: { type: String},
+    assignedApplications: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'Application' } // Pending applications
     ],
     approvedApplications: [
@@ -26,6 +18,11 @@ const agentSchema = new mongoose.Schema(
       ref: 'Agency', 
       // default: '677f6b7c701bc85481046b64', // Optional default agency ID
     }, // The agency they belong to
+      isActive:{
+      type: Boolean, 
+      default: true, 
+    },
+    role: { type: String,default: 'agent' },
     isDeleted: { 
       type: Boolean, 
       default: false, // Default value is false

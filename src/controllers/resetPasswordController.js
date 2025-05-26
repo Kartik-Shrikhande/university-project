@@ -82,6 +82,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+
 // Reset Password
 exports.resetPassword = async (req, res) => {
   try {
@@ -133,6 +134,7 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 // const jwt = require('jsonwebtoken');
 // const bcrypt = require('bcrypt');
 // const Students = require('../models/studentsModel');

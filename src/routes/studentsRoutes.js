@@ -87,6 +87,7 @@ router.post('/login',
    validate,
    userControllers.login);
 
+router.post('/logout', userControllers.logout);
 
 
 
