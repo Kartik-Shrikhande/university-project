@@ -980,7 +980,7 @@ exports.demoteUniversity = async (req, res) => {
 
 
 
-//AGENCY APIs
+//AGENCY PROFILE APIs
 exports.createAgency = async (req, res) => {
   try {
     const { name, email, password, contactPhone, address } = req.body;
@@ -1128,8 +1128,55 @@ exports.deleteAgencyById = async (req, res) => {
   }
 };
 
+exports.agencyUpdatePassword = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    const agencyId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
 
+    // Validate request body
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Please provide currentPassword, newPassword, and confirmPassword.' });
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 14) {
+      return res.status(400).json({ message: 'Password must be between 8 and 14 characters long.' });
+    }
+
+    // Fetch the agency by ID
+    const agency = await Agency.findById(agencyId).session(session);
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found.' });
+    }
+
+    // Verify current password
+    const isPasswordMatch = await bcrypt.compare(currentPassword, agency.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'New password and confirm password do not match.' });
+    }
+
+    // Hash and update the password
+    agency.password = await bcrypt.hash(newPassword, 10);
+    await agency.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error updating password:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 
 //done session  

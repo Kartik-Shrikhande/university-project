@@ -102,7 +102,7 @@ app.use('/student', studentRoutes)
 app.use('/university', universityRoutes)
 app.use('/agency', agencyRoutes)
 app.use('/admin', agencyRoutes)
-// app.use('/agent', agentsRoutes)
+app.use('/agent', agentsRoutes)
 app.use('/associate', associateRoutes)
 app.use('/password', resetPasswordRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route

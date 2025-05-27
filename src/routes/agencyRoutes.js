@@ -76,7 +76,7 @@ router.put('/promote/:universityId',agencyController.promoteUniversity);
 router.put('/demote/:universityId',agencyController.demoteUniversity);
 
 
-//AGENCY
+//AGENCY PROFILE 
 // Get Agency by ID
 router.get('/agencies/:id', agencyController.getAgencyById);
 // Update Agency by ID
@@ -84,6 +84,9 @@ router.put('/update/:id', agencyController.updateAgencyById);
 // Delete Agency by ID
 router.delete('/delete/:id', agencyController.deleteAgencyById);
 // router.post('/login', agencyController.loginAgency);
+router.put("/update-password", agencyController.agencyUpdatePassword);
+
+
 
 
 

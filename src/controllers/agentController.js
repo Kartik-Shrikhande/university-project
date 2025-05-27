@@ -1,11 +1,59 @@
-// const Agent = require('../models/agentModel');
-// const Agency = require('../models/agencyModel'); // Import the Agency model
-// const bcrypt = require('bcrypt');
-// const jwt = require('jsonwebtoken');
-// const mongoose = require('mongoose');
-// const Application = require('../models/applicationModel');
-// const University = require('../models/universityModel');
-// require('dotenv').config({ path: '.env' })
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const Agent = require('../models/agentModel');
+
+exports.agentUpdatePassword = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const agentId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // Validate request body
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Please provide currentPassword, newPassword, and confirmPassword.' });
+    }
+
+    // Password length check
+    if (newPassword.length < 8 || newPassword.length > 14) {
+      return res.status(400).json({ message: 'Password must be between 8 and 14 characters long.' });
+    }
+
+    // Fetch the Agent
+    const agent = await Agent.findById(agentId).session(session);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found.' });
+    }
+
+    // Verify current password
+    const isPasswordMatch = await bcrypt.compare(currentPassword, agent.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    // Check new and confirm passwords match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'New password and confirm password do not match.' });
+    }
+
+    // Hash and update password
+    agent.password = await bcrypt.hash(newPassword, 10);
+    await agent.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error updating password:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 // // Create a new agent
 // // Create a new agent
