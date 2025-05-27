@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const Agent = require('../models/agentModel');
@@ -55,6 +54,47 @@ exports.agentUpdatePassword = async (req, res) => {
   }
 };
 
+
+exports.getAgentProfile = async (req, res) => {
+  try {
+    const agentId = req.user.id;
+
+    const agent = await Agent.findById(agentId).select("-password -__v -isDeleted");
+    if (!agent) {
+      return res.status(404).json({ success: false, message: "Agent not found." });
+    }
+
+    res.status(200).json({ success: true, data: agent });
+  } catch (error) {
+    console.error("Error fetching agent profile:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+
+// 2️⃣ Update Profile
+exports.updateAgentProfile = async (req, res) => {
+  try {
+    const agentId = req.user.id;
+    const { username, phoneNumber, address } = req.body;
+
+    const agent = await Agent.findOne({ _id: agentId, isDeleted: false });
+    if (!agent) {
+      return res.status(404).json({ success: false, message: "Agent not found." });
+    }
+
+    if (username) agent.username = username;
+    if (phoneNumber) agent.phoneNumber = phoneNumber;
+    if (address) agent.address = address;
+
+    await agent.save();
+
+    res.status(200).json({ success: true, message: "Profile updated successfully.", data: agent });
+  } catch (error) {
+    console.error("Error updating agent profile:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
 // // Create a new agent
 // // Create a new agent
 
