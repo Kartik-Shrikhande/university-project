@@ -255,11 +255,11 @@ router.get('/get/universities',
 //   userActivity.updateLastActivity,
 //   userControllers.getUniversityById);
 
-router.post('/create-payment',
-  // authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
-  // authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
-  userActivity.updateLastActivity,
-    userControllers.createPayment)
+// router.post('/create-payment',
+//   // authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
+//   // authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
+//   userActivity.updateLastActivity,
+//     userControllers.createPayment)
 
 
 

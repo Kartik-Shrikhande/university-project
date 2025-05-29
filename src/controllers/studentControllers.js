@@ -1644,37 +1644,37 @@ exports.getUniversities = async (req, res) => {
 };
 
 // Create Payment
-exports.createPayment = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const studentId = req.user.id;
+// exports.createPayment = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+//   try {
+//     const studentId = req.user.id;
 
-    // Fetch the student
-    const student = await Students.findById(studentId).session(session);
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found.' });
-    }
-    // if(student.isPaid) res.status(200).json({message: 'Payment already done for this user'});
+//     // Fetch the student
+//     const student = await Students.findById(studentId).session(session);
+//     if (!student) {
+//       return res.status(404).json({ message: 'Student not found.' });
+//     }
+//     // if(student.isPaid) res.status(200).json({message: 'Payment already done for this user'});
 
-    // Simulate payment (mark as paid)
-    student.isPaid = true;
-    await student.save({ session });
+//     // Simulate payment (mark as paid)
+//     student.isPaid = true;
+//     await student.save({ session });
 
-    await session.commitTransaction();
-    session.endSession();
+//     await session.commitTransaction();
+//     session.endSession();
 
-    return res.status(200).json({
-      message: 'Payment successful, you can now access the dashboard.',
-      // student,
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error processing payment:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
+//     return res.status(200).json({
+//       message: 'Payment successful, you can now access the dashboard.',
+//       // student,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     console.error('Error processing payment:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 
