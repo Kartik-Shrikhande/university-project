@@ -108,7 +108,7 @@ exports.confirmPayment = async (req, res) => {
     }
 
     // 3️⃣ Confirm from your DB if the payment is succeeded
-    if (payment.status === "succeeded") {
+    if (paymentIntent.status === "succeeded") {
       const student = await Student.findById(studentId);
       if (!student) {
         return res.status(404).json({ error: "Student not found." });
