@@ -27,6 +27,7 @@ const agencySchema = new mongoose.Schema(
     solicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     sentAppliactionsToUniversities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     role:{type: String, default: 'admin'},
+    lastAssignedAgentIndex: { type: Number, default: 0 }, // <--- new field
     isDeleted: { 
       type: Boolean, 
       default: false,

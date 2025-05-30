@@ -2,146 +2,13 @@ const mongoose = require('mongoose');
 const Application = require('../models/applicationModel');
 const Students = require('../models/studentsModel');
 const Agency = require('../models/agencyModel');
+const Agent = require('../models/agentModel');
 const University = require('../models/universityModel');
 const { uploadFilesToS3 } = require('../utils/s3Upload');
 const Course = require('../models/coursesModel');
 require('dotenv').config()
 
 //STUDENTS
-
-// exports.applyForCourse = async (req, res) => {
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-//     try {
-//       const { courseId } = req.params;
-//       const documents = req.files?.documents || []; // Ensure documents is always an array// Assuming file upload middleware is used
-//       const studentId = req.user.id; // Retrieved from authentication middleware
-  
-//       // Validate IDs
-//       if (!mongoose.Types.ObjectId.isValid(courseId)) return res.status(400).json({ message: 'Invalid CourseId.' });
-      
-
-
-//     // Fetch the course details (including university)
-//     const course = await Course.findById(courseId).select('university status');
-//     if (!course) {
-//         return res.status(404).json({ message: 'Course not found.' });
-//     }
-
-//     // Ensure the course is active before proceeding
-//     if (course.status !== 'Active') {
-//         return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
-//     }
-
-//     const universityId = course.university; // ✅ Auto-fetch university ID from course
-
-
-
-//       // Fetch the student
-//       const student = await Students.findById(studentId).session(session).select(
-//         'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
-//         'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
-//          );
-//       if (!student) {
-//         return res.status(404).json({ message: 'Student not found.' });
-//       }
-  
-  
-//       // Check if the student already applied to the same course at the university
-//       const existingApplication = await Application.findOne({
-//         student: studentId,
-//         university: universityId,
-//         course: courseId,
-//       }).session(session);
-//       if (existingApplication) {
-//         return res.status(400).json({ message: 'Application already exists for this course at the selected university.' });
-//       }
-  
-//       // Fetch the default agency
-//       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
-//       if (!defaultAgency) {
-//         return res.status(500).json({ message: 'Default agency not found.' });
-//       }
-  
-//       // Prepare document metadata if documents are uploaded
-// // Prepare document metadata if documents are uploaded
-// const uploadedDocuments = documents.map((doc) => ({
-//   fileName: doc.originalname,
-//   fileType: doc.mimetype,
-//   fileUrl: doc.path,
-// }));
-  
-//       // Create a new application
-//       const newApplication = new Application({
-//         student: studentId,
-//         university: universityId,
-//         course: courseId,
-//         documents: uploadedDocuments,
-//         agency: defaultAgency._id, // Assign default agency
-//         assignedAgent: student.assignedAgent|| [], // Retain assigned agent from student record
-//       });
-  
-//       // Save the application
-//       await newApplication.save({ session });
-      
-//       if (!student.applications) {
-//         student.applications = [];  // Initialize if undefined
-//     }
-    
-//       // Update the student's application list
-//       student.applications.push({ applicationId: newApplication._id });
-//       await student.save({ session });
-  
-//       // Update the agency's pending applications list
-//       defaultAgency.pendingApplications.push(newApplication._id);
-//       await defaultAgency.save({ session });
-  
-//       await session.commitTransaction();
-//       session.endSession();
-  
-//       return res.status(201).json({
-//         message: 'Application submitted successfully.',
-//         application: {
-//           id: newApplication._id,
-//           status: newApplication.status,
-//           submissionDate: newApplication.submissionDate,
-//           university: newApplication.university,
-//           course: newApplication.course,
-//         },
-//         student: {
-//           firstName: student.firstName,
-//           middleName: student.middleName,
-//           lastName: student.lastName,
-//           dateOfBirth: student.dateOfBirth,
-//           gender: student.gender,
-//           email: student.email,
-//           telephoneNumber: student.telephoneNumber,
-//           presentAddress: student.presentAddress,
-//           permanentAddress: student.permanentAddress,
-//           documentType: student.documentType,
-//           documentUpload: student.documentUpload,
-//           mostRecentEducation: student.mostRecentEducation,
-//           otherEducationName: student.otherEducationName,
-//           // yearOfGraduation: student.yearOfGraduation,
-//           collegeUniversity: student.collegeUniversity,
-//           // programType: student.programType,
-//           // otherProgramName: student.otherProgramName,
-//           // discipline: student.discipline,
-//           // otherDisciplineName: student.otherDisciplineName,
-//           // countryApplyingFrom: student.countryApplyingFrom,
-//           // referralSource: student.referralSource,
-//           assignedAgent: student.assignedAgent,
-//           // preferredCommunicationMethod: student.preferredCommunicationMethod,
-//           // isPaid: student.isPaid,
-//         },
-//       });
-//     } catch (error) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       console.error('Error applying for university:', error);
-//       return res.status(500).json({ message: 'Internal server error.' });
-//     }
-//   };
 
 
 
@@ -257,7 +124,7 @@ exports.applyForCourse = async (req, res) => {
 
       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
       if (!defaultAgency) {
-          return res.status(500).json({ message: 'Default agency not found.' });
+          return res.status(400).json({ message: 'Default agency not found.' });
       }
 
       // ✅ Create a new application with properly initialized arrays
@@ -281,6 +148,36 @@ exports.applyForCourse = async (req, res) => {
       });
 
       await newApplication.save({ session });
+
+
+
+ // ✅ Round-Robin Agent Assignment
+    const populatedAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID)
+      .populate({ path: 'agents', match: { isActive: true } })
+      .session(session);
+
+    const activeAgents = populatedAgency.agents;
+
+    if (activeAgents.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'No active agents available in agency.' });
+    }
+
+    let nextIndex = populatedAgency.lastAssignedAgentIndex % activeAgents.length;
+    const selectedAgent = activeAgents[nextIndex];
+
+    newApplication.assignedAgent = [selectedAgent._id];
+    await newApplication.save({ session });
+
+    await Agent.findByIdAndUpdate(
+      selectedAgent._id,
+      { $push: { assignedApplications: newApplication._id } },
+      { session }
+    );
+
+    populatedAgency.lastAssignedAgentIndex = (nextIndex + 1) % activeAgents.length;
+    await populatedAgency.save({ session });
 
 
 

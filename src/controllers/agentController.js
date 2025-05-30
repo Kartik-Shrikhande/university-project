@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const Agent = require('../models/agentModel');
+const Application = require('../models/applicationModel');
+const Agency = require('../models/agencyModel');
+const University = require('../models/universityModel');
 
+//AGENT - PROFILE
 exports.agentUpdatePassword = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -72,7 +76,6 @@ exports.getAgentProfile = async (req, res) => {
 };
 
 
-// 2️⃣ Update Profile
 exports.updateAgentProfile = async (req, res) => {
   try {
     const agentId = req.user.id;
@@ -95,264 +98,161 @@ exports.updateAgentProfile = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
-// // Create a new agent
-// // Create a new agent
-
-// exports.agentLogin = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // Validate input
-//     if (!email || !password) {
-//       return res.status(400).json({ message: 'Email and password are required.' });
-//     }
-
-//     // Find the agent by email
-//     const agent = await Agent.findOne({ email });
-//     if (!agent) {
-//       return res.status(404).json({ message: 'Agent not found.' });
-//     }
-
-//     // Compare passwords
-//     const isPasswordValid = await bcrypt.compare(password, agent.password);
-//     if (!isPasswordValid) {
-//       return res.status(401).json({ message: 'Invalid password.' });
-//     }
-
-//     // Generate JWT token
-//     const token = jwt.sign(
-//       { id: agent._id, email: agent.email, role: agent.role },
-//       process.env.SECRET_KEY,
-//       { expiresIn: '5h' } // Token expiration time
-//     );
-
-//     return res.status(200).json({
-//       message: 'Login successful.',
-//       token,
-//       agent: {
-//         id: agent._id,
-//         name: agent.name,
-//         email: agent.email,
-//         role: agent.role,
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error during agent login:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
-// //send selected applicaiton to university
-//  //this api remaaninig:-
-//  //(before this agent shoul able to see the pending ag=siigned applicaiton to him // so assign agent is next api in line)
-//  // 1) it should check if first agent is assigned or not 
-//  //  1)api should only ht by agent 
-// // 3) move this api to agent controller
+//AGENT - APPLICATION
+
+exports.getAgentAssignedApplications = async (req, res) => {
+  try {
+    const agentId = req.user.id;
+
+    const agent = await Agent.findById(agentId).select('assignedApplications');
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    res.status(200).json({
+      message: 'Assigned application IDs list',
+      total: agent.assignedApplications.length,
+      assignedApplications: agent.assignedApplications,  // just array of ObjectIds
+    });
+  } catch (err) {
+    console.error('Error fetching assigned application IDs:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+exports.getAgentApplicationById = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const agentId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
+
+    // Fetch application with selected student and university fields
+    const application = await Application.findById(applicationId)
+      .populate({
+        path: 'student',
+        select: '_id name email'
+      })
+      .populate({
+        path: 'university',
+        select: '_id name email'
+      })
+      .lean(); // convert to plain JS object
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Check if agent is assigned to this application
+    if (!application.assignedAgent.map(id => id.toString()).includes(agentId)) {
+      return res.status(403).json({ message: 'Unauthorized. This application is not assigned to you.' });
+    }
+
+    res.status(200).json({
+      message: 'Application details fetched successfully',
+      application
+    });
+  } catch (err) {
+    console.error('Error fetching application details:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 
 
 // //APPLICATION
 
-// exports.getAllAssignedApplications = async (req, res) => {
-//   try {
-//     const agentId = req.agentId; // Retrieved from authentication middleware
+//latest but not tested 
+exports.agentSendApplicationToUniversity = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const agentId = req.user.id;
 
-//     // Validate `agentId`
-//     if (!mongoose.Types.ObjectId.isValid(agentId)) {
-//       return res.status(400).json({ message: 'Invalid agent ID provided.' });
-//     }
+    // Validate applicationId
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ message: 'Invalid application ID provided.' });
+    }
 
-//     // Fetch applications assigned to the agent
-//     const applications = await Application.find({ assignedAgent: agentId })
-//       .populate('university', 'name country')
-//       .select('student university status');
+    // Find agent
+    const agent = await Agent.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
 
-//     // Check if no applications are assigned
-//     if (applications.length === 0) {
-//       return res.status(404).json({ 
-//         message: 'No applications assigned to this agent.' 
-//       });
-//     }
+    // Ensure application is assigned to this agent
+    if (!agent.assignedApplications.includes(applicationId)) {
+      return res.status(403).json({ message: 'Unauthorized. This application is not assigned to you.' });
+    }
 
-//     // Prepare response
-//     const response = applications.map((app) => ({
-//       applicationId: app._id,
-//       studentId: app.student,
-//       university: app.university ? app.university.name : 'Unknown',
-//       country: app.university ? app.university.country : 'Unknown',
-//       status: app.status,
-//     }));
+    // Find application
+    const application = await Application.findById(applicationId).populate('student').exec();
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
 
-//     return res.status(200).json({
-//       message: 'Assigned applications fetched successfully.',
-//       total:applications.length,
-//       applications: response,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching assigned applications:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
+    const universityId = application.university;
+    if (!universityId) {
+      return res.status(404).json({ message: 'University ID not found in application' });
+    }
 
+    // Get agency from agent
+    const agency = await Agency.findById(agent.agency);
+    if (!agency) {
+      return res.status(404).json({ message: 'Associated agency not found' });
+    }
 
+    // Check if application exists in agency's pendingApplications
+    if (!agency.pendingApplications.includes(applicationId)) {
+      return res.status(400).json({ message: 'Application is not in pendingApplications of the agency' });
+    }
 
-// exports.getAssignedApplicationById = async (req, res) => {
-//   try {
-//     const agentId = req.agentId; // Retrieved from authentication middleware
-//     const { applicationId } = req.params;
+    // Remove application from agency's pendingApplications using simple filter logic
+    agency.pendingApplications = agency.pendingApplications.filter(id => id.toString() !== applicationId);
 
-//     // Validate IDs
-//     if (!mongoose.Types.ObjectId.isValid(agentId) || !mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res.status(400).json({ message: 'Invalid IDs provided.' });
-//     }
+    // Add application to agency's sentAppliactionsToUniversities
+    agency.sentAppliactionsToUniversities.push(applicationId);
 
-//     // Fetch application by ID and ensure it's assigned to the agent
-//     const application = await Application.findOne({
-//       _id: applicationId,
-//       assignedAgent: agentId,
-//     })
-//       .populate('student', 'firstName lastName email telephoneNumber documentType documentUpload') // Full student details
-//       .populate('university', 'name country description') // Full university details
-//       .populate('course', 'name fees duration') // Full course details
-//       .select('-__v'); // Exclude unnecessary fields like `__v`
+    // Find university
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found' });
+    }
 
-//     // Handle case where no application is found
-//     if (!application) {
-//       return res.status(404).json({
-//         message: 'Application not found or not assigned to this agent.',
-//       });
-//     }
+    // Add application to university.pendingApplications
+    university.pendingApplications.push({
+      student: application.student._id,
+      applicationId: applicationId,
+    });
 
-//     // Prepare response
-//     const response = {
-//       applicationId: application._id,
-//       status: application.status,
-//       submissionDate: application.submissionDate,
-//       reviewDate: application.reviewDate || 'Not reviewed yet',
-//       notes: application.notes || 'No notes provided',
-//       financialAid: application.financialAid || 'Not specified',
-//       documents: application.documents || [],
-//       student: {
-//         id: application.student._id,
-//         firstName: application.student.firstName,
-//         lastName: application.student.lastName,
-//         email: application.student.email,
-//         telephoneNumber: application.student.telephoneNumber,
-//         documentType: application.student.documentType,
-//         documentUpload: application.student.documentUpload,
-//       },
-//       university: {
-//         id: application.university._id,
-//         name: application.university.name,
-//         country: application.university.country,
-//         description: application.university.description,
-//       },
-//       course: {
-//         id: application.course._id,
-//         name: application.course.name,
-//         fees: application.course.fees,
-//         duration: application.course.duration,
-//       },
-//     };
+    // Move application to agent's approvedApplications
+    agent.approvedApplications.push(applicationId);
 
-//     return res.status(200).json({
-//       message: 'Application details fetched successfully.',
-//       application: response,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching application by ID:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
+    // Remove from agent's assignedApplications
+    agent.assignedApplications = agent.assignedApplications.filter(id => id.toString() !== applicationId);
 
+    // Save everything
+    await agency.save();
+    await university.save();
+    await agent.save();
 
-// exports.sendApplicationToUniversity = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const { applicationId } = req.body;
-//     const agentId = req.agentId; // Retrieved from the authentication middleware
+    return res.status(200).json({
+      message: 'Application sent to university successfully by agent',
+      applicationId: applicationId,
+      universityId: universityId,
+    });
 
-//     // Validate IDs
-//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res.status(400).json({ message: 'Invalid application ID provided.' });
-//     }
+  } catch (error) {
+    console.error('Error sending application to university:', error);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
 
-//     // Fetch the default agency
-//     const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
-//     if (!defaultAgency) {
-//       return res.status(404).json({ message: 'Default agency not found.' });
-//     }
-
-//     // Check if the agent belongs to the default agency
-//     const isAgentOfAgency = defaultAgency.agents.includes(agentId);
-//     if (!isAgentOfAgency) {
-//       return res.status(403).json({ message: 'Unauthorized: You are not an agent of this agency.' });
-//     }
-
-//     // Check if the application exists in agency's pendingApplications
-//     const isPendingInAgency = defaultAgency.pendingApplications.includes(applicationId);
-//     if (!isPendingInAgency) {
-//       return res.status(404).json({
-//         message: 'Application not found in agency\'s pending applications.',
-//       });
-//     }
-
-//     // Fetch application
-//     const application = await Application.findById(applicationId).session(session);
-//     if (!application) {
-//       return res.status(404).json({ message: 'Application not found.' });
-//     }
-
-//     // Automatically fetch the university from the application
-//     const universityId = application.university;
-
-//     // Fetch university
-//     const university = await University.findById(universityId).session(session);
-//     if (!university) {
-//       return res.status(404).json({ message: 'University not found.' });
-//     }
-
-//     // Add application to university's pending applications
-//     university.pendingApplications.push({
-//       student: application.student,
-//       applicationId: application._id,
-//     });
-
-//     // Save updated university
-//     await university.save({ session });
-
-//     // Remove application from agency's pendingApplications
-//     defaultAgency.pendingApplications = defaultAgency.pendingApplications.filter(
-//       (id) => id.toString() !== applicationId
-//     );
-
-//     // Add application to agency's sentApplicationsToUniversities
-//     defaultAgency.sentAppliactionsToUniversities.push(applicationId);
-
-//     // Save updated agency
-//     await defaultAgency.save({ session });
-
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return res.status(200).json({
-//       message: 'Application successfully sent to the university.',
-//       application: {
-//         id: application._id,
-//         status: application.status,
-//         submissionDate: application.submissionDate,
-//         university: universityId,
-//         course: application.course,
-//       },
-//     });
-//   } catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     console.error('Error sending application to university:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 

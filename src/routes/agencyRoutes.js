@@ -96,7 +96,7 @@ router.get('/agents',  agencyController.getAllAgents); // Get all agents
 router.put('/agents/:agentId', agencyController.updateAgent); // Update an agent
 router.get('/agents/:agentId',  agencyController.getAgentById); // Get an agent by ID
 router.delete('/agents/:agentId',  agencyController.deleteAgent); // Delete an agent 
-
+router.delete('/agent/delete/:agentId',  agencyController.hardDeleteAgent); // Delete an agent 
 
 
 // // Create Agent

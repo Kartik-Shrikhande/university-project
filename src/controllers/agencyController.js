@@ -79,6 +79,12 @@ exports.createAgent = async (req, res) => {
 
     await newAgent.save();
 
+
+    // ✅ Add agent ID to agency.agents array
+    await Agency.findByIdAndUpdate(agencyId, {
+      $push: { agents: newAgent._id }
+    });
+
     // Send credentials email directly here
     const transporter = nodemailer.createTransport({
       service: "Gmail",
@@ -260,6 +266,12 @@ exports.deleteAgent = async (req, res) => {
     agent.isDeleted = true;
     await agent.save();
 
+    
+    // ✅ Remove agent ID from agency.agents array
+    await Agency.findByIdAndUpdate(req.user.id, {
+      $pull: { agents: agentId }
+    });
+
     res.status(200).json({ success: true, message: "Agent deleted successfully." });
 
   } catch (error) {
@@ -268,6 +280,35 @@ exports.deleteAgent = async (req, res) => {
   }
 };
 
+exports.hardDeleteAgent = async (req, res) => {
+  try {
+    const { agentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(agentId)) {
+      return res.status(400).json({ success: false, message: "Invalid agent ID" });
+    }
+
+    const agent = await Agent.findOne({ _id: agentId, agency: req.user.id });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, message: "Agent not found." });
+    }
+
+    // Remove agent from Agency.agents array
+    await Agency.findByIdAndUpdate(req.user.id, {
+      $pull: { agents: agentId }
+    });
+
+    // Hard delete agent record
+    await Agent.findByIdAndDelete(agentId);
+
+    res.status(200).json({ success: true, message: "Agent permanently deleted." });
+
+  } catch (error) {
+    console.error("Error hard deleting agent:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
 
 
 
