@@ -217,6 +217,46 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
 };
 
 
+// exports.confirmSolicitorPayment = async (req, res) => {
+//   const { paymentIntentId } = req.body;
+//   const studentId = req.user.id;
+
+//   try {
+//     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+//     const payment = await Payment.findOneAndUpdate(
+//       { stripePaymentIntentId: paymentIntentId },
+//       {
+//         status: paymentIntent.status === "succeeded" ? "succeeded" : "failed",
+//         updatedAt: new Date(),
+//       },
+//       { new: true }
+//     );
+
+//     if (!payment) {
+//       return res.status(404).json({ error: "Payment record not found." });
+//     }
+
+//     if (paymentIntent.status === "succeeded") {
+//       // Update solicitorPaid in application
+//       await Application.findOneAndUpdate(
+//         { _id: payment.application, student: studentId },
+//         { solicitorPaid: true }
+//       );
+
+//       const student = await Student.findById(studentId);
+//       if (student) {
+//         // Optional email notification
+//         await sendSolicitorPaymentEmail(student);
+//       }
+//     }
+
+//     res.status(200).json({ message: "Solicitor service payment processed", status: paymentIntent.status });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Failed to verify payment" });
+//   }
+// };
 exports.confirmSolicitorPayment = async (req, res) => {
   const { paymentIntentId } = req.body;
   const studentId = req.user.id;
@@ -238,20 +278,25 @@ exports.confirmSolicitorPayment = async (req, res) => {
     }
 
     if (paymentIntent.status === "succeeded") {
-      // Update solicitorPaid in application
-      await Application.findOneAndUpdate(
-        { _id: payment.application, student: studentId },
-        { solicitorPaid: true }
-      );
+      // Confirm the application exists and belongs to the student
+      const application = await Application.findOne({ _id: payment.application, student: studentId });
+      if (!application) {
+        return res.status(404).json({ error: "Associated application not found or does not belong to the student." });
+      }
 
+      // Update solicitorPaid
+      application.solicitorPaid = true;
+      await application.save();
+
+      // Optional: send notification email
       const student = await Student.findById(studentId);
       if (student) {
-        // Optional email notification
         await sendSolicitorPaymentEmail(student);
       }
     }
 
     res.status(200).json({ message: "Solicitor service payment processed", status: paymentIntent.status });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to verify payment" });

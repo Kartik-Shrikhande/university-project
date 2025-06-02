@@ -35,7 +35,7 @@ router.post('/create', agencyController.createAgency);
 // router.get('/agencies', agencyController.getAllAgencies);
 
 
-router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin']))
+router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin','agent']))
 
 
 //RECEIPT 
