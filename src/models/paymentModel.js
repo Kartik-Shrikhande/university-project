@@ -6,6 +6,7 @@ const paymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true,
         // default: 100
      },
+     application: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', required: true }, // ✅ new field
     currency: { type: String, default: 'GBP' },
     status: { type: String, enum: ['pending', 'succeeded', 'failed'], default: 'pending' },
     stripePaymentIntentId: { type: String, required: true }, // Store Stripe payment intent ID

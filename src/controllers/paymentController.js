@@ -178,9 +178,9 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
   const studentId = req.user.id;
   const { applicationId } = req.params;
 
-       if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-        return res.status(400).json({ success: false, message: "Invalid application ID" });
-      }
+  if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+    return res.status(400).json({ success: false, message: "Invalid application ID" });
+  }
 
   try {
     const application = await Application.findOne({ _id: applicationId, student: studentId });
@@ -201,7 +201,7 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
 
     await Payment.create({
       student: studentId,
-      application: applicationId,
+      application: applicationId, // ✅ store it now
       amount: SOLICITOR_PAYMENT_AMOUNT,
       currency: CURRENCY,
       status: "pending",
@@ -217,46 +217,6 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
 };
 
 
-// exports.confirmSolicitorPayment = async (req, res) => {
-//   const { paymentIntentId } = req.body;
-//   const studentId = req.user.id;
-
-//   try {
-//     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-//     const payment = await Payment.findOneAndUpdate(
-//       { stripePaymentIntentId: paymentIntentId },
-//       {
-//         status: paymentIntent.status === "succeeded" ? "succeeded" : "failed",
-//         updatedAt: new Date(),
-//       },
-//       { new: true }
-//     );
-
-//     if (!payment) {
-//       return res.status(404).json({ error: "Payment record not found." });
-//     }
-
-//     if (paymentIntent.status === "succeeded") {
-//       // Update solicitorPaid in application
-//       await Application.findOneAndUpdate(
-//         { _id: payment.application, student: studentId },
-//         { solicitorPaid: true }
-//       );
-
-//       const student = await Student.findById(studentId);
-//       if (student) {
-//         // Optional email notification
-//         await sendSolicitorPaymentEmail(student);
-//       }
-//     }
-
-//     res.status(200).json({ message: "Solicitor service payment processed", status: paymentIntent.status });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Failed to verify payment" });
-//   }
-// };
 exports.confirmSolicitorPayment = async (req, res) => {
   const { paymentIntentId } = req.body;
   const studentId = req.user.id;
@@ -302,6 +262,7 @@ exports.confirmSolicitorPayment = async (req, res) => {
     res.status(500).json({ error: "Failed to verify payment" });
   }
 };
+
 
 
 exports.getPaymentHistory = async (req, res) => {
