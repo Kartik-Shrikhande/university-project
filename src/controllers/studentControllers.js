@@ -28,7 +28,7 @@ const Notification = require('../models/notificationModel');
 
 //SOLICTOR  
 exports.applyForSolicitor = async (req, res) => {
-  try {
+  try {   
     const studentId = req.user.id; // From authenticated student
     const { applicationId } = req.params;
 
