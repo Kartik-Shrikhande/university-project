@@ -255,8 +255,6 @@ exports.agentSendApplicationToUniversity = async (req, res) => {
 
 
 
-
-
 // exports.rejectApplicationById = async (req, res) => {
 //   try {
 //     const { applicationId, rejectionReason } = req.body;

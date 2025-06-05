@@ -10,23 +10,17 @@ const generator = require('generate-password');
 const nodemailer = require('nodemailer');
 const Course = require('../models/coursesModel');
 const university = require('../models/universityModel');
-const Notification = require('../models/notificationModel'); // Import Notification model
-//associate APIs
+const Notification = require('../models/notificationModel');
 const AssociateSolicitor = require('../models/associateModel');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
 const { sendRejectionEmail,sendSolicitorRequestApprovedEmail } = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
-
-
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 
 //AGENT APIS
-const { sendAgentCredentialsEmail } = require('../services/emailService'); // assuming you have a service function
-// Or use nodemailer directly if preferred
 
-//done
 exports.createAgent = async (req, res) => {
   try {
     const {
@@ -114,9 +108,6 @@ exports.createAgent = async (req, res) => {
   }
 };
 
-
-//Done
-
 exports.getAllAgents = async (req, res) => {
   try {
     const agents = await Agent.find({ agency: req.user.id, isDeleted: false })
@@ -135,9 +126,7 @@ exports.getAllAgents = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
-
-
-//done 
+ 
 exports.getAgentById = async (req, res) => {
   try {
     const { agentId } = req.params;
@@ -166,10 +155,6 @@ exports.getAgentById = async (req, res) => {
   }
 };
 
-
-// Update an agent
-
-//done
 exports.updateAgent = async (req, res) => {
   try {
     const { agentId } = req.params;
@@ -247,7 +232,7 @@ exports.updateAgent = async (req, res) => {
 };
 
 //Done
-// Soft Delete an Agent
+// Soft Delete agent
 exports.deleteAgent = async (req, res) => {
   try {
     const { agentId } = req.params;
@@ -309,7 +294,6 @@ exports.hardDeleteAgent = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
-
 
 
 
@@ -638,6 +622,7 @@ exports.getAllStudentsAppliedForSolicitorService = async (req, res) => {
 
 
 //NOTIFICATION
+
 exports.getAllNotifications = async (req, res) => {
   try {
     const Id = req.user.id;
@@ -1127,7 +1112,6 @@ exports.updateAgencyById = async (req, res) => {
   }
 };
 
-
 exports.deleteAgencyById = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1219,10 +1203,8 @@ exports.agencyUpdatePassword = async (req, res) => {
   }
 };
 
-
-//done session  
+ 
 //Application 
-
 //see pending applications //get
 exports.getPendingApplications = async (req, res) => {
   try {
@@ -1283,7 +1265,6 @@ exports.getPendingApplications = async (req, res) => {
   }
 };
 
-// get the deatils of pending applications 
 
 exports.getApplicationDetailsById = async (req, res) => {
   try {
@@ -1578,43 +1559,6 @@ exports.sendApplicationToUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
-
-// exports.rejectApplication = async (req, res) => {
-//   try {
-//     const { applicationId } = req.params; // Get applicationId from params
-//     const agencyId = req.user.id; // Get agencyId from authenticated user
-
-//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res.status(400).json({ message: 'Invalid application ID provided.' });
-//     }
-//     // Find the application
-//     const application = await Application.findById(applicationId);
-//     if (!application) {
-//       return res.status(404).json({ success: false, message: 'Application not found' });
-//     }
-
-//     // Update application status to 'Rejected'
-//     application.status = 'Rejected';
-//     await application.save();
-
-//     // Remove application from agency's pendingApplications
-//     await Agency.findByIdAndUpdate(agencyId, {
-//       $pull: { pendingApplications: applicationId },
-//     });
-
-//     res.status(200).json({success: true,message: 'Application rejected successfully'});
-//   } 
-//   catch (error) {
-//     res.status(500).json({success: false, message: 'Internal server error'});
-//   }
-// };
-
-
-
-
-
-
-
 
 //university 
 

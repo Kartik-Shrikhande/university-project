@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-
 const paymentController = require('../controllers/paymentController');
 const applicationController = require('../controllers/applicationController')
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const receiptController = require('../controllers/receiptController');
-// const authenticationMiddleware = require('../middlewares/authentication')
 const paymentMiddleware = require('../middlewares/payment')
 const userControllers = require('../controllers/studentControllers');
 const userActivity = require('../middlewares/updateActivity')
@@ -75,10 +73,6 @@ router.post(
   studentController.verifyOtpForRegistration
 );
 
-// // Routes
-// router.post('/register', validateStudentRegistration,
-//    validate, 
-//    userControllers.registerStudent);
 
 router.post('/login',
   //  loginValidator,
@@ -90,23 +84,7 @@ router.post('/login',
 router.post('/logout', userControllers.logout);
 
 
-
-  //  router.post('/api/login',
-  //   //  loginValidator,
-  //  studentValidations.validateLoginStudent,
-  //    userActivity.updateLastActivity, 
-  //    validate,
-  //    userControllers.appLogin);
-
-  //  router.post('/verify/otp',
-  //   //  loginValidator,
-  //  studentValidations.validateVerifyOtpForLogin,
-  //    validate,
-  //    userActivity.updateLastActivity, 
-  //    userControllers.verifyOtpforLogin);
-
-
-  // Route to resend verification email //IN USE
+// Route to resend verification email //IN USE
   router.post('/resend-verification-email',userControllers.resendVerificationEmail);
 
 
