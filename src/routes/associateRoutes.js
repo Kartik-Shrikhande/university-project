@@ -19,6 +19,11 @@ const validate = (req, res, next) => {
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['Associate']))
 
+//STUDENT
+router.get('/students/:id', associateController.getStudentById); // Get student by ID
+
+
+
 //ASSOCIATE - PROFILE
 router.put('/update',validateAssociateUpdate,validate, associateController.updateAssociate);
 router.get('/profile', associateController.getAssociateById);

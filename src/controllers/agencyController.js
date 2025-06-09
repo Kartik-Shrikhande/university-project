@@ -721,7 +721,7 @@ exports.getStudentById = async (req, res) => {
     const { id } = req.params;
 
     const student = await Students.findById(id)
-      .select('firstName middleName lastName email telephoneNumber address documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
+      .select('firstName middleName lastName email countryCode telephoneNumber address documentType documentUpload mostRecentEducation collegeUniversity programType discipline countryName preferredUniversity courseStartTimeline englishLanguageRequirement score') // Selected fields
       .populate('agency', 'name contactEmail') // Populate agency name and email
       .populate('assignedAgent', 'name') // Populate assigned agent name
       .populate('applications.applicationId'); // Populate application details
@@ -1560,10 +1560,9 @@ exports.sendApplicationToUniversity = async (req, res) => {
   }
 };
 
+
+
 //university 
-
-
-
 
 exports.rejectApplication = async (req, res) => {
   try {

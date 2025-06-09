@@ -37,11 +37,27 @@ const sendRejectionEmail = async (email, reason) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Application Rejection Notification',
-    text: `We regret to inform you that your application has been rejected. Reason: ${reason}`,
+    html: `
+      <div style="max-width: 600px; margin: 20px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: Arial, sans-serif; background-color: #ffffff;">
+        <h2 style="color: #d9534f; text-align: center;">Application Rejected</h2>
+        <p style="font-size: 16px; color: #333333;">Dear Applicant,</p>
+        <p style="font-size: 16px; color: #333333;">We regret to inform you that your application has been <strong style="color: #d9534f;">rejected</strong>.</p>
+        <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; border: 1px solid #f5c6cb; margin: 20px 0;">
+          <strong>Reason for Rejection:</strong>
+          <p style="margin: 10px 0 0; color: #721c24;">${reason}</p>
+        </div>
+        <p style="font-size: 14px; color: #555555;">If you have any questions, feel free to reach out to our support team.</p>
+        <p style="font-size: 14px; color: #555555;">Thank you for your interest.</p>
+        <div style="margin-top: 30px; text-align: center; color: #999999; font-size: 12px;">
+          © ${new Date().getFullYear()} Your Company Name. All rights reserved.
+        </div>
+      </div>
+    `,
   };
 
   await transporter.sendMail(mailOptions);
 };
+
 
 const sendPaymentSuccessEmail = async (student) => {
   const mailOptions = {

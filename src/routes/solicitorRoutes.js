@@ -18,6 +18,8 @@ const validate = (req, res, next) => {
 
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['solicitor']))
 
+//STUDENT
+router.get('/students/:id', solicitorController.getStudentById); // Get student by ID
 
 //SOLICITOR - PROFILE
 router.put('/update/password',solicitorController.solicitorUpdatePassword)

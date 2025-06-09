@@ -28,6 +28,10 @@ router.post('/login',validateUniversityLogin, universityController.universityLog
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 
 
+//STUDENT
+router.get('/students/:id', universityController.getStudentById); // Get student by ID
+
+
 //NOTIFICATION 
 router.get('/notifications', universityController.getAllNotifications);
 router.get('/notifications/:id', universityController.getNotificationById);
