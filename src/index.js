@@ -47,15 +47,7 @@ app.use(express.json({
 }));
 app.use(cookieParser());
 
-// app.use(cors({
-//     origin: process.env.CLIENT_ORIGIN,
-//     credentials: true
-// }));
 
-//pre working
-// app.use(cors({
-//     origin: "https://connect2-uni.vercel.app",
-// }));
 
 //current in use
 const allowedOrigins = [
