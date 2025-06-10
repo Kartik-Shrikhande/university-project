@@ -25,6 +25,7 @@ const SolicitorSchema = new mongoose.Schema(
     },
     reason: { type: String, maxlength: 200 }, // Reason for deactivation, if applicable
     role: { type: String, default: "solicitor" },
+    currentToken: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }

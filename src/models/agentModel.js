@@ -22,6 +22,7 @@ const agentSchema = new mongoose.Schema(
       type: Boolean, 
       default: true, 
     },
+    currentToken: { type: String, default: null },
     role: { type: String,default: 'agent' },
     isDeleted: { 
       type: Boolean, 

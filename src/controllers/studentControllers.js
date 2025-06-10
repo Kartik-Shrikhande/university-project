@@ -664,6 +664,12 @@ exports.login = async (req, res) => {
     // Generate JWT Token
     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
 
+    // Invalidate previous session: Remove old token
+    await roleCollections.find(r => r.roleName === role).model.updateOne(
+      { _id: user._id },
+      { $set: { currentToken: token } }
+    );
+
     // Set token in HTTP-only cookie
     res.cookie('refreshtoken', token, {
       httpOnly: true,

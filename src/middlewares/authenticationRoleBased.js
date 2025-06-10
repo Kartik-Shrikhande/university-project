@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const Students = require('../models/studentsModel');
-
+const Agents = require('../models/agentModel');
+const Solicitor = require("../models/solicitorModel");
+const AssociateSolicitor = require('../models/associateModel');
+const Agency = require('../models/agencyModel');
+const University = require('../models/universityModel');
 
 //Previouse approach - in use
 exports.authenticateUser = (req, res, next) => {
@@ -176,11 +180,9 @@ exports.refreshToken = async (req, res) => {
 };
 
 
-
-
 exports.verifyToken = async (req, res) => {
   try {
-    const token = req.cookies?.refreshtoken ||req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.refreshtoken || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({ message: 'No token provided.' });
@@ -193,14 +195,34 @@ exports.verifyToken = async (req, res) => {
 
       const { id, role } = decoded;
 
-      // **Check if role is student**
-      if (role === 'student') {
-        const user = await Students.findById(id).select('-password'); // Fetch student data excluding password
-        if (!user) {
-          return res.status(404).json({ message: 'Student not found.' });
-        }
+      // Map roles to corresponding models
+      const roleModels = {
+        'student': Students,
+        'agent': Agents,
+        'solicitor': Solicitor,
+        'Associate': AssociateSolicitor,
+        'admin': Agency,
+        'University': University
+      };
 
-        // **Custom Response for Student Role**
+      const UserModel = roleModels[role];
+      if (!UserModel) {
+        return res.status(400).json({ message: 'Invalid role.' });
+      }
+
+      // Fetch user
+      const user = await UserModel.findById(id).select('-password');
+      if (!user) {
+        return res.status(404).json({ message: `${role} not found.` });
+      }
+
+      // Check if token matches the user's current active token
+      if (user.currentToken !== token) {
+        return res.status(401).json({ message: 'Session expired. Please login again.' });
+      }
+
+      // **Custom Response for Student Role**
+      if (role === 'student') {
         return res.status(200).json({
           message: 'Token is valid.',
           role: role,
@@ -208,14 +230,14 @@ exports.verifyToken = async (req, res) => {
           user: {
             id: user._id,
             email: user.email,
-            is_active: true, // Assuming all logged-in users are active
+            is_active: true,
             email_verified: user.isVerified || false,
             platform_fee_paid: user.isPaid || false,
             created_at: user.createdAt
           },
           platform_access: {
-            courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
-            payment_required: !user.isPaid, // If not paid, payment is required
+            courses_visible: user.isPaid || false,
+            payment_required: !user.isPaid,
             message: user.isPaid
               ? 'You have access to all platform features.'
               : 'Pay the platform fee to view universities and courses.'
@@ -231,7 +253,7 @@ exports.verifyToken = async (req, res) => {
             }
           ],
           applications: user.applications || [],
-          visa_status: null, // Modify this based on actual visa status logic
+          visa_status: null,
           payment_prompt: !user.isPaid
             ? {
                 type: 'platform_fee',
@@ -249,12 +271,93 @@ exports.verifyToken = async (req, res) => {
         userId: id,
         role: role
       });
+
     });
+
   } catch (error) {
     console.error('Verify token error:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
+// exports.verifyToken = async (req, res) => {
+//   try {
+//     const token = req.cookies?.refreshtoken ||req.headers.authorization?.split(' ')[1];
+
+//     if (!token) {
+//       return res.status(401).json({ message: 'No token provided.' });
+//     }
+
+//     jwt.verify(token, process.env.SECRET_KEY, async (err, decoded) => {
+//       if (err) {
+//         return res.status(403).json({ message: 'Invalid or expired token.' });
+//       }
+
+//       const { id, role } = decoded;
+
+//       // **Check if role is student**
+//       if (role === 'student') {
+//         const user = await Students.findById(id).select('-password'); // Fetch student data excluding password
+//         if (!user) {
+//           return res.status(404).json({ message: 'Student not found.' });
+//         }
+
+//         // **Custom Response for Student Role**
+//         return res.status(200).json({
+//           message: 'Token is valid.',
+//           role: role,
+//           token: token,
+//           user: {
+//             id: user._id,
+//             email: user.email,
+//             is_active: true, // Assuming all logged-in users are active
+//             email_verified: user.isVerified || false,
+//             platform_fee_paid: user.isPaid || false,
+//             created_at: user.createdAt
+//           },
+//           platform_access: {
+//             courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
+//             payment_required: !user.isPaid, // If not paid, payment is required
+//             message: user.isPaid
+//               ? 'You have access to all platform features.'
+//               : 'Pay the platform fee to view universities and courses.'
+//           },
+//           notifications: [
+//             {
+//               id: 'NOTIF-001',
+//               type: 'system',
+//               title: 'Welcome to Connect2Uni!',
+//               content: 'Complete your profile and pay the platform fee to proceed.',
+//               is_read: false,
+//               timestamp: new Date().toISOString()
+//             }
+//           ],
+//           applications: user.applications || [],
+//           visa_status: null, // Modify this based on actual visa status logic
+//           payment_prompt: !user.isPaid
+//             ? {
+//                 type: 'platform_fee',
+//                 amount: 100.0,
+//                 currency: 'GBP',
+//                 payment_url: '/api/payments/platform-fee'
+//               }
+//             : null
+//         });
+//       }
+
+//       // **Generic Response for Other Roles**
+//       return res.status(200).json({
+//         message: 'Token is valid.',
+//         userId: id,
+//         role: role
+//       });
+//     });
+//   } catch (error) {
+//     console.error('Verify token error:', error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 

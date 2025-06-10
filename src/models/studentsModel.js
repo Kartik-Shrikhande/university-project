@@ -193,8 +193,8 @@ const studentSchema = new mongoose.Schema(
         multiple_devices: { type: Boolean, default: false },
         suspicious_activity: { type: Boolean, default: false }
       }
-    }
-
+    },
+currentToken: { type: String, default: null },
   },
   { timestamps: true }
 );

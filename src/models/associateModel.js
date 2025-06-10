@@ -27,6 +27,7 @@ bankDetails: {
   assignedSolicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' ,default:null}],
   studentAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Array of student IDs
   role:{type: String, default: 'associate'},
+  currentToken: { type: String, default: null },
   isDeleted: { 
     type: Boolean, 
     default: false,
