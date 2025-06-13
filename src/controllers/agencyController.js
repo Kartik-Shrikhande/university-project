@@ -697,6 +697,7 @@ exports.deleteNotificationByIdAgency = async (req, res) => {
 };
 
 
+
 //STUDENT
 
 exports.getAllStudents = async (req, res) => {
@@ -1395,7 +1396,47 @@ exports.getApplicationByIdForAgency = async (req, res) => {
   }
 };
 
+// Get Applications by Status for an Agency
+exports.getApplicationsByStatus = async (req, res) => {
+  try {
+    const agencyId = req.user.id; // assuming JWT middleware assigns this
+    const { status } = req.query;
 
+    // Validate status input
+    const validStatuses = ['Processing', 'Accepted', 'Rejected', 'Withdrawn'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
+    }
+
+    // Check if agency exists
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      return res.status(404).json({ error: 'Agency not found.' });
+    }
+
+    // Fetch applications by status for this agency
+    const applications = await Application.find({
+      agency: agencyId,
+      status: status,
+      isDeleted: false
+    })
+    .populate('student', 'name email') // populate student details
+    .populate('university', 'name') // populate university name
+    .populate('course', 'name') // populate course name
+    .populate('assignedAgent', 'name email') // assigned agent details
+    .populate('assignedSolicitor', 'name email'); // assigned solicitor details
+
+    res.status(200).json({
+      message: `Applications with status '${status}' fetched successfully.`,
+      count: applications.length,
+      applications
+    });
+    
+  } catch (error) {
+    console.error('Error fetching applications by status:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
 
 
 //agent will move forward the application to university

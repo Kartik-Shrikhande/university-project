@@ -126,6 +126,8 @@ router.get('/get/application/:applicationId',agencyController.getApplicationById
 // Send application to university (Only accessible to Admin/Agency)
 router.post('/application/send/:applicationId',agencyController.sendApplicationToUniversity);
 router.put('/reject-application/:applicationId',agencyController.rejectApplication);
+// Fetch applications by status for agency
+router.get('/applications/filter',agencyController.getApplicationsByStatus);
 
 
 router.post('/assign-agent', agencyController.assignAgentToApplication);

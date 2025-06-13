@@ -74,6 +74,7 @@ router.get('/pending-applications',  universityController.getPendingApplications
 
 router.get('/all/applications', universityController.getAllUniversityApplications);
 
+router.get('/applications/filter',universityController.getApplicationsByStatus);
 
 // // ✅ Get application details by ID
 router.get('/application/:applicationId', universityController.getApplicationDetails);

@@ -265,6 +265,51 @@ exports.getApplicationDetails = async (req, res) => {
   }
 };
 
+
+
+// Get Applications by Status for a University
+exports.getApplicationsByStatus = async (req, res) => {
+  try {
+    const universityId = req.user.id;
+    const { status } = req.query;
+
+    // Validate status input
+    const validStatuses = ['Processing', 'Accepted'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
+    }
+
+    // Check if university exists
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ error: 'University not found.' });
+    }
+
+    // Fetch applications by status for this university
+    const applications = await Application.find({
+      university: universityId,
+      status: status,
+      isDeleted: false
+    })
+      .populate('student', 'name email')
+      .populate('course', 'name')
+      .populate('assignedAgent', 'name email')
+      .populate('assignedSolicitor', 'name email')
+      .populate('agency', 'name email');
+
+    res.status(200).json({
+      message: `Applications with status '${status}' fetched successfully.`,
+      count: applications.length,
+      applications
+    });
+
+  } catch (error) {
+    console.error('Error fetching applications by status for university:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+
 //NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
 exports.acceptApplication = async (req, res) => {
   try {
