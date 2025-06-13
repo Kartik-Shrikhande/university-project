@@ -946,64 +946,7 @@ exports.getCourseByIdforAgency = async (req, res) => {
 
 
 
-// Promote a university
-exports.promoteUniversity = async (req, res) => {
-  try {
-    const {universityId} = req.params; // Retrieve university ID from middleware
 
-    // Find the university by ID
-    const university = await University.findById(universityId);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found.' });
-    }
-
-    // Check if the university is already promoted
-    if (university.isPromoted === 'YES') {
-      return res.status(400).json({
-        message: `University "${university.name}" is already promoted.`,
-      });
-    }
-
-    // Update the `isPromoted` field
-    university.isPromoted = 'YES';
-    await university.save();
-
-    return res.status(200).json({
-      message: `University "${university.name}" has been promoted successfully.` });
-  } catch (error) {
-    console.error('Error promoting university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
-exports.demoteUniversity = async (req, res) => {
-  try {
-    const {universityId} = req.params; // Retrieve university ID from middleware
-
-    // Find the university by ID
-    const university = await University.findById(universityId);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found.' });
-    }
-
-    // Check if the university is already promoted
-    if (university.isPromoted === 'NO') {
-      return res.status(400).json({
-        message: `University "${university.name}" is already demoted.`,
-      });
-    }
-
-    // Update the `isPromoted` field
-    university.isPromoted = 'NO';
-    await university.save();
-
-    return res.status(200).json({
-      message: `University "${university.name}" has been demoted successfully.` });
-  } catch (error) {
-    console.error('Error promoting university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
 
 
 
@@ -1601,10 +1544,6 @@ exports.sendApplicationToUniversity = async (req, res) => {
   }
 };
 
-
-
-//university 
-
 exports.rejectApplication = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -1656,6 +1595,68 @@ exports.rejectApplication = async (req, res) => {
 };
 
 
+//university 
+// Promote a university
+exports.promoteUniversity = async (req, res) => {
+  try {
+    const {universityId} = req.params; // Retrieve university ID from middleware
+
+    // Find the university by ID
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if the university is already promoted
+    if (university.isPromoted === 'YES') {
+      return res.status(400).json({
+        message: `University "${university.name}" is already promoted.`,
+      });
+    }
+
+    // Update the `isPromoted` field
+    university.isPromoted = 'YES';
+    await university.save();
+
+    return res.status(200).json({
+      message: `University "${university.name}" has been promoted successfully.` });
+  } catch (error) {
+    console.error('Error promoting university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+exports.demoteUniversity = async (req, res) => {
+  try {
+    const {universityId} = req.params; // Retrieve university ID from middleware
+
+    // Find the university by ID
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Check if the university is already promoted
+    if (university.isPromoted === 'NO') {
+      return res.status(400).json({
+        message: `University "${university.name}" is already demoted.`,
+      });
+    }
+
+    // Update the `isPromoted` field
+    university.isPromoted = 'NO';
+    await university.save();
+
+    return res.status(200).json({
+      message: `University "${university.name}" has been demoted successfully.` });
+  } catch (error) {
+    console.error('Error promoting university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
 exports.createUniversity = async (req, res) => {
   try {
     const {
@@ -1665,7 +1666,6 @@ exports.createUniversity = async (req, res) => {
       website,
       phoneNumber,
       address,
-      institutionType,
       ratings,
     } = req.body;
 
@@ -1710,7 +1710,6 @@ exports.createUniversity = async (req, res) => {
         state: address.state,
         zipCode: address.zipCode,
       },
-      institutionType,
       isPromoted: req.body.isPromoted || 'NO', // Default to 'NO' if not provided
       ratings: ratings || [], // Default to an empty array if not provided
     });
@@ -1750,7 +1749,6 @@ await transporter.sendMail(mailOptions);
         website: newUniversity.website,
         phoneNumber: newUniversity.phoneNumber,
         address: newUniversity.address,
-        institutionType: newUniversity.institutionType,
         role: newUniversity.role,
         isPromoted: newUniversity.isPromoted,
         ratings: newUniversity.ratings,

@@ -47,7 +47,7 @@ const { sendPaymentSuccessEmail,sendSolicitorPaymentEmail } = require("../servic
 //PLATFORM PAYMENT 
 
 // Fixed payment amount (in smallest currency unit, e.g., 2000 = £20.00)
-const PAYMENT_AMOUNT = 2000;
+const PAYMENT_AMOUNT = 20;
 const CURRENCY = "GBP";
 
 exports.createPaymentIntent = async (req, res) => {

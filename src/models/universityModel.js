@@ -23,7 +23,7 @@ const universitySchema = new mongoose.Schema(
       state: { type: String},
       zipCode: { type: String, required: true },
     },
-    institutionType: { type: String, enum: ['Public', 'Private'], required: true },
+    // institutionType: { type: String, enum: ['Public', 'Private'], required: true },
     isPromoted: { type: String, enum: ['YES', 'NO'], default: 'NO' },
     courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
     pendingApplications: [

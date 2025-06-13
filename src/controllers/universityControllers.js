@@ -674,7 +674,7 @@ exports.updateUniversity = async (req, res) => {
     }
 
     // Extract fields from request body
-    const { name, description, website, phoneNumber, address, institutionType } = req.body;
+    const { name, description, website, phoneNumber, address } = req.body;
 
     // Prevent updating email, password, and isPromoted
     if (req.body.email || req.body.password || req.body.isPromoted) {
@@ -705,7 +705,6 @@ exports.updateUniversity = async (req, res) => {
           zipCode: address.zipCode || university.address.zipCode,
         }
       : university.address;
-    university.institutionType = institutionType || university.institutionType;
 
     // Save updated university
     await university.save();
@@ -720,7 +719,6 @@ exports.updateUniversity = async (req, res) => {
         website: university.website,
         phoneNumber: university.phoneNumber,
         address: university.address,
-        institutionType: university.institutionType,
         role: university.role,
         isPromoted: university.isPromoted, // No change allowed
       },
@@ -730,32 +728,6 @@ exports.updateUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-
-// exports.updateUniversity = async (req, res) => {
-//   try {
-//     const universityId = req.user.id; // Retrieve university ID from middleware
-//     const updates = req.body;
-
-//     // Validate updates
-//     if (!updates || Object.keys(updates).length === 0) {
-//       return res.status(400).json({ message: 'No updates provided.'});
-//     }
-
-//     const updatedUniversity = await University.findByIdAndUpdate(universityId, updates, { new: true });
-//     if (!updatedUniversity) {
-//       return res.status(404).json({ message: 'University not found.' });
-//     }
-
-//     return res.status(200).json({ 
-//       message: 'University updated successfully.', 
-//       university: updatedUniversity 
-//     });
-//   } catch (error) {
-//     console.error('Error updating university:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 exports.universityUpdatePassword = async (req, res) => {
