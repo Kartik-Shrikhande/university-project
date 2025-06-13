@@ -31,122 +31,286 @@ exports.getStudentDetailsForApplication = async (req, res) => {
   }
 };
 
+// exports.applyForCourse = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//       const { courseId } = req.params;
+//       const studentId = req.user.id;
+
+//       // Extract input fields from the request body
+//       const {
+//         //   previousDegree,
+//           grades,
+//           marks,
+//           financialAid
+//         //   fromYear,
+//         //   toYear,
+//       } = req.body;
+
+
+//  // ✅ Upload files to AWS S3 and get URLs
+//       // ✅ Upload files to AWS S3 and get URLs only if files are provided
+//       const latestdegreeCertificates = await uploadFilesToS3(req.files?.['latestdegreeCertificates'] || []);
+//       const englishTest = await uploadFilesToS3(req.files?.['englishTest'] || []);
+//       const proofOfAddress = await uploadFilesToS3(req.files?.['proofOfAddress'] || []);
+
+
+ 
+//       // Validate course ID
+//       if (!mongoose.Types.ObjectId.isValid(courseId)) {
+//           return res.status(400).json({ message: 'Invalid CourseId.' });
+//       }
+
+//       const course = await Course.findById(courseId).select('university status');
+//       if (!course) {
+//           return res.status(404).json({ message: 'Course not found.' });
+//       }
+
+//       if (course.status !== 'Active') {
+//           return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
+//       }
+
+//       const universityId = course.university;
+//        // ✅ Fetch Student Details
+//        const student = await Students.findById(studentId).session(session).select(
+//         'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
+//         'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
+//     );
+//     if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+//   // ✅ Check for 3 accepted applications
+//   const acceptedApplicationsCount = await Application.countDocuments({
+//     student: studentId,
+//     status: 'Accepted'
+//   }).session(session);
+
+//   if (acceptedApplicationsCount >= 3) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     return res.status(400).json({ message: 'You already have 3 accepted applications. You cannot apply for more courses.' });
+//   }
+//   const existingApplication = await Application.findOne({
+//     student: studentId,
+//     university: universityId,
+//     course: courseId,
+//   }).session(session);
+  
+
+  
+//   if (existingApplication) {
+//     if (existingApplication.status === 'Rejected') {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({
+//         message: 'You cannot apply for this course again as it was rejected by the university.',
+//       });
+//     } else {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({
+//         message: 'Application already exists for this course at the selected university.',
+//       });
+//     }
+//   }
+  
+  
+
+//       const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
+//       if (!defaultAgency) {
+//           return res.status(400).json({ message: 'Default agency not found.' });
+//       }
+
+//       // ✅ Create a new application with properly initialized arrays
+//       const newApplication = new Application({
+//           student: studentId,
+//           university: universityId,
+//           course: courseId,
+//           agency: defaultAgency._id,
+//           assignedAgent: student.assignedAgent || [],
+
+//           // Academic Details
+//         //   previousDegree,
+//           grades,
+//           marks,
+//           financialAid,
+     
+//           latestdegreeCertificates,
+//           englishTest,
+//           proofOfAddress
+          
+//       });
+
+//       await newApplication.save({ session });
+
+
+
+//  // ✅ Round-Robin Agent Assignment
+//     const populatedAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID)
+//       .populate({ path: 'agents', match: { isActive: true } })
+//       .session(session);
+
+//     const activeAgents = populatedAgency.agents;
+
+//     if (activeAgents.length === 0) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(400).json({ message: 'No active agents available in agency.' });
+//     }
+
+//     let nextIndex = populatedAgency.lastAssignedAgentIndex % activeAgents.length;
+//     const selectedAgent = activeAgents[nextIndex];
+
+//     newApplication.assignedAgent = [selectedAgent._id];
+//     await newApplication.save({ session });
+
+//     await Agent.findByIdAndUpdate(
+//       selectedAgent._id,
+//       { $push: { assignedApplications: newApplication._id } },
+//       { session }
+//     );
+
+//     populatedAgency.lastAssignedAgentIndex = (nextIndex + 1) % activeAgents.length;
+//     await populatedAgency.save({ session });
+
+
+
+// // Ensure applications array is initialized
+// if (!Array.isArray(student.applications)) {
+//   student.applications = [];
+// }
+
+// // Add the new application using $push (safer method)
+// await Students.findByIdAndUpdate(
+//   studentId,
+//   { $push: { applications: newApplication._id } },
+//   { session, new: true }
+// );
+
+// // Also update the agency
+// await Agency.findByIdAndUpdate(
+//   process.env.DEFAULT_AGENCY_ID,
+//   { $push: { pendingApplications: newApplication._id } },
+//   { session, new: true }
+// );
+
+
+//       // ✅ If any English Test files were uploaded, add them to student's record
+//       if (englishTest.length > 0) {
+//         await Students.findByIdAndUpdate(
+//           studentId,
+//           {
+//             $push: { document: { $each: englishTest } }
+//           },
+//           { session }
+//         );
+//       }
+      
+  
+//       await session.commitTransaction();
+//       session.endSession();
+
+//       return res.status(201).json({
+//           message: 'Application submitted successfully.',
+//           application: {
+//               id: newApplication._id,
+//               status: newApplication.status,
+//               submissionDate: newApplication.submissionDate,
+//               university: newApplication.university,
+//               course: newApplication.course,
+//           },
+  
+//       });
+
+//   } catch (error) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       console.error('Error applying for university:', error);
+//       return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
+
 exports.applyForCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-      const { courseId } = req.params;
-      const studentId = req.user.id;
+    const { courseId } = req.params;
+    const studentId = req.user.id;
 
-      // Extract input fields from the request body
-      const {
-        //   previousDegree,
-          grades,
-          marks,
-          financialAid
-        //   fromYear,
-        //   toYear,
-      } = req.body;
+    const { grades, marks, financialAid } = req.body;
 
+    const latestdegreeCertificates = await uploadFilesToS3(req.files?.['latestdegreeCertificates'] || []);
+    const englishTest = await uploadFilesToS3(req.files?.['englishTest'] || []);
+    const proofOfAddress = await uploadFilesToS3(req.files?.['proofOfAddress'] || []);
 
- // ✅ Upload files to AWS S3 and get URLs
-      // ✅ Upload files to AWS S3 and get URLs only if files are provided
-      const latestdegreeCertificates = await uploadFilesToS3(req.files?.['latestdegreeCertificates'] || []);
-      const englishTest = await uploadFilesToS3(req.files?.['englishTest'] || []);
-      const proofOfAddress = await uploadFilesToS3(req.files?.['proofOfAddress'] || []);
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: 'Invalid CourseId.' });
+    }
 
+    const course = await Course.findById(courseId).select('university status');
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found.' });
+    }
 
- 
-      // Validate course ID
-      if (!mongoose.Types.ObjectId.isValid(courseId)) {
-          return res.status(400).json({ message: 'Invalid CourseId.' });
-      }
+    if (course.status !== 'Active') {
+      return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
+    }
 
-      const course = await Course.findById(courseId).select('university status');
-      if (!course) {
-          return res.status(404).json({ message: 'Course not found.' });
-      }
+    const universityId = course.university;
 
-      if (course.status !== 'Active') {
-          return res.status(400).json({ message: 'This course is currently inactive and cannot be applied for.' });
-      }
-
-      const universityId = course.university;
-       // ✅ Fetch Student Details
-       const student = await Students.findById(studentId).session(session).select(
-        'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
-        'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
+    const student = await Students.findById(studentId).session(session).select(
+      'firstName middleName lastName dateOfBirth gender email countryCode telephoneNumber address documentType ' +
+      'documentUpload mostRecentEducation discipline otherDisciplineName otherEducationName collegeUniversity'
     );
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-  // ✅ Check for 3 accepted applications
-  const acceptedApplicationsCount = await Application.countDocuments({
-    student: studentId,
-    status: 'Accepted'
-  }).session(session);
+    // ✅ Get all unique universityIds student has already applied to
+    const existingApplications = await Application.find({
+      student: studentId
+    }).session(session).select('university');
 
-  if (acceptedApplicationsCount >= 3) {
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(400).json({ message: 'You already have 3 accepted applications. You cannot apply for more courses.' });
-  }
-  const existingApplication = await Application.findOne({
-    student: studentId,
-    university: universityId,
-    course: courseId,
-  }).session(session);
-  
+    const appliedUniversityIds = [...new Set(existingApplications.map(app => app.university.toString()))];
 
-  
-  if (existingApplication) {
-    if (existingApplication.status === 'Rejected') {
+    // ✅ If already applied to this university — block it
+    if (appliedUniversityIds.includes(universityId.toString())) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({
-        message: 'You cannot apply for this course again as it was rejected by the university.',
-      });
-    } else {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        message: 'Application already exists for this course at the selected university.',
-      });
+      return res.status(400).json({ message: 'You have already applied to this university. Only one application per university is allowed.' });
     }
-  }
-  
-  
 
-      const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
-      if (!defaultAgency) {
-          return res.status(400).json({ message: 'Default agency not found.' });
-      }
+    // ✅ If applying to a new university — check 3-university limit
+    if (appliedUniversityIds.length >= 3) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'you have reach the limit. You can only apply to a maximum of 3 different universities.' });
+    }
 
-      // ✅ Create a new application with properly initialized arrays
-      const newApplication = new Application({
-          student: studentId,
-          university: universityId,
-          course: courseId,
-          agency: defaultAgency._id,
-          assignedAgent: student.assignedAgent || [],
+    // ✅ Get Default Agency
+    const defaultAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID).session(session);
+    if (!defaultAgency) {
+      return res.status(400).json({ message: 'Default agency not found.' });
+    }
 
-          // Academic Details
-        //   previousDegree,
-          grades,
-          marks,
-          financialAid,
-     
-          latestdegreeCertificates,
-          englishTest,
-          proofOfAddress
-          
-      });
+    // ✅ Create new application
+    const newApplication = new Application({
+      student: studentId,
+      university: universityId,
+      course: courseId,
+      agency: defaultAgency._id,
+      assignedAgent: student.assignedAgent || [],
+      grades,
+      marks,
+      financialAid,
+      latestdegreeCertificates,
+      englishTest,
+      proofOfAddress
+    });
 
-      await newApplication.save({ session });
+    await newApplication.save({ session });
 
-
-
- // ✅ Round-Robin Agent Assignment
+    // ✅ Round-Robin Agent Assignment
     const populatedAgency = await Agency.findById(process.env.DEFAULT_AGENCY_ID)
       .populate({ path: 'agents', match: { isActive: true } })
       .session(session);
@@ -174,62 +338,51 @@ exports.applyForCourse = async (req, res) => {
     populatedAgency.lastAssignedAgentIndex = (nextIndex + 1) % activeAgents.length;
     await populatedAgency.save({ session });
 
+    await Students.findByIdAndUpdate(
+      studentId,
+      { $push: { applications: newApplication._id } },
+      { session }
+    );
 
+    await Agency.findByIdAndUpdate(
+      process.env.DEFAULT_AGENCY_ID,
+      { $push: { pendingApplications: newApplication._id } },
+      { session }
+    );
 
-// Ensure applications array is initialized
-if (!Array.isArray(student.applications)) {
-  student.applications = [];
-}
+    if (englishTest.length > 0) {
+      await Students.findByIdAndUpdate(
+        studentId,
+        {
+          $push: { document: { $each: englishTest } }
+        },
+        { session }
+      );
+    }
 
-// Add the new application using $push (safer method)
-await Students.findByIdAndUpdate(
-  studentId,
-  { $push: { applications: newApplication._id } },
-  { session, new: true }
-);
+    await session.commitTransaction();
+    session.endSession();
 
-// Also update the agency
-await Agency.findByIdAndUpdate(
-  process.env.DEFAULT_AGENCY_ID,
-  { $push: { pendingApplications: newApplication._id } },
-  { session, new: true }
-);
-
-
-      // ✅ If any English Test files were uploaded, add them to student's record
-      if (englishTest.length > 0) {
-        await Students.findByIdAndUpdate(
-          studentId,
-          {
-            $push: { document: { $each: englishTest } }
-          },
-          { session }
-        );
+    return res.status(201).json({
+      message: 'Application submitted successfully.',
+      application: {
+        id: newApplication._id,
+        status: newApplication.status,
+        submissionDate: newApplication.submissionDate,
+        university: newApplication.university,
+        course: newApplication.course,
       }
-      
-  
-      await session.commitTransaction();
-      session.endSession();
-
-      return res.status(201).json({
-          message: 'Application submitted successfully.',
-          application: {
-              id: newApplication._id,
-              status: newApplication.status,
-              submissionDate: newApplication.submissionDate,
-              university: newApplication.university,
-              course: newApplication.course,
-          },
-  
-      });
+    });
 
   } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      console.error('Error applying for university:', error);
-      return res.status(500).json({ message: 'Internal server error.' });
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error applying for university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
+
 
 exports.updateApplication = async (req, res) => {
     const session = await mongoose.startSession();
