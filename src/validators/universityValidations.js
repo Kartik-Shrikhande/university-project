@@ -53,7 +53,6 @@ const validateUniversity = [
   check('address.city').trim().notEmpty().withMessage('City is required.'),
   check('address.state').trim().optional(),
   check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.').isPostalCode('any').withMessage('Invalid Zip Code.'),
-  check('institutionType').trim().notEmpty().withMessage('Institution Type is required.').isIn(['Public', 'Private']).withMessage('Institution Type must be either Public or Private.'),
   validateResult, // Call the generic validation handler
 ];
 
