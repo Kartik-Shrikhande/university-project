@@ -53,7 +53,7 @@ const validateUniversity = [
   check('address.city').trim().notEmpty().withMessage('City is required.'),
   check('address.state').trim().optional(),
   check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.').isPostalCode('any').withMessage('Invalid Zip Code.'),
-  validateResult, // Call the generic validation handler
+  validateResult,
 ];
 
 // Validation rules for university login
