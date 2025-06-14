@@ -25,7 +25,7 @@ const associateRoutes = require('../src/routes/associateRoutes')
 const resetPasswordRoutes = require('../src/routes/resetPasswordRoutes')
 const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google Auth routes
 const solicitorRoutes = require('../src/routes/solicitorRoutes')
-
+const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // import
 // const applicationRoutes = require('../src/routes/applicationRoutes');
 
 const startCronJob = require('../src/controllers/inactivityMailController');
@@ -102,7 +102,7 @@ app.use('/redirect', googleAuthRoutes); // Google Auth route
 app.use('/solicitor', solicitorRoutes);
 
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
+app.use(globalErrorHandler);
 
 
 mongoose.connect(process.env.MONGODB_URL, { connectTimeoutMS: 60000, socketTimeoutMS: 60000 })
