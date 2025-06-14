@@ -11,6 +11,7 @@ const {validateAssociateCreation,validateAssociateUpdate}=require('../validators
 
 const {
 validateUniversity,
+validateUniversityUpdate,
     validateUniversityLogin,
     validateUpdateUniversity,
     validateDeleteUniversity,
@@ -70,6 +71,8 @@ router.get('/course/:courseId',agencyController.getCourseByIdforAgency) //n
 
 //UNIVERSITY
 router.post('/create/university',upload.single('bannerImage'),validateUniversity , agencyController.createUniversity);
+router.put('/university/update/:universityId',upload.single('bannerImage'),validateUniversityUpdate,agencyController.updateUniversityByAgency);
+router.delete('/university/delete/:universityId',agencyController.deleteUniversityByAgency);
 router.get('/get/universities',agencyController.getUniversities);
 router.get('/universities/:id', agencyController.getUniversityById);
 router.put('/promote/:universityId',agencyController.promoteUniversity);

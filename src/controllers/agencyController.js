@@ -1596,7 +1596,7 @@ exports.rejectApplication = async (req, res) => {
 
 
 //university 
-// Promote a university
+
 exports.promoteUniversity = async (req, res) => {
   try {
     const {universityId} = req.params; // Retrieve university ID from middleware
@@ -1654,7 +1654,6 @@ exports.demoteUniversity = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 
 exports.createUniversity = async (req, res) => {
@@ -1762,6 +1761,65 @@ await transporter.sendMail(mailOptions);
   }
 };
 
+// Update any university (by agency)
+exports.updateUniversityByAgency = async (req, res) => {
+  try {
+    const { universityId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID provided.' });
+    }
+    // Check if the university exists
+    let university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found' });
+    }
+
+    // Prevent updating email & password
+    if (req.body.email || req.body.password) {
+      return res.status(400).json({
+        message: 'Email and password cannot be updated.',
+      });
+    }
+
+    // Handle Image Upload
+    let bannerImage = null;
+    if (req.file) {
+      const uploadedFiles = await uploadFilesToS3([req.file]);
+      bannerImage = uploadedFiles[0];
+    }
+
+    // Update fields
+    const { name, description, website, phoneNumber, address, isPromoted } = req.body;
+
+    university.name = name || university.name;
+    university.description = description || university.description;
+    university.bannerImage = bannerImage || university.bannerImage;
+    university.website = website || university.website;
+    university.phoneNumber = phoneNumber || university.phoneNumber;
+    university.isPromoted = isPromoted || university.isPromoted;
+
+    university.address = address
+      ? {
+          country: address.country || university.address.country,
+          city: address.city || university.address.city,
+          state: address.state || university.address.state,
+          zipCode: address.zipCode || university.address.zipCode,
+        }
+      : university.address;
+
+    await university.save();
+
+    return res.status(200).json({
+      message: 'University updated successfully.',
+      university,
+    });
+  } catch (error) {
+    console.error('Error updating university by agency:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 // Get All Universities
 exports.getUniversities = async (req, res) => {
   try {
@@ -1797,6 +1855,34 @@ exports.getUniversityById = async (req, res) => {
     return res.status(200).json({ university });
   } catch (error) {
     console.error('Error fetching university:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+// Soft delete a university (by agency)
+exports.deleteUniversityByAgency = async (req, res) => {
+  try {
+    const { universityId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID provided.' });
+    }
+
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    if (university.isDeleted) {
+      return res.status(400).json({ message: 'University is already deleted.' });
+    }
+
+    university.isDeleted = true;
+    await university.save();
+
+    return res.status(200).json({ message: 'University deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting university by agency:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };

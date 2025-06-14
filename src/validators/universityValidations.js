@@ -48,7 +48,7 @@ const validateUniversity = [
    }),
   // check('password').trim().notEmpty().withMessage('Password is required.').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.'),
   check('website').trim().notEmpty().withMessage('Website is required.').isURL().withMessage('Invalid website URL.'),
-  check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').isNumeric().withMessage('Invalid phone number format.'),
+  // check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').isNumeric().withMessage('Invalid phone number format.'),
   check('address.country').trim().notEmpty().withMessage('Country is required.'),
   check('address.city').trim().notEmpty().withMessage('City is required.'),
   check('address.state').trim().optional(),
@@ -89,12 +89,7 @@ const validateUniversityUpdate = [
 
   check('name').optional().trim().notEmpty().withMessage('Name cannot be empty.'),
   check('website').optional().trim().isURL().withMessage('Invalid website URL.'),
-  check('phoneNumber').optional().trim().isMobilePhone().withMessage('Invalid phone number.'),
-
-  check('institutionType')
-    .optional()
-    .isIn(['Public', 'Private'])
-    .withMessage('Institution Type must be either Public or Private.'),
+  // check('phoneNumber').optional().trim().isMobilePhone().withMessage('Invalid phone number.'),
 
   check('address.country').optional().trim().notEmpty().withMessage('Country cannot be empty.'),
   check('address.city').optional().trim().notEmpty().withMessage('City cannot be empty.'),
