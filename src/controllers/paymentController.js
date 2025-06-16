@@ -47,7 +47,7 @@ const { sendPaymentSuccessEmail,sendSolicitorPaymentEmail } = require("../servic
 //PLATFORM PAYMENT 
 
 // Fixed payment amount (in smallest currency unit, e.g., 2000 = £20.00)
-const PAYMENT_AMOUNT = 30;
+const PAYMENT_AMOUNT = 20;
 const CURRENCY = "GBP";
 
 exports.createPaymentIntent = async (req, res) => {
@@ -60,6 +60,12 @@ exports.createPaymentIntent = async (req, res) => {
     if (student.isPaid) {
         return res.status(400).json({ error: "Payment already completed." });
       }
+
+ // ✅ Validate amount is at least 30 pence (Stripe minimum for GBP)
+    if (PAYMENT_AMOUNT < 30) {
+      return res.status(400).json({ error: "Amount must be at least £0.30 GBP." });
+    }
+
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: PAYMENT_AMOUNT,
