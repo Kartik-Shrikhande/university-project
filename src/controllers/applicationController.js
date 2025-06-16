@@ -349,16 +349,16 @@ exports.applyForCourse = async (req, res) => {
       { $push: { pendingApplications: newApplication._id } },
       { session }
     );
-
-    if (englishTest.length > 0) {
-      await Students.findByIdAndUpdate(
-        studentId,
-        {
-          $push: { document: { $each: englishTest } }
-        },
-        { session }
-      );
-    }
+    
+if (englishTest.length > 0) {
+  await Students.findByIdAndUpdate(
+    studentId,
+    {
+      $set: { document: englishTest }   // replaces the entire array
+    },
+    { session }
+  );
+}
 
     await session.commitTransaction();
     session.endSession();
