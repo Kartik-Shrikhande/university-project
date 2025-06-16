@@ -72,7 +72,7 @@ const sendPaymentSuccessEmail = async (student) => {
     'Payment Successful',
     '#28a745',
     `<p style="font-size:16px;">Hi ${student.firstName},</p>
-     <p>Thank you for your payment of <strong>£20</strong>. Transaction completed.</p>
+     <p>Thank you for your payment of <strong>30 GBP</strong>. Transaction completed.</p>
      <p>You now have full access to the student portal.</p>`
   );
 

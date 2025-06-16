@@ -291,7 +291,7 @@ exports.getApplicationsByStatus = async (req, res) => {
       status: status,
       isDeleted: false
     })
-      .populate('student', 'name email')
+      .populate('student', 'firstName lastName  email')
       .populate('course', 'name')
       .populate('assignedAgent', 'name email')
       .populate('assignedSolicitor', 'name email')
@@ -543,70 +543,6 @@ exports.rejectApplication = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
-
-
-// exports.rejectApplication = async (req, res) => {
-//   try {
-//     const { applicationId } = req.params;
-//     const { reason } = req.body;
-//     const universityId = req.user.id; // Get university ID from authenticated user
-
-//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res .status(400).json({ success: false, message: "Invalid Application ID" });
-//     }
-
-//     // Find the application
-//     const application = await Application.findById(applicationId);
-//     if (!application) {
-//       return res.status(404).json({ success: false, message: 'Application not found' });
-//     }
-
-    
-//     // Check if already accepted/rejected
-//     if (application.status !== 'Processing') {
-//       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
-//     }
-
-//     // Update application status to 'Rejected'
-//     application.status = 'Rejected';
-//     application.reviewDate = new Date();
-//     await application.save();
-
-
-//     const studentId = application.student._id;
-//     const studentEmail = application.student.email;
-
-//     // ✅ Save Notification in MongoDB
-//     await new Notification({
-//       user: studentId,
-//       message: `Your application has been rejected by the university. Reason: ${reason}`,
-//       type: 'Application',
-//     }).save();
-
-//     // ✅ Send Rejection Email
-//     await sendRejectionEmail(studentEmail, reason);
-// // ✅ Send real-time notification
-// sendNotification(studentId.toString(), notification.message, "Application");
-//     // Remove application from university's pending applications
-//     await University.findByIdAndUpdate(universityId, {
-//       $pull: {
-//         pendingApplications: {
-//           applicationId: application._id,
-//           student: application.student._id,
-//         },
-//       },
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       message: 'Application rejected successfully',
-//     });
-//   } catch (error) {
-//     console.error('Error rejecting application:', error);
-//     res.status(500).json({success: false,message: 'Internal server error'});}
-// };
-
 
 
 

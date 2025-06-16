@@ -1363,7 +1363,7 @@ exports.getApplicationsByStatus = async (req, res) => {
       status: status,
       isDeleted: false
     })
-    .populate('student', 'name email') // populate student details
+    .populate('student', 'firstName lastName email') // populate student details
     .populate('university', 'name') // populate university name
     .populate('course', 'name') // populate course name
     .populate('assignedAgent', 'name email') // assigned agent details
