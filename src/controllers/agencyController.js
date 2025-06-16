@@ -1828,7 +1828,7 @@ exports.getUniversities = async (req, res) => {
     // if (!student) {
     //   return res.status(404).json({ message: 'Student not found from.' });
     // }
-    const universities = await University.find().sort({ isPromoted: -1});
+  const universities = await University.find({ isDeleted: false }).sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
     }
