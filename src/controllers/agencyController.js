@@ -12,6 +12,7 @@ const Course = require('../models/coursesModel');
 const university = require('../models/universityModel');
 const Notification = require('../models/notificationModel');
 const AssociateSolicitor = require('../models/associateModel');
+const checkEmailExists = require('../utils/checkEmailExists');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
 const { sendRejectionEmail,sendSolicitorRequestApprovedEmail } = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
@@ -39,9 +40,10 @@ exports.createAgent = async (req, res) => {
     // Check if the email is already in use
     const existingAgent = await Agent.findOne({ email });
 
-    if (existingAgent && !existingAgent.isDeleted) {
-      return res.status(400).json({ success: false, message: "Email already in use." });
-    }
+   const existingRole = await checkEmailExists(email, session);
+if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
 
     // Remove old deleted agent if exists
     if (existingAgent && existingAgent.isDeleted) {
@@ -955,11 +957,10 @@ exports.createAgency = async (req, res) => {
   try {
     const { name, email, password, contactPhone, address } = req.body;
 
-    // Check for duplicate email
-    const existingAgency = await Agency.findOne({ email });
-    if (existingAgency) {
-      return res.status(400).json({ error: 'Agency with this email already exists.' });
-    }
+   const existingRole = await checkEmailExists(email, session);
+if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -1669,10 +1670,10 @@ exports.createUniversity = async (req, res) => {
     } = req.body;
 
     // Check if the email is already in use
-    const existingUniversity = await University.findOne({ email });
-    if (existingUniversity) {
-      return res.status(400).json({ message: 'Email is already in use.' });
-    }
+const existingRole = await checkEmailExists(email, session);
+if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
 
     // Auto-generate a password
     const password = generator.generate({
@@ -2168,9 +2169,10 @@ exports.createAssociate = async (req, res) => {
     const existingAssociate = await AssociateSolicitor.findOne({ email });
 
 
-    if (existingAssociate && !existingAssociate.isDeleted) {
-      return res.status(400).json({ success: false, message: "Email already in use" });
-    }
+const existingRole = await checkEmailExists(email, session);
+if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
 
     // If the associate exists but isDeleted: true, remove the old record
     if (existingAssociate && existingAssociate.isDeleted) {

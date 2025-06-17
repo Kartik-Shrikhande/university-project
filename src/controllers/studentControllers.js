@@ -23,7 +23,7 @@ const Agency = require('../models/agencyModel');
 const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
-
+const checkEmailExists = require('../utils/checkEmailExists');
 
 
 //SOLICTOR  
@@ -316,10 +316,10 @@ exports.registerStudent = async (req, res) => {
       }
     }
     // Check if student already exists
-    const existingStudent = await Students.findOne({ email }).session(session);;
-    if (existingStudent) {
-      return res.status(400).json({ message: 'Email is already in use.' });
-    }
+const existingRole = await checkEmailExists(email, session);
+if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}. Please use a different email.` });
+}
 
     if (!countryCode) {
       await session.abortTransaction();

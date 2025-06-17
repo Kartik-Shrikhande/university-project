@@ -8,7 +8,7 @@ const { encryptData,decryptData } = require('../services/encryption&decryptionKe
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const solicitorModel = require('../models/solicitorModel');
-
+const checkEmailExists = require('../utils/checkEmailExists');
 
 //STUDENT
 exports.getStudentById = async (req, res) => {
@@ -187,9 +187,10 @@ exports.createSolicitor = async (req, res) => {
     // Check if the email is already registered
     const existingSolicitor = await Solicitor.findOne({ email });
     
-        if (existingSolicitor && !existingSolicitor.isDeleted) {
-          return res.status(400).json({ success: false, message: "Email already in use" });
-        }
+      const existingRole = await checkEmailExists(email, session);
+    if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
     
         // If the associate exists but isDeleted: true, remove the old record
         if (existingSolicitor && existingSolicitor.isDeleted) {

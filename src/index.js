@@ -31,15 +31,7 @@ const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // 
 const startCronJob = require('../src/controllers/inactivityMailController');
 const startCourseExpiryCron = require('../src/services/courseExpiryCheck'); // Course expiry cron
 
-// Start the cron job
 
-// // Check each role collection
-//     const roleCollections = [
-//       { model: University, roleName: 'University' },
-//       { model: Students, roleName: 'student' },
-//       { model: Agents, roleName: 'agent' },
-//       { model: Solicitors, roleName: 'solicitor' },
-//       { model: Agencies, roleName: 'admin' }
 
 // Set up middleware
 app.use(express.json({
@@ -98,10 +90,9 @@ app.use('/agent', agentsRoutes)
 app.use('/associate', associateRoutes)
 app.use('/password', resetPasswordRoutes)
 app.use('/redirect', googleAuthRoutes); // Google Auth route
-// app.use('/application', applicationRoutes);
 app.use('/solicitor', solicitorRoutes);
 
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.use(globalErrorHandler);
 
 
