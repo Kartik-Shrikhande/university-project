@@ -1823,11 +1823,7 @@ exports.updateUniversityByAgency = async (req, res) => {
 // Get All Universities
 exports.getUniversities = async (req, res) => {
   try {
-    // const studentId = req.user.id;
-    // const student = await Students.findById(studentId).session(session);
-    // if (!student) {
-    //   return res.status(404).json({ message: 'Student not found from.' });
-    // }
+  
   const universities = await University.find({ isDeleted: false }).sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
@@ -1887,6 +1883,270 @@ exports.deleteUniversityByAgency = async (req, res) => {
   }
 };
 
+
+
+
+//COURSE
+// Create Course (Agency)
+exports.createCourseByAgency = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { universityId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID.' });
+    }
+
+    const {
+      name,
+      description,
+      description2,
+      description3,
+      fees,
+      ratings,
+      expiryDate,
+      courseType,
+      courseDuration
+    } = req.body;
+
+    const university = await University.findById(universityId).session(session);
+    if (!university) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
+    if (existingCourse) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
+    }
+
+    const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime()) || expiry <= new Date()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid expiry date. It must be a future date.' });
+    }
+
+    let courseImages = [];
+    if (req.files && req.files.length > 0) {
+      courseImages = await uploadFilesToS3(req.files);
+    }
+
+    const course = new Course({
+      name,
+      description,
+      description2,
+      description3,
+      university: universityId,
+      fees,
+      ratings,
+      expiryDate: expiry,
+      courseType,
+      courseDuration,
+      courseImage: courseImages,
+    });
+
+    await course.save({ session });
+
+    university.courses.push(course._id);
+    await university.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({ message: 'Course created successfully.', course });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error creating course by agency:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+// Update Course (Agency)
+exports.updateCourseByAgency = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { universityId, courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID.' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: 'Invalid course ID.' });
+    }
+
+
+    const {
+      name,
+      description,
+      description2,
+      description3,
+      fees,
+      ratings,
+      expiryDate,
+      courseType,
+      courseDuration
+    } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid course ID format.' });
+    }
+
+     const university = await University.findById(universityId).session(session);
+    if (!university) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    const course = await Course.findOne({ _id: courseId, university: universityId }).session(session);
+    if (!course) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Course not found in university or unauthorized to update.' });
+    }
+
+    if (course.isDeleted) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot update a deleted course.' });
+    }
+
+    if (course.expiryDate && new Date(course.expiryDate) < new Date()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot update an expired course.' });
+    }
+
+    if (expiryDate) {
+      const newExpiry = new Date(expiryDate);
+      if (isNaN(newExpiry.getTime()) || newExpiry <= new Date()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Expiry date must be a valid future date.' });
+      }
+      course.expiryDate = newExpiry;
+    }
+
+    if (fees !== undefined) {
+      if (isNaN(fees) || fees <= 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Fees must be a positive number.' });
+      }
+      course.fees = fees;
+    }
+
+    const validCourseTypes = ['fulltime', 'parttime', 'online'];
+    if (courseType && !validCourseTypes.includes(courseType)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: `Invalid course type. Allowed values: ${validCourseTypes.join(', ')}` });
+    }
+    if (courseType) course.courseType = courseType;
+
+    if (courseDuration !== undefined) {
+      if (!/^\d+$/.test(courseDuration)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Course duration must be a positive integer.' });
+      }
+      course.courseDuration = courseDuration;
+    }
+
+    if (name) course.name = name;
+    if (description) course.description = description;
+    if (description2) course.description2 = description2;
+    if (description3) course.description3 = description3;
+    if (ratings) course.ratings = ratings;
+
+    if (req.files && req.files.length > 0) {
+      course.courseImage = await uploadFilesToS3(req.files);
+    }
+
+    await course.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Course updated successfully.', course });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error updating course by agency:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+// Delete Course (Agency)
+exports.deleteCourseByAgency = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { universityId, courseId } = req.params;
+
+
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ message: 'Invalid university ID.' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: 'Invalid course ID.' });
+    }
+
+
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid course ID format.' });
+    }
+
+     const university = await University.findById(universityId).session(session);
+    if (!university) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    const course = await Course.findOne({ _id: courseId, university: universityId }).session(session);
+    if (!course) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Course not found in university or unauthorized to delete.' });
+    }
+
+    if (course.isDeleted) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Course is already deleted.' });
+    }
+
+    course.isDeleted = true;
+    await course.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ message: 'Course deleted successfully.' });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error deleting course by agency:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
 
 
 // ASSOCIATES 

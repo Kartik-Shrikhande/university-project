@@ -18,11 +18,41 @@ exports.validateCreateCourse = [
     .isString()
     .withMessage('Description must be a string.')
     .trim(),
+
+    body('description2')
+    .optional()
+    .isString()
+    .withMessage('Description2 must be a string.')
+    .trim(),
+
+  body('description3')
+    .optional()
+    .isString()
+    .withMessage('Description3 must be a string.')
+    .trim(),
   body('fees')
     .notEmpty()
     .withMessage('Course fees are required.')
     .isFloat({ min: 0 })
     .withMessage('Course fees must be a positive number.'),
+
+     body('courseDuration')
+    .notEmpty()
+    .withMessage('Course duration is required.')
+    .isString()
+    .withMessage('Course duration must be a string.'),
+ body('courseType')
+    .notEmpty()
+    .withMessage('Course type is required.')
+    .isIn(['fulltime', 'parttime', 'online'])
+    .withMessage('Course type must be one of: fulltime, parttime, or online.'),
+
+  body('expiryDate')
+    .notEmpty()
+    .withMessage('Expiry date is required.')
+    .isISO8601()
+    .withMessage('Expiry date must be a valid date.'),
+
   body('ratings')
     .optional()
     .isArray()
@@ -62,11 +92,40 @@ exports.validateUpdateCourse = [
       .isLength({ max: 500 })
       .withMessage('Description cannot exceed 500 characters.'),
   
+       body('description2')
+    .optional()
+    .isString()
+    .withMessage('Description2 must be a string.')
+    .trim(),
+
+  body('description3')
+    .optional()
+    .isString()
+    .withMessage('Description3 must be a string.')
+    .trim(),
+
     // Validate fees (if provided in the body)
     check('fees')
       .optional()
       .isFloat({ min: 0 })
       .withMessage('Fees must be a positive number.'),
+
+
+        body('courseDuration')
+    .optional()
+    .isString()
+    .withMessage('Course duration must be a string.'),
+
+  body('courseType')
+    .optional()
+    .isIn(['fulltime', 'parttime', 'online'])
+    .withMessage('Course type must be one of: fulltime, parttime, or online.'),
+
+  body('expiryDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Expiry date must be a valid date.'),
+
   
     // Validate ratings (if provided in the body)
     check('ratings')

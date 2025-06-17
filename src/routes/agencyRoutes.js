@@ -6,7 +6,7 @@ const upload = require('../middlewares/uploadMiddleware'); // Import upload midd
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const receiptController = require('../controllers/receiptController');
 const { body, validationResult } = require('express-validator');
-
+const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
 const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
 
 const {
@@ -153,6 +153,14 @@ router.put('/associate/:id',validateAssociateUpdate,validate, agencyController.u
 router.delete('/associate/:id', agencyController.deleteAssociate);
 
 
+
+//COURSES
+// Create Course (Agency)
+router.post('/course/create/:universityId',upload.array('courseImage',5),validateCreateCourse,handleValidationErrors,agencyController.createCourseByAgency);
+router.put('/course/update/:universityId/:courseId',upload.array('courseImage',5),validateUpdateCourse,handleValidationErrors,agencyController.updateCourseByAgency);
+router.delete('/course/delete/:universityId/:courseId',validateDeleteCourse,handleValidationErrors,agencyController.deleteCourseByAgency);
+
+
 router.use('*', (req, res) => {
     res.status(404).json({
         error: "Invalid URL path",
@@ -161,3 +169,4 @@ router.use('*', (req, res) => {
 });
 
 module.exports = router;
+
