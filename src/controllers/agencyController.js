@@ -112,7 +112,7 @@ if (existingRole) {
 
 exports.getAllAgents = async (req, res) => {
   try {
-    const agents = await Agent.find({ agency: req.user.id, isDeleted: false })
+    const agents = await Agent.find({ isDeleted: false })
       .select('-password')  // Exclude password from result
       .sort({ createdAt: -1 }); // Optional: latest first
 
@@ -705,7 +705,7 @@ exports.deleteNotificationByIdAgency = async (req, res) => {
 exports.getAllStudents = async (req, res) => {
   try {
     const students = await Students.find()
-      .select('firstName middleName lastName email countryCode telephoneNumber address documentType countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
+      .select('firstName middleName lastName email countryCode telephoneNumber address documentType documentUpload countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
       .populate('agency', 'name') // Assuming you want to populate agency name
       .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
 
@@ -1343,7 +1343,8 @@ exports.getApplicationByIdForAgency = async (req, res) => {
 // Get Applications by Status for an Agency
 exports.getApplicationsByStatus = async (req, res) => {
   try {
-    const agencyId = req.user.id; // assuming JWT middleware assigns this
+    const userId = req.user.id;
+    const userRole = req.user.role;
     const { status } = req.query;
 
     // Validate status input
@@ -1352,10 +1353,20 @@ exports.getApplicationsByStatus = async (req, res) => {
       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
     }
 
-    // Check if agency exists
-    const agency = await Agency.findById(agencyId);
-    if (!agency) {
-      return res.status(404).json({ error: 'Agency not found.' });
+    let agencyId;
+
+    if (userRole === 'admin') {
+      // User is agency
+      agencyId = userId;
+    } else if (userRole === 'agent') {
+      // User is agent — get their agency
+      const agent = await Agent.findById(userId);
+      if (!agent) {
+        return res.status(404).json({ error: 'Agent not found.' });
+      }
+      agencyId = agent.agency;
+    } else {
+      return res.status(403).json({ error: 'Unauthorized role.' });
     }
 
     // Fetch applications by status for this agency
@@ -1364,23 +1375,24 @@ exports.getApplicationsByStatus = async (req, res) => {
       status: status,
       isDeleted: false
     })
-    .populate('student', 'firstName lastName email') // populate student details
-    .populate('university', 'name') // populate university name
-    .populate('course', 'name') // populate course name
-    .populate('assignedAgent', 'name email') // assigned agent details
-    .populate('assignedSolicitor', 'name email'); // assigned solicitor details
+      .populate('student', 'firstName lastName email')
+      .populate('university', 'name')
+      .populate('course', 'name')
+      .populate('assignedAgent', 'name email')
+      .populate('assignedSolicitor', 'name email');
 
     res.status(200).json({
       message: `Applications with status '${status}' fetched successfully.`,
       count: applications.length,
       applications
     });
-    
+
   } catch (error) {
     console.error('Error fetching applications by status:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 
 //agent will move forward the application to university
