@@ -316,7 +316,7 @@ exports.registerStudent = async (req, res) => {
       }
     }
     // Check if student already exists
-const existingRole = await checkEmailExists(email, session);
+ const existingRole = await checkEmailExists(email, null);
 if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}. Please use a different email.` });
 }

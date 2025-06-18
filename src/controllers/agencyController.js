@@ -40,7 +40,7 @@ exports.createAgent = async (req, res) => {
     // Check if the email is already in use
     const existingAgent = await Agent.findOne({ email });
 
-   const existingRole = await checkEmailExists(email, session);
+  const existingRole = await checkEmailExists(email, null);
 if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
 }
@@ -957,7 +957,7 @@ exports.createAgency = async (req, res) => {
   try {
     const { name, email, password, contactPhone, address } = req.body;
 
-   const existingRole = await checkEmailExists(email, session);
+  const existingRole = await checkEmailExists(email, null);
 if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
 }
@@ -1670,7 +1670,7 @@ exports.createUniversity = async (req, res) => {
     } = req.body;
 
     // Check if the email is already in use
-const existingRole = await checkEmailExists(email, session);
+ const existingRole = await checkEmailExists(email, null);
 if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
 }
@@ -2169,7 +2169,7 @@ exports.createAssociate = async (req, res) => {
     const existingAssociate = await AssociateSolicitor.findOne({ email });
 
 
-const existingRole = await checkEmailExists(email, session);
+ const existingRole = await checkEmailExists(email, null);
 if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
 }

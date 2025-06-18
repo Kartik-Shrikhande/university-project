@@ -187,7 +187,7 @@ exports.createSolicitor = async (req, res) => {
     // Check if the email is already registered
     const existingSolicitor = await Solicitor.findOne({ email });
     
-      const existingRole = await checkEmailExists(email, session);
+     const existingRole = await checkEmailExists(email, null);
     if (existingRole) {
   return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
 }
