@@ -34,9 +34,13 @@ const validate = (req, res, next) => {
 router.post('/create', agencyController.createAgency);
 // Get All Agencies
 // router.get('/agencies', agencyController.getAllAgencies);
+router.use(
+  authenticationMiddleware.authenticateUser,
+  authenticationMiddleware.authorizeRoles(['admin', 'agent']),
+  authenticationMiddleware.resolveAgencyContext // <-- New middleware here
+);
 
 
-router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['admin','agent']))
 
 
 //RECEIPT 

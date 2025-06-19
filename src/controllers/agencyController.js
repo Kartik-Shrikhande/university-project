@@ -138,7 +138,7 @@ exports.getAgentById = async (req, res) => {
     }
 
 
-    const agent = await Agent.findOne({ _id: agentId, agency: req.user.id, isDeleted: false })
+    const agent = await Agent.findOne({ _id: agentId, isDeleted: false })
       .select('-password');
 
     if (!agent) {
@@ -193,7 +193,6 @@ exports.updateAgent = async (req, res) => {
     // Find the agent under the same agency
     const agent = await Agent.findOne({
       _id: agentId,
-      agency: req.user.id,
       isDeleted: false
     });
 
@@ -244,7 +243,7 @@ exports.deleteAgent = async (req, res) => {
     }
 
 
-    const agent = await Agent.findOne({ _id: agentId, agency: req.user.id, isDeleted: false });
+    const agent = await Agent.findOne({ _id: agentId, isDeleted: false });
 
     if (!agent) {
       return res.status(404).json({ success: false, message: "Agent not found." });

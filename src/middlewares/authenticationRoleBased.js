@@ -22,6 +22,7 @@ exports.authenticateUser = (req, res, next) => {
     req.user = {
       id: decoded.id,       // Extract user ID
       role: decoded.role,   // Extract user role
+      agency: decoded.agency,
       exp: decoded.exp,     // Token expiration time
       iat: decoded.iat      // Token issued time
     };
@@ -280,86 +281,26 @@ exports.verifyToken = async (req, res) => {
   }
 };
 
+// added below function for providing access to all agency to agent
+// Attach agencyId dynamically based on role
 
-// exports.verifyToken = async (req, res) => {
-//   try {
-//     const token = req.cookies?.refreshtoken ||req.headers.authorization?.split(' ')[1];
+exports.resolveAgencyContext = async (req, res, next) => {
+  try {
+    // Only run for agent or admin roles
+    if (req.user.role === 'agent') {
+      const agent = await Agents.findById(req.user.id);
+      if (!agent) {
+        return res.status(404).json({ message: 'Agent not found.' });
+      }
+      // Overwrite req.user.id with agency id for all controllers to use transparently
+      req.user.id = agent.agency.toString();
+    }
 
-//     if (!token) {
-//       return res.status(401).json({ message: 'No token provided.' });
-//     }
+    // admin already has their id as agencyId — no change needed
 
-//     jwt.verify(token, process.env.SECRET_KEY, async (err, decoded) => {
-//       if (err) {
-//         return res.status(403).json({ message: 'Invalid or expired token.' });
-//       }
-
-//       const { id, role } = decoded;
-
-//       // **Check if role is student**
-//       if (role === 'student') {
-//         const user = await Students.findById(id).select('-password'); // Fetch student data excluding password
-//         if (!user) {
-//           return res.status(404).json({ message: 'Student not found.' });
-//         }
-
-//         // **Custom Response for Student Role**
-//         return res.status(200).json({
-//           message: 'Token is valid.',
-//           role: role,
-//           token: token,
-//           user: {
-//             id: user._id,
-//             email: user.email,
-//             is_active: true, // Assuming all logged-in users are active
-//             email_verified: user.isVerified || false,
-//             platform_fee_paid: user.isPaid || false,
-//             created_at: user.createdAt
-//           },
-//           platform_access: {
-//             courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
-//             payment_required: !user.isPaid, // If not paid, payment is required
-//             message: user.isPaid
-//               ? 'You have access to all platform features.'
-//               : 'Pay the platform fee to view universities and courses.'
-//           },
-//           notifications: [
-//             {
-//               id: 'NOTIF-001',
-//               type: 'system',
-//               title: 'Welcome to Connect2Uni!',
-//               content: 'Complete your profile and pay the platform fee to proceed.',
-//               is_read: false,
-//               timestamp: new Date().toISOString()
-//             }
-//           ],
-//           applications: user.applications || [],
-//           visa_status: null, // Modify this based on actual visa status logic
-//           payment_prompt: !user.isPaid
-//             ? {
-//                 type: 'platform_fee',
-//                 amount: 100.0,
-//                 currency: 'GBP',
-//                 payment_url: '/api/payments/platform-fee'
-//               }
-//             : null
-//         });
-//       }
-
-//       // **Generic Response for Other Roles**
-//       return res.status(200).json({
-//         message: 'Token is valid.',
-//         userId: id,
-//         role: role
-//       });
-//     });
-//   } catch (error) {
-//     console.error('Verify token error:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
-
-//new approach  - not in use 08/02/2025
-
+    next();
+  } catch (error) {
+    console.error('Error resolving agency context:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
