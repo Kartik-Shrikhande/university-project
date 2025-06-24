@@ -16,7 +16,7 @@ const generateEmailTemplate = (title, color, contentHtml) => `
     <h2 style="color:${color};text-align:center;">${title}</h2>
     ${contentHtml}
     <div style="margin-top:30px;text-align:center;color:#999;font-size:12px;">
-      © ${new Date().getFullYear()} Your Company Name. All rights reserved.
+      © ${new Date().getFullYear()} Connect2Uni. All rights reserved.
     </div>
   </div>
 `;
