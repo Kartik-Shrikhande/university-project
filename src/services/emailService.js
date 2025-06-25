@@ -107,10 +107,10 @@ const sendPaymentSuccessEmail = async (student) => {
     'Payment Confirmation',
     '#28a745',
     `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">We've successfully processed your payment of <strong>2000 GBP</strong>.</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">We've successfully processed your payment of <strong>20 GBP</strong>.</p>
      <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
        <h4 style="margin:0 0 10px 0;color:#28a745;">Payment Details</h4>
-       <p style="margin:5px 0;color:#555555;"><strong>Amount:</strong> 2000 GBP</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Amount:</strong> 20 GBP</p>
        <p style="margin:5px 0;color:#555555;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#28a745;">Completed</span></p>
      </div>
