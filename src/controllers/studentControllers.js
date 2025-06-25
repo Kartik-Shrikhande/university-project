@@ -729,7 +729,7 @@ exports.login = async (req, res) => {
         payment_prompt: !user.isPaid
           ? {
               type: "platform_fee",
-              amount: 100.0,
+              amount: 2000,
               currency: "GBP",
               payment_url: "/api/payments/platform-fee"
             }
