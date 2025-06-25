@@ -24,7 +24,7 @@ const crypto = require('crypto');
 const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
-
+const { sendVerificationEmail } = require('../services/emailService');
 
 //SOLICTOR  
 exports.applyForSolicitor = async (req, res) => {
@@ -427,27 +427,8 @@ if (existingRole) {
 
   res.setHeader('Authorization', `Bearer ${token}`)
   
-    // Send OTP email
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-
-//LINK 
-const mailOptions = {
-  from: process.env.EMAIL_USER,
-  to: email,
-  subject: 'Email Verification',
-  text: `Click the following link to verify your email: 
-  ${process.env.EMAIL_VERIFICATION_SERVER_LINK}/student/verify-email?token=${verificationToken}`,
-};
-
-await transporter.sendMail(mailOptions);
-
+  // Email content
+  await sendVerificationEmail(newStudent);
     //OTP
     // const mailOptions = {
     //   from: process.env.EMAIL_USER,
@@ -1095,34 +1076,11 @@ exports.resendVerificationEmail = async (req, res) => {
     if (student.isVerified) {
       return res.status(400).json({ message: 'Email is already verified.' });
     }
-
-    // Generate a new verification token
-    const newVerificationToken = crypto.randomBytes(32).toString('hex');
-
-    // Update the student record with the new token
-    student.verificationToken = newVerificationToken;
-    await student.save();
-
-    // Configure the email transporter
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+ 
 
     // Email content
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Email Verification - Resend',
-      text: `Click the following link to verify your email: 
-      ${process.env.EMAIL_VERIFICATION_SERVER_LINK}/student/verify-email?token=${newVerificationToken}`,
-    };
+  await sendVerificationEmail(student);
 
-    // Send the email
-    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({
       message: 'A new verification link has been sent to your email. Please check your inbox.',
