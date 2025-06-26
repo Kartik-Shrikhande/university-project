@@ -1392,6 +1392,64 @@ exports.getApplicationsByStatus = async (req, res) => {
   }
 };
 
+exports.getApplicationsByUniversity = async (req, res) => {
+  try {
+    const { universityId } = req.params;
+    const { status } = req.query;
+
+    // Validate universityId
+    if (!mongoose.Types.ObjectId.isValid(universityId)) {
+      return res.status(400).json({ error: 'Invalid university ID.' });
+    }
+
+    // Check university existence
+    const university = await University.findById(universityId);
+    if (!university) {
+      return res.status(404).json({ message: 'University not found.' });
+    }
+
+    // Validate status query (if provided)
+    const validStatuses = ['Accepted', 'Rejected'];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value. Allowed: Accepted, Rejected.' });
+    }
+
+    let query = {
+      university: universityId,
+      isDeleted: false
+    };
+
+
+    if (status) {
+      query.status = status;
+    }
+
+    // Fetch applications
+    const applications = await Application.find(query)
+      .populate('student', 'firstName lastName email')
+      .populate('course', 'name')
+      .populate('assignedAgent', 'username email')
+      .populate('assignedSolicitor', 'username email')
+      .select('student course status assignedAgent assignedSolicitor');
+
+    res.status(200).json({
+      message: `Applications fetched successfully${status ? ` with status '${status}'` : ''}.`,
+      count: applications.length,
+      applications: applications.map(app => ({
+        _id: app._id,
+        student: app.student,
+        course: app.course,
+        status: app.status,
+        assignedAgent: app.assignedAgent,
+        assignedSolicitor: app.assignedSolicitor
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching applications by university:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
 
 
 //agent will move forward the application to university

@@ -720,7 +720,7 @@ exports.login = async (req, res) => {
  // **Custom Response for Agent Role**
 if (role === "agent") {
   const token = jwt.sign(
-    { id: user._id, role: role, agency: user.agency },
+    { id: user._id, role: role, agency: user.agency,email: user.email },
     process.env.SECRET_KEY,
     { expiresIn: '1h' }
   );

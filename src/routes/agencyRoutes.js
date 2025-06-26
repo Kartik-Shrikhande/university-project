@@ -135,6 +135,7 @@ router.post('/application/send/:applicationId',agencyController.sendApplicationT
 router.put('/reject-application/:applicationId',agencyController.rejectApplication);
 // Fetch applications by status for agency
 router.get('/applications/filter',agencyController.getApplicationsByStatus);
+router.get('/applications/university/:universityId',agencyController.getApplicationsByUniversity);
 
 
 router.post('/assign-agent', agencyController.assignAgentToApplication);
