@@ -158,21 +158,18 @@ const sendSolicitorPaymentEmail = async (student) => {
 };
 
 // 📧 Application Acceptance Email (with attachment link)
-const sendAcceptanceEmailWithAttachment = async (email, fileUrl) => {
+
+const sendAcceptanceEmail = async (email, courseName, universityName) => {
   const html = generateEmailTemplate(
     'Congratulations! 🎉',
     '#28a745',
     `<p style="font-size:16px;color:#333333;line-height:1.6;">Dear Student,</p>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">We are thrilled to inform you that your application has been <strong style="color:#28a745;">accepted</strong>!</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">We are thrilled to inform you that your application for <strong>${courseName}</strong> at <strong>${universityName}</strong> has been <strong style="color:#28a745;">accepted</strong>!</p>
      <div style="background-color:#e8f5e9;border-radius:4px;padding:15px;margin:20px 0;text-align:center;">
        <p style="margin:0;font-size:18px;color:#28a745;">Welcome to Connect2Uni!</p>
      </div>
      <p style="font-size:16px;color:#555555;line-height:1.6;">This is an exciting step in your academic journey, and we look forward to supporting you every step of the way.</p>
-     ${fileUrl ? `<p style="font-size:16px;color:#555555;line-height:1.6;">Your official acceptance letter is attached below. Please review it carefully for next steps.</p>` : ''}`,
-    fileUrl ? {
-      text: 'Download Acceptance Letter',
-      link: fileUrl
-    } : null
+     <p style="font-size:16px;color:#555555;line-height:1.6;">Your official acceptance letter will soon be sent to you by agency.</p>`
   );
 
   await transporter.sendMail({
@@ -183,10 +180,24 @@ const sendAcceptanceEmailWithAttachment = async (email, fileUrl) => {
   });
 };
 
+
+
 // 📧 Notify Agency of Application Status
-const sendAgencyNotificationEmail = async (email, studentName, studentId, status) => {
+const sendAgencyNotificationEmail = async (
+  email,
+  studentName,
+  studentId,
+  status,
+  courseName,
+  universityName,
+  uploadedFileUrl = null
+) => {
   const color = status === 'Rejected' ? '#d9534f' : '#28a745';
   const statusText = status === 'Rejected' ? 'not approved' : 'approved';
+
+  const fileLinkHtml = uploadedFileUrl
+    ? `<p style="margin:5px 0;color:#555555;"><strong>Document:</strong> <a href="${uploadedFileUrl}" target="_blank" style="color:#007bff;">View Document</a></p>`
+    : '';
 
   const html = generateEmailTemplate(
     `Student Application ${status}`,
@@ -197,7 +208,10 @@ const sendAgencyNotificationEmail = async (email, studentName, studentId, status
        <h4 style="margin:0 0 10px 0;color:${color};">Application Status Update</h4>
        <p style="margin:5px 0;color:#555555;"><strong>Student Name:</strong> ${studentName}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Student ID:</strong> ${studentId}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Course:</strong> ${courseName}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>University:</strong> ${universityName}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:${color};">${statusText}</span></p>
+       ${fileLinkHtml}
      </div>
      <p style="font-size:16px;color:#555555;line-height:1.6;">Please log in to your partner dashboard for more details about this application.</p>`,
     {
@@ -213,6 +227,34 @@ const sendAgencyNotificationEmail = async (email, studentName, studentId, status
     html
   });
 };
+
+const sendOfferLetterEmailByAgency = async (email, studentName, courseName, universityName, fileUrl) => {
+  const html = generateEmailTemplate(
+    'Your Official Acceptance Letter',
+    '#28a745',
+    `<p style="font-size:16px;color:#333333;">Hi <strong>${studentName}</strong>,</p>
+     <p style="font-size:16px;color:#555555;">We are delighted to officially welcome you to <strong>${universityName}</strong> for the <strong>${courseName}</strong> program!</p>
+     ${fileUrl
+        ? `<p style="font-size:16px;color:#555555;">You can download your acceptance letter from the link below:</p>
+           <div style="text-align:center;margin:20px 0;">
+             <a href="${fileUrl}" style="background-color:#28a745;color:#ffffff;padding:12px 20px;border-radius:4px;text-decoration:none;">Download Acceptance Letter</a>
+           </div>`
+        : `<p style="font-size:16px;color:#555555;">Your acceptance documents will be sent to you shortly.</p>`
+      }
+     <p style="font-size:16px;color:#555555;">Congratulations once again on this achievement!</p>`
+  );
+
+  await transporter.sendMail({
+    from: `"Connect2Uni Admissions" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Official Acceptance Letter from ${universityName}`,
+    html
+  });
+};
+
+
+
+
 
 // 📧 Solicitor Request Approved
 const sendSolicitorRequestApprovedEmail = async (student) => {
@@ -265,6 +307,10 @@ const sendSolicitorAssignedEmail = async (student, solicitor) => {
     html
   });
 };
+
+
+
+
 
 // 📧 Receipt Uploaded to University
 const sendReceiptUploadedEmailToUniversity = async (university, student, courseName) => {
@@ -427,12 +473,15 @@ const sendReceiptRejectedEmailToAgency = async (agency, student, universityName,
 
 // ✅ Export all
 module.exports = {
+   generateEmailTemplate,
+  COMPANY_LOGO,
   sendVerificationEmail,
   sendRejectionEmail,
   sendPaymentSuccessEmail,
   sendSolicitorPaymentEmail,
-  sendAcceptanceEmailWithAttachment,
+  sendAcceptanceEmail,
   sendAgencyNotificationEmail,
+  sendOfferLetterEmailByAgency,
   sendSolicitorRequestApprovedEmail,
   sendSolicitorAssignedEmail,
   sendReceiptUploadedEmailToUniversity,

@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const { uploadFilesToS3 } = require('../utils/s3Upload'); 
 const Notification = require('../models/notificationModel'); // Import Notification model
-const { sendRejectionEmail ,sendAcceptanceEmailWithAttachment,sendAgencyNotificationEmail} = require('../services/emailService');
+const { sendRejectionEmail ,sendAcceptanceEmail,sendAgencyNotificationEmail} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
 const Agency = require('../models/agencyModel');
 const Students = require('../models/studentsModel');
@@ -333,7 +333,11 @@ exports.acceptApplication = async (req, res) => {
       return res.status(403).json({ success: false, message: 'This application does not belong to your university' });
     }
 
-    const application = await Application.findById(applicationId).populate('student');
+    const application = await Application.findById(applicationId)
+    .populate('student')
+    .populate('course', 'name')
+    .populate('university', 'name');
+
     if (!application) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
@@ -362,34 +366,54 @@ exports.acceptApplication = async (req, res) => {
       $push: { approvedApplications: applicationId },
     });
 
-    // Step 4: Send email with file link
-    await sendAcceptanceEmailWithAttachment(application.student.email, uploadedFileUrl);
-
-    // Step 5: Save in-app notification
-    const notificationMessage = `Congratulations! Your application has been accepted.${uploadedFileUrl ? ` You can download your acceptance letter here: ${uploadedFileUrl}` : ''}`;
-    await new Notification({
-      user: application.student._id,
-      message: notificationMessage,
-      type: 'Application',
-    }).save();
-
-   // Step 6: Notify agency if exists
+     // Step 6: Notify agency if exists
    const studentName = `${application.student.firstName} ${application.student.lastName}`;
    const studentId = application.student._id;
 
+    // Step 4: Send email with file link
+   await sendAcceptanceEmail(
+  application.student.email,
+  application.course.name,
+  application.university.name
+);
+
+
+    // Step 5: Save in-app notification
+await new Notification({
+  user: application.student._id,
+  message: `Congratulations! Your application for the course ${application.course.name} at ${application.university.name} has been accepted.`,
+  type: 'Application',
+  university: application.university._id,
+  course: application.course._id
+}).save();
+
+
+  
    if (application.agency) {
      const agency = await Agency.findById(application.agency);
      if (agency) {
-       await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Accepted');
+    await sendAgencyNotificationEmail(
+  agency.email,
+  studentName,
+  studentId,
+  'Accepted',
+  application.course.name,
+  application.university.name,
+  uploadedFileUrl
+);
 
-       await new Notification({
-         user: agency._id,
-         message: `Application for ${studentName} (ID: ${studentId}) has been accepted by the university.`,
-         type: 'Application',
-       }).save();
+
+await new Notification({
+  user: agency._id,
+  message: `Application for ${studentName} (ID: ${studentId}) to ${application.university.name} for course ${application.course.name} has been accepted.`,
+  type: 'Application',
+   additionalData: {
+        fileUrl: uploadedFileUrl || null
+      }
+}).save();
+
      }
    }
-
 
 
     res.status(200).json({

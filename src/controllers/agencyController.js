@@ -14,10 +14,11 @@ const Notification = require('../models/notificationModel');
 const AssociateSolicitor = require('../models/associateModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
-const { sendRejectionEmail,sendSolicitorRequestApprovedEmail } = require('../services/emailService');
+const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
+
 
 
 //AGENT APIS
@@ -696,6 +697,7 @@ exports.deleteNotificationByIdAgency = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
 
 
 
@@ -1448,6 +1450,74 @@ exports.getApplicationsByUniversity = async (req, res) => {
   } catch (error) {
     console.error('Error fetching applications by university:', error);
     res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.sendAcceptanceLetter = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({ success: false, message: 'Invalid application ID' });
+    }
+
+    const application = await Application.findById(applicationId)
+      .populate('student')
+      .populate('course')
+      .populate('university');
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    if (application.status !== 'Accepted') {
+      return res.status(400).json({ success: false, message: 'Application is not accepted yet.' });
+    }
+
+    const student = application.student;
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    // 📤 Upload offer letter file to S3 if uploaded
+    let uploadedFileUrl = null;
+    if (req.file) {
+      const [url] = await uploadFilesToS3([req.file]);
+      uploadedFileUrl = url;
+
+      // Optionally: push this to application.extraDocuments
+      application.extraDocuments.push(uploadedFileUrl);
+      await application.save();
+    }
+
+    // 📧 Send acceptance offer letter email
+    await sendOfferLetterEmailByAgency(
+      student.email,
+      student.firstName,
+      application.course.name,
+      application.university.name,
+      uploadedFileUrl
+    );
+
+    // 🛎️ Save in-app notification
+    await new Notification({
+      user: student._id,
+      message: `Congratulations! Your official acceptance letter for ${application.course.name} at ${application.university.name} has been sent to your email.`,
+      type: 'Application',
+      additionalData: {
+        fileUrl: uploadedFileUrl || null
+      }
+    }).save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Acceptance letter sent successfully.',
+      uploadedFileUrl
+    });
+
+  } catch (error) {
+    console.error('Error sending acceptance letter:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 

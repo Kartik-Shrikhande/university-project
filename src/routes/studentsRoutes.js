@@ -97,13 +97,6 @@ router.post('/logout', userControllers.logout);
   );
 
 
-  // router.get('/get/universitiesss',
-  //   //authenticationMiddleware1.authenticateUser,
-  //   //authenticationMiddleware1.authorizeRoles('student'),
-  //   //paymentMiddleware.checkPaymentStatus,
-  //   userActivity.updateLastActivity,
-  //   userControllers.getUniversities);
-
     
 // 🔹 Refresh Token Route (Generates new access token using refresh token)
 router.post('/refresh-token', authenticationMiddleware.refreshToken);
@@ -225,24 +218,6 @@ router.get('/get/universities',
 
 
 
-//   //get unniversity by id
-// router.get('/get/university/:universityId',
-//   authenticationMiddleware1.authenticateUser, 
-//   authenticationMiddleware1.authorizeRoles(['student']),
-//   paymentMiddleware.checkPaymentStatus,
-//   userActivity.updateLastActivity,
-//   userControllers.getUniversityById);
-
-// router.post('/create-payment',
-//   // authenticationMiddleware1.authenticateUser,  // Ensure user is authenticated
-//   // authenticationMiddleware1.authorizeRoles(['student']), // Only allow students
-//   userActivity.updateLastActivity,
-//     userControllers.createPayment)
-
-
-
-
-
    router.post('/enroll/:courseId',
     paymentMiddleware.checkPaymentStatus,
     userActivity.updateLastActivity,
@@ -271,24 +246,7 @@ paymentMiddleware.checkPaymentStatus,
 userActivity.updateLastActivity,
  userControllers.getCourseById) //n
 
- 
 
-//APPLICATION
-
-// POST route for applying to a university
-// / Multer setup for multiple document uploads
-// ✅ Use upload.fields() properly
-// const uploads = uploadImage.fields([
-//   { name: 'documents', maxCount: 10 },
-//   { name: 'academicTranscripts', maxCount: 5 },
-//   { name: 'proofOfEnglishProficiency', maxCount: 5 },
-//   { name: 'lettersOfRecommendation', maxCount: 5 },
-//   { name: 'statementOfPurpose', maxCount: 5 },
-//   { name: 'resumeCV', maxCount: 5 },
-//   { name: 'passportSizePhotographs', maxCount: 5 },
-//   { name: 'financialStatements', maxCount: 5 },
-//   { name: 'additionalDocuments', maxCount: 5 }
-// ]);
 
 
 // router.post('/application/:courseId', applicationController.applyForCourse);//previouse
