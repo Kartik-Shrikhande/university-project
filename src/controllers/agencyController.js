@@ -1357,10 +1357,8 @@ exports.getApplicationsByStatus = async (req, res) => {
     let agencyId;
 
     if (userRole === 'admin') {
-      // User is agency
       agencyId = userId;
     } else if (userRole === 'agent') {
-      // User is agent — get their agency
       const agent = await Agent.findById(userId);
       if (!agent) {
         return res.status(404).json({ error: 'Agent not found.' });
@@ -1370,10 +1368,32 @@ exports.getApplicationsByStatus = async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized role.' });
     }
 
-    // Fetch applications by status for this agency
+    const agency = await Agency.findById(agencyId).lean();
+    if (!agency) {
+      return res.status(404).json({ error: 'Agency not found.' });
+    }
+
+    let applicationIds = [];
+
+    // Get application IDs based on agency record fields
+    if (status === 'Processing') {
+      applicationIds = agency.pendingApplications.map(id => id.toString());
+    } else if (status === 'Accepted') {
+      applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
+    } else {
+      // For Rejected / Withdrawn — query Application model by status field
+      const apps = await Application.find({
+        agency: agencyId,
+        status: status,
+        isDeleted: false
+      }).select('_id');
+
+      applicationIds = apps.map(app => app._id.toString());
+    }
+
+    // Fetch Applications based on these IDs
     const applications = await Application.find({
-      agency: agencyId,
-      status: status,
+      _id: { $in: applicationIds },
       isDeleted: false
     })
       .populate('student', 'firstName lastName email')
@@ -1393,6 +1413,7 @@ exports.getApplicationsByStatus = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 exports.getApplicationsByUniversity = async (req, res) => {
   try {
