@@ -502,18 +502,43 @@ exports.verifyEmail = async (req, res) => {
     const student = await Students.findOne({ verificationToken: token });
 
     if (!student) {
-      return res.status(400).json({ error: 'Invalid token.' });
+      return res.status(400).send(`
+        <html>
+          <head><title>Email Verification</title></head>
+          <body style="font-family:sans-serif; text-align:center; padding:50px;">
+            <h2 style="color:red;">Invalid or expired verification link.</h2>
+          </body>
+        </html>
+      `);
     }
 
     student.isVerified = true;
-    student.verificationToken = null;  // Clear the token after successful verification
+    student.verificationToken = null;
     await student.save();
 
-    res.status(200).json({ message: 'Email verified successfully!' });
+    res.status(200).send(`
+      <html>
+        <head><title>Email Verified</title></head>
+        <body style="font-family:sans-serif; text-align:center; padding:50px;">
+          <h2 style="color:green;">Email verified successfully!</h2>
+          <p style="font-size:16px;color:#333;">Thank you for verifying your email. You can now log in to your account.</p>
+          <a href="${process.env.CLIENT_LOGIN_PAGE}" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;">Go to Login</a>
+        </body>
+      </html>
+    `);
   } catch (error) {
-    res.status(500).json({ error: 'Error verifying email.' });
+    console.error('Error verifying email:', error);
+    res.status(500).send(`
+      <html>
+        <head><title>Error</title></head>
+        <body style="font-family:sans-serif; text-align:center; padding:50px;">
+          <h2 style="color:red;">Something went wrong while verifying your email.</h2>
+        </body>
+      </html>
+    `);
   }
 };
+
 
 exports.verifyOtpForRegistration = async (req, res) => {
   const session = await mongoose.startSession();
