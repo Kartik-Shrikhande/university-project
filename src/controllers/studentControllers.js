@@ -507,6 +507,7 @@ exports.verifyEmail = async (req, res) => {
           <head><title>Email Verification</title></head>
           <body style="font-family:sans-serif; text-align:center; padding:50px;">
             <h2 style="color:red;">Invalid or expired verification link.</h2>
+            <p style="font-size:16px; color:#555;">You can request a new verification link by logging in to your account.</p>
           </body>
         </html>
       `);
