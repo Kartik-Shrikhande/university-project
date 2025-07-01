@@ -62,7 +62,7 @@ const startCronJob = () => {
         const message = `We noticed you haven't logged into your account yet. Don't miss out on the exciting opportunities waiting for you!`;
         await sendReminderEmail(student, 'We Miss You!', message, '#007bff', {
           text: 'Log In Now',
-          link: `${process.env.CLIENT_BASE_URL}/student/login`
+          link: `${process.env.CLIENT_BASE_URL}/login`
         });
       }
 

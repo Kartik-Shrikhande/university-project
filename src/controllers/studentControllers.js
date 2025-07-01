@@ -1560,7 +1560,7 @@ exports.getUniversityById = async (req, res) => {
     const findUniversity = await University.findOne({
       _id: universityId,
       isDeleted: false, // Ensuring we only fetch non-deleted universities
-    }).session(session);
+    }).select('-password').session(session);
 
     if (!findUniversity) {
       return res.status(404).json({ message: 'University not found or has been deleted.' });
@@ -1590,7 +1590,7 @@ exports.getUniversities = async (req, res) => {
     // if (!student) {
     //   return res.status(404).json({ message: 'Student not found from.' });
     // }
-    const universities = await University.find({isDeleted:false}).sort({ isPromoted: -1 });
+    const universities = await University.find({isDeleted:false}).select('-password').sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
     }
