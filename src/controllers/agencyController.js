@@ -781,149 +781,159 @@ exports.getAllUniversityCoursesforAgency = async (req, res) => {
 };
 
 // Get all courses 
- exports.getallCoursesWithFiltersforAgency = async (req, res) => {
-   try {
-     const { 
-       minPrice, 
-       maxPrice, 
-       country, 
-       courseName, 
-       universityName, 
-       courseType, 
-       minDuration, 
-       maxDuration, 
-       expiryDate 
-     } = req.query;
- 
-     // Build the filter object dynamically
-     const filter = {
-      //  status: 'Active', // Show only active courses
-      //  isDeleted: false, // Exclude soft-deleted courses
-     };
- 
-     // Validate and apply price filters
-     if (minPrice || maxPrice) {
-       const min = Number(minPrice);
-       const max = Number(maxPrice);
- 
-       if (minPrice && isNaN(min)) {
-         return res.status(400).json({ message: 'minPrice must be a valid number.' });
-       }
-       if (maxPrice && isNaN(max)) {
-         return res.status(400).json({ message: 'maxPrice must be a valid number.' });
-       }
-       if ((minPrice && min < 0) || (maxPrice && max < 0)) {
-         return res.status(400).json({ message: 'Price values cannot be negative.' });
-       }
-       if (minPrice && maxPrice && min > max) {
-         return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
-       }
- 
-       filter.fees = {};
-       if (minPrice) filter.fees.$gte = min;
-       if (maxPrice) filter.fees.$lte = max;
-     }
- 
-     // Fetch universities matching country filter
-     if (country) {
-       const universitiesInCountry = await University.find({
-         'address.country': new RegExp(country, 'i'),
-         isDeleted: false, // Exclude deleted universities
-       }).select('_id');
- 
-       if (!universitiesInCountry.length) {
-         return res.status(404).json({ message: 'No universities found in the specified country.' });
-       }
- 
-       filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
-     }
- 
-     // Fetch universities matching university name filter
-     if (universityName) {
-       const universitiesWithName = await University.find({
-         name: new RegExp(universityName, 'i'),
-         isDeleted: false, // Exclude deleted universities
-       }).select('_id');
- 
-       if (!universitiesWithName.length) {
-         return res.status(404).json({ message: 'No universities found with the specified name.' });
-       }
- 
-       // If both country and university name are provided, filter matching both
-       if (filter.university && filter.university.$in) {
-         filter.university.$in = filter.university.$in.filter((id) =>
-           universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
-         );
- 
-         if (!filter.university.$in.length) {
-           return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
-         }
-       } else {
-         filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
-       }
-     }
- 
-     // Apply course name filter
-     if (courseName) {
-       filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
-     }
- 
-     // **New: Apply Course Type filter**
-     if (courseType) {
-       filter.courseType = new RegExp(courseType, 'i'); // Case-insensitive match
-     }
- 
-     // **New: Apply Course Duration filter**
-     if (minDuration || maxDuration) {
-       const minDur = Number(minDuration);
-       const maxDur = Number(maxDuration);
- 
-       if (minDuration && isNaN(minDur)) {
-         return res.status(400).json({ message: 'minDuration must be a valid number.' });
-       }
-       if (maxDuration && isNaN(maxDur)) {
-         return res.status(400).json({ message: 'maxDuration must be a valid number.' });
-       }
-       if ((minDuration && minDur < 0) || (maxDuration && maxDur < 0)) {
-         return res.status(400).json({ message: 'Duration values cannot be negative.' });
-       }
-       if (minDuration && maxDuration && minDur > maxDur) {
-         return res.status(400).json({ message: 'Invalid duration range. minDuration cannot be greater than maxDuration.' });
-       }
- 
-       filter.courseDuration = {};
-       if (minDuration) filter.courseDuration.$gte = minDur;
-       if (maxDuration) filter.courseDuration.$lte = maxDur;
-     }
- 
-     // **New: Apply Expiry Date filter**
-     if (expiryDate) {
-       const parsedExpiryDate = new Date(expiryDate);
-       if (isNaN(parsedExpiryDate.getTime())) {
-         return res.status(400).json({ message: 'Invalid expiry date format. Use YYYY-MM-DD.' });
-       }
-       filter.expiryDate = { $gte: parsedExpiryDate }; // Show courses that expire on or after the given date
-     }
- 
-     // Fetch the filtered courses
-     const courses = await Course.find(filter)
-       .populate({
-         path: 'university',
-         select: 'name address.country', // Include university details
-       })
-       .sort({ applicationDate: -1 }); // Sort by latest application date
- 
-     if (!courses.length) {
-       return res.status(404).json({ message: 'No active courses found matching the criteria.' });
-     }
- 
-     // Send response
-     return res.status(200).json({ total: courses.length, coursesList: courses });
-   } catch (error) {
-     console.error('Error fetching courses with filters:', error);
-     return res.status(500).json({ message: 'Internal server error.' });
-   }
- };
+exports.getallCoursesWithFiltersforAgency = async (req, res) => {
+  try {
+    const {
+      minPrice,
+      maxPrice,
+      country,
+      courseName,
+      universityName,
+      courseType,
+      minDuration,
+      maxDuration,
+      expiryDate,
+      level
+    } = req.query;
+
+    // Build the filter object dynamically
+    const filter = {};
+
+    // Price filter
+    if (minPrice || maxPrice) {
+      const min = Number(minPrice);
+      const max = Number(maxPrice);
+
+      if (minPrice && isNaN(min)) {
+        return res.status(400).json({ message: 'minPrice must be a valid number.' });
+      }
+      if (maxPrice && isNaN(max)) {
+        return res.status(400).json({ message: 'maxPrice must be a valid number.' });
+      }
+      if ((minPrice && min < 0) || (maxPrice && max < 0)) {
+        return res.status(400).json({ message: 'Price values cannot be negative.' });
+      }
+      if (minPrice && maxPrice && min > max) {
+        return res.status(400).json({ message: 'Invalid price range. minPrice cannot be greater than maxPrice.' });
+      }
+
+      filter.fees = {};
+      if (minPrice) filter.fees.$gte = min;
+      if (maxPrice) filter.fees.$lte = max;
+    }
+
+    // Country filter (fetch university IDs first)
+    if (country) {
+      const universitiesInCountry = await University.find({
+        'address.country': new RegExp(country, 'i'),
+        isDeleted: false,
+      }).select('_id');
+
+      if (!universitiesInCountry.length) {
+        return res.status(404).json({ message: 'No universities found in the specified country.' });
+      }
+
+      filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
+    }
+
+    // University name filter (also fetch university IDs)
+    if (universityName) {
+      const universitiesWithName = await University.find({
+        name: new RegExp(universityName, 'i'),
+        isDeleted: false,
+      }).select('_id');
+
+      if (!universitiesWithName.length) {
+        return res.status(404).json({ message: 'No universities found with the specified name.' });
+      }
+
+      if (filter.university && filter.university.$in) {
+        // Intersect university IDs if both country and university name are present
+        filter.university.$in = filter.university.$in.filter((id) =>
+          universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
+        );
+
+        if (!filter.university.$in.length) {
+          return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
+        }
+      } else {
+        filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
+      }
+    }
+
+    // Course name filter
+    if (courseName) {
+      filter.name = new RegExp(courseName, 'i');
+    }
+
+    // Course type filter
+    if (courseType) {
+      filter.courseType = new RegExp(courseType, 'i');
+    }
+
+    // Level filter
+    if (level) {
+      filter.level = new RegExp(level, 'i');
+    }
+
+    // Course duration filter
+    if (minDuration || maxDuration) {
+      const minDur = Number(minDuration);
+      const maxDur = Number(maxDuration);
+
+      if (minDuration && isNaN(minDur)) {
+        return res.status(400).json({ message: 'minDuration must be a valid number.' });
+      }
+      if (maxDuration && isNaN(maxDur)) {
+        return res.status(400).json({ message: 'maxDuration must be a valid number.' });
+      }
+      if ((minDuration && minDur < 0) || (maxDuration && maxDur < 0)) {
+        return res.status(400).json({ message: 'Duration values cannot be negative.' });
+      }
+      if (minDuration && maxDuration && minDur > maxDur) {
+        return res.status(400).json({ message: 'Invalid duration range. minDuration cannot be greater than maxDuration.' });
+      }
+
+      filter.courseDuration = {};
+      if (minDuration) filter.courseDuration.$gte = minDur;
+      if (maxDuration) filter.courseDuration.$lte = maxDur;
+    }
+
+    // Expiry date filter
+    if (expiryDate) {
+      const parsedExpiryDate = new Date(expiryDate);
+      if (isNaN(parsedExpiryDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid expiry date format. Use YYYY-MM-DD.' });
+      }
+      filter.expiryDate = { $gte: parsedExpiryDate };
+    }
+
+    // Fetch the filtered courses
+    const courses = await Course.find(filter)
+      .populate({
+        path: 'university',
+        select: 'name address.country',
+      })
+      .sort({ applicationDate: -1 });
+
+    if (!courses.length) {
+      return res.status(404).json({ message: 'No courses found matching the criteria.' });
+    }
+
+    // Send response
+    return res.status(200).json({
+      total: courses.length,
+      coursesList: courses,
+    });
+  } catch (error) {
+    console.error('Error fetching courses with filters:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+
 
 // Get course by id
 exports.getCourseByIdforAgency = async (req, res) => {
@@ -2069,7 +2079,9 @@ exports.createCourseByAgency = async (req, res) => {
       ratings,
       expiryDate,
       courseType,
-      courseDuration
+      courseDuration,
+      level,
+      UCSA   // ✅ newly added
     } = req.body;
 
     const university = await University.findById(universityId).session(session);
@@ -2098,6 +2110,14 @@ exports.createCourseByAgency = async (req, res) => {
       courseImages = await uploadFilesToS3(req.files);
     }
 
+    const validCourseTypes = ['fulltime', 'parttime', 'online'];
+    if (!validCourseTypes.includes(courseType)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: `Invalid course type. Allowed: ${validCourseTypes.join(', ')}` });
+    }
+
+
     const course = new Course({
       name,
       description,
@@ -2109,6 +2129,8 @@ exports.createCourseByAgency = async (req, res) => {
       expiryDate: expiry,
       courseType,
       courseDuration,
+      level,    // ✅ set level
+      UCSA,     // ✅ set UCSA
       courseImage: courseImages,
     });
 
@@ -2129,6 +2151,7 @@ exports.createCourseByAgency = async (req, res) => {
   }
 };
 
+
 // Update Course (Agency)
 exports.updateCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
@@ -2145,7 +2168,6 @@ exports.updateCourseByAgency = async (req, res) => {
       return res.status(400).json({ message: 'Invalid course ID.' });
     }
 
-
     const {
       name,
       description,
@@ -2155,16 +2177,12 @@ exports.updateCourseByAgency = async (req, res) => {
       ratings,
       expiryDate,
       courseType,
-      courseDuration
+      courseDuration,
+      level,
+      UCSA
     } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(courseId)) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: 'Invalid course ID format.' });
-    }
-
-     const university = await University.findById(universityId).session(session);
+    const university = await University.findById(universityId).session(session);
     if (!university) {
       await session.abortTransaction();
       session.endSession();
@@ -2175,7 +2193,7 @@ exports.updateCourseByAgency = async (req, res) => {
     if (!course) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: 'Course not found in university or unauthorized to update.' });
+      return res.status(404).json({ message: 'Course not found in university.' });
     }
 
     if (course.isDeleted) {
@@ -2190,6 +2208,7 @@ exports.updateCourseByAgency = async (req, res) => {
       return res.status(400).json({ message: 'Cannot update an expired course.' });
     }
 
+    // Validate and apply expiryDate
     if (expiryDate) {
       const newExpiry = new Date(expiryDate);
       if (isNaN(newExpiry.getTime()) || newExpiry <= new Date()) {
@@ -2200,6 +2219,7 @@ exports.updateCourseByAgency = async (req, res) => {
       course.expiryDate = newExpiry;
     }
 
+    // Validate and apply fees
     if (fees !== undefined) {
       if (isNaN(fees) || fees <= 0) {
         await session.abortTransaction();
@@ -2209,14 +2229,18 @@ exports.updateCourseByAgency = async (req, res) => {
       course.fees = fees;
     }
 
-    const validCourseTypes = ['fulltime', 'parttime', 'online'];
-    if (courseType && !validCourseTypes.includes(courseType)) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: `Invalid course type. Allowed values: ${validCourseTypes.join(', ')}` });
+    // Validate and apply courseType
+    if (courseType) {
+      const validCourseTypes = ['fulltime', 'parttime', 'online'];
+      if (!validCourseTypes.includes(courseType)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Invalid course type. Allowed: ${validCourseTypes.join(', ')}` });
+      }
+      course.courseType = courseType;
     }
-    if (courseType) course.courseType = courseType;
 
+    // Validate and apply courseDuration
     if (courseDuration !== undefined) {
       if (!/^\d+$/.test(courseDuration)) {
         await session.abortTransaction();
@@ -2226,12 +2250,18 @@ exports.updateCourseByAgency = async (req, res) => {
       course.courseDuration = courseDuration;
     }
 
+    // Directly assign UCSA and level (since express-validator already validated)
+    if (UCSA) course.UCSA = UCSA;
+    if (level) course.level = level;
+
+    // Update other fields if provided
     if (name) course.name = name;
     if (description) course.description = description;
     if (description2) course.description2 = description2;
     if (description3) course.description3 = description3;
     if (ratings) course.ratings = ratings;
 
+    // Handle course images if files are sent
     if (req.files && req.files.length > 0) {
       course.courseImage = await uploadFilesToS3(req.files);
     }

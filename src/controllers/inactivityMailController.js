@@ -76,7 +76,7 @@ const startCronJob = () => {
         const message = `You haven't purchased a subscription yet. Subscribe now to unlock access to top universities and courses!`;
         await sendReminderEmail(student, 'Unlock Your Learning Journey!', message, '#28a745', {
           text: 'Subscribe Now',
-          link: `${process.env.CLIENT_BASE_URL}/subscription`
+          link: `${process.env.CLIENT_BASE_URL}/create-payment-intent`
         });
       }
 
@@ -90,7 +90,7 @@ const startCronJob = () => {
         const message = `You’ve taken the first step by subscribing! Now, discover our partner universities and their amazing opportunities.`;
         await sendReminderEmail(student, 'Time to Explore!', message, '#ffc107', {
           text: 'Browse Universities',
-          link: `${process.env.CLIENT_BASE_URL}/student/get/universities`
+          link: `${process.env.CLIENT_BASE_URL}/get/universities`
         });
       }
 

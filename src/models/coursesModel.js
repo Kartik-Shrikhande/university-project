@@ -15,6 +15,15 @@ const courseSchema = new mongoose.Schema(
       enum: ['fulltime', 'parttime', 'online'],
       required: true 
     },
+    UCSA : {
+      type: String, 
+      required: true 
+    },
+     level : {
+      type: String, 
+      enum: ['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'],
+      required: true 
+    },
     courseDuration: { type: String, required: true },
     ratings: [{ type: Number }],
 

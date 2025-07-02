@@ -53,6 +53,19 @@ exports.validateCreateCourse = [
     .isISO8601()
     .withMessage('Expiry date must be a valid date.'),
 
+body('UCSA')
+  .notEmpty()
+  .withMessage('UCSA is required.')
+  .isString()
+  .withMessage('UCSA must be a string.'),
+
+body('level')
+  .notEmpty()
+  .withMessage('Level is required.')
+  .isIn(['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'])
+  .withMessage('Level must be one of: Undergraduate, Postgraduate, Foundation, ResearchDegree.'),
+
+
   body('ratings')
     .optional()
     .isArray()
@@ -126,7 +139,19 @@ exports.validateUpdateCourse = [
     .isISO8601()
     .withMessage('Expiry date must be a valid date.'),
 
-  
+body('UCSA')
+  .optional()
+  .isString()
+  .withMessage('UCSA must be a string.'),
+
+body('level')
+  .optional()
+  .isIn(['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'])
+  .withMessage('Level must be one of: Undergraduate, Postgraduate, Foundation, ResearchDegree.'),
+
+
+
+
     // Validate ratings (if provided in the body)
     check('ratings')
       .optional()

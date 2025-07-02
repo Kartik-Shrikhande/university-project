@@ -811,21 +811,22 @@ exports.createCourse = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { 
-      name, 
-      description, 
-      description2, 
-      description3, 
-      fees, 
-      ratings, 
-      expiryDate, 
-      courseType, 
-      courseDuration 
+    const {
+      name,
+      description,
+      description2,
+      description3,
+      fees,
+      ratings,
+      expiryDate,
+      courseType,
+      courseDuration,
+      UCSA,
+      level
     } = req.body;
 
-    const universityId = req.user.id; // Get universityId from the logged-in user
+    const universityId = req.user.id;
 
-    // Validate University
     const universityRecord = await University.findById(universityId).session(session);
     if (!universityRecord) {
       await session.abortTransaction();
@@ -833,7 +834,6 @@ exports.createCourse = async (req, res) => {
       return res.status(404).json({ message: 'University not found' });
     }
 
-    // Check for duplicate course
     const existingCourse = await Course.findOne({ name, university: universityId }).session(session);
     if (existingCourse) {
       await session.abortTransaction();
@@ -841,7 +841,6 @@ exports.createCourse = async (req, res) => {
       return res.status(400).json({ message: 'Course with the same name already exists in this university.' });
     }
 
-    // Validate Expiry Date
     const expiry = new Date(expiryDate);
     if (isNaN(expiry.getTime()) || expiry <= new Date()) {
       await session.abortTransaction();
@@ -849,18 +848,16 @@ exports.createCourse = async (req, res) => {
       return res.status(400).json({ message: 'Invalid expiry date. It must be a future date.' });
     }
 
-    // Upload files to AWS S3 and get URLs
     let courseImages = [];
     if (req.files && req.files.length > 0) {
       courseImages = await uploadFilesToS3(req.files);
     }
 
-    // Create new course
     const course = new Course({
       name,
       description,
-      description2, 
-      description3, 
+      description2,
+      description3,
       university: universityId,
       fees,
       ratings,
@@ -868,11 +865,12 @@ exports.createCourse = async (req, res) => {
       courseType,
       courseDuration,
       courseImage: courseImages,
+      UCSA,
+      level
     });
 
     await course.save({ session });
 
-    // Add course to university's course list
     universityRecord.courses.push(course._id);
     await universityRecord.save({ session });
 
@@ -891,12 +889,14 @@ exports.createCourse = async (req, res) => {
   }
 };
 
+
+
 exports.updateCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const universityId = req.user.id; // Get university ID from logged-in user
+    const universityId = req.user.id;
     const { courseId } = req.params;
     const {
       name,
@@ -908,16 +908,16 @@ exports.updateCourse = async (req, res) => {
       expiryDate,
       courseType,
       courseDuration,
+      UCSA,
+      level
     } = req.body;
 
-    // Validate course ID
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: 'Invalid course ID format.' });
     }
 
-    // Find course and ensure it belongs to the university
     const course = await Course.findOne({ _id: courseId, university: universityId }).session(session);
     if (!course) {
       await session.abortTransaction();
@@ -925,32 +925,28 @@ exports.updateCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found or unauthorized to update.' });
     }
 
-    // Prevent updating deleted courses
     if (course.isDeleted) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: 'Cannot update a deleted course.' });
     }
 
-    // Prevent updating expired courses
     if (course.expiryDate && new Date(course.expiryDate) < new Date()) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: 'Cannot update an expired course.' });
     }
 
-    // Validate Expiry Date
     if (expiryDate) {
       const newExpiryDate = new Date(expiryDate);
       if (isNaN(newExpiryDate.getTime()) || newExpiryDate <= new Date()) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).json({ message: 'Expiry date must be a valid future date (YYYY-MM-DD).' });
+        return res.status(400).json({ message: 'Expiry date must be a valid future date.' });
       }
       course.expiryDate = newExpiryDate;
     }
 
-    // Validate Fees
     if (fees !== undefined) {
       if (isNaN(fees) || fees <= 0) {
         await session.abortTransaction();
@@ -960,7 +956,6 @@ exports.updateCourse = async (req, res) => {
       course.fees = fees;
     }
 
-    // Validate Course Type
     const validCourseTypes = ['fulltime', 'parttime', 'online'];
     if (courseType && !validCourseTypes.includes(courseType)) {
       await session.abortTransaction();
@@ -969,24 +964,32 @@ exports.updateCourse = async (req, res) => {
     }
     if (courseType) course.courseType = courseType;
 
-    // Validate Course Duration
     if (courseDuration !== undefined) {
       if (!/^\d+$/.test(courseDuration)) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).json({ message: 'Course duration must be a positive integer (in months or years).' });
+        return res.status(400).json({ message: 'Course duration must be a positive integer.' });
       }
       course.courseDuration = courseDuration;
     }
 
-    // Update only provided fields
     if (name) course.name = name;
     if (description) course.description = description;
     if (description2) course.description2 = description2;
     if (description3) course.description3 = description3;
     if (ratings) course.ratings = ratings;
+    if (UCSA) course.UCSA = UCSA;
 
-    // Handle file uploads if any (update course images)
+    const validLevels = ['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'];
+    if (level) {
+      if (!validLevels.includes(level)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Invalid level. Allowed values: ${validLevels.join(', ')}` });
+      }
+      course.level = level;
+    }
+
     if (req.files && req.files.length > 0) {
       course.courseImage = await uploadFilesToS3(req.files);
     }
@@ -1003,6 +1006,7 @@ exports.updateCourse = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 exports.deleteCourse = async (req, res) => {

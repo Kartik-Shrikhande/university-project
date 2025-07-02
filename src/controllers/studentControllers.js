@@ -1707,28 +1707,26 @@ exports.getAllUniversityCourses = async (req, res) => {
 
 
 //get all courses for student + with filteration
-
 exports.getCoursesWithFilters = async (req, res) => {
   try {
-    const { 
-      minPrice, 
-      maxPrice, 
-      country, 
-      courseName, 
-      universityName, 
-      courseType, 
-      minDuration, 
-      maxDuration, 
-      expiryDate 
+    const {
+      minPrice,
+      maxPrice,
+      country,
+      courseName,
+      universityName,
+      courseType,
+      minDuration,
+      maxDuration,
+      expiryDate,
+      level
     } = req.query;
 
-    // Build the filter object dynamically
     const filter = {
-      status: 'Active', // Show only active courses
-      isDeleted: false, // Exclude soft-deleted courses
+      status: 'Active',
+      isDeleted: false,
     };
 
-    // Validate and apply price filters
     if (minPrice || maxPrice) {
       const min = Number(minPrice);
       const max = Number(maxPrice);
@@ -1751,11 +1749,10 @@ exports.getCoursesWithFilters = async (req, res) => {
       if (maxPrice) filter.fees.$lte = max;
     }
 
-    // Fetch universities matching country filter
     if (country) {
       const universitiesInCountry = await University.find({
         'address.country': new RegExp(country, 'i'),
-        isDeleted: false, // Exclude deleted universities
+        isDeleted: false,
       }).select('_id');
 
       if (!universitiesInCountry.length) {
@@ -1765,18 +1762,16 @@ exports.getCoursesWithFilters = async (req, res) => {
       filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
     }
 
-    // Fetch universities matching university name filter
     if (universityName) {
       const universitiesWithName = await University.find({
         name: new RegExp(universityName, 'i'),
-        isDeleted: false, // Exclude deleted universities
+        isDeleted: false,
       }).select('_id');
 
       if (!universitiesWithName.length) {
         return res.status(404).json({ message: 'No universities found with the specified name.' });
       }
 
-      // If both country and university name are provided, filter matching both
       if (filter.university && filter.university.$in) {
         filter.university.$in = filter.university.$in.filter((id) =>
           universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
@@ -1790,17 +1785,14 @@ exports.getCoursesWithFilters = async (req, res) => {
       }
     }
 
-    // Apply course name filter
     if (courseName) {
-      filter.name = new RegExp(courseName, 'i'); // Case-insensitive search
+      filter.name = new RegExp(courseName, 'i');
     }
 
-    // **New: Apply Course Type filter**
     if (courseType) {
-      filter.courseType = new RegExp(courseType, 'i'); // Case-insensitive match
+      filter.courseType = new RegExp(courseType, 'i');
     }
 
-    // **New: Apply Course Duration filter**
     if (minDuration || maxDuration) {
       const minDur = Number(minDuration);
       const maxDur = Number(maxDuration);
@@ -1823,28 +1815,34 @@ exports.getCoursesWithFilters = async (req, res) => {
       if (maxDuration) filter.courseDuration.$lte = maxDur;
     }
 
-    // **New: Apply Expiry Date filter**
     if (expiryDate) {
       const parsedExpiryDate = new Date(expiryDate);
       if (isNaN(parsedExpiryDate.getTime())) {
         return res.status(400).json({ message: 'Invalid expiry date format. Use YYYY-MM-DD.' });
       }
-      filter.expiryDate = { $gte: parsedExpiryDate }; // Show courses that expire on or after the given date
+      filter.expiryDate = { $gte: parsedExpiryDate };
     }
 
-    // Fetch the filtered courses
+    // Level filter
+    if (level) {
+      const allowedLevels = ['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'];
+      if (!allowedLevels.includes(level)) {
+        return res.status(400).json({ message: `Invalid level. Allowed values: ${allowedLevels.join(', ')}` });
+      }
+      filter.level = level;
+    }
+
     const courses = await Course.find(filter)
       .populate({
         path: 'university',
-        select: 'name address.country', // Include university details
+        select: 'name address.country',
       })
-      .sort({ applicationDate: -1 }); // Sort by latest application date
+      .sort({ applicationDate: -1 });
 
     if (!courses.length) {
       return res.status(404).json({ message: 'No active courses found matching the criteria.' });
     }
 
-    // Send response
     return res.status(200).json({ total: courses.length, coursesList: courses });
   } catch (error) {
     console.error('Error fetching courses with filters:', error);
