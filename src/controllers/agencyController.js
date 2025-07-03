@@ -1384,11 +1384,13 @@ exports.getApplicationsByStatus = async (req, res) => {
 
     let applicationIds = [];
 
+    // Fetch application IDs based on agency collections for Processing / Accepted
     if (status === 'Processing') {
       applicationIds = agency.pendingApplications.map(id => id.toString());
     } else if (status === 'Accepted') {
       applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
     } else {
+      // For Rejected / Withdrawn — query Application model by status field
       const apps = await Application.find({
         agency: agencyId,
         status: status,
@@ -1408,7 +1410,7 @@ exports.getApplicationsByStatus = async (req, res) => {
       .populate('assignedAgent', 'name email')
       .populate('assignedSolicitor', 'name email');
 
-    // Prepare response, overriding status field for Processing/Accepted based on agency mapping
+    // Prepare response, overriding status for Processing/Accepted based on agency mapping
     const formattedApplications = applications.map(app => {
       let appStatus = app.status; // default for Rejected/Withdrawn
 
@@ -1423,7 +1425,8 @@ exports.getApplicationsByStatus = async (req, res) => {
         course: app.course,
         assignedAgent: app.assignedAgent,
         assignedSolicitor: app.assignedSolicitor,
-        status: appStatus
+        status: appStatus,
+        submissionDate: app.submissionDate   // ✅ added submissionDate
       };
     });
 
@@ -1438,6 +1441,7 @@ exports.getApplicationsByStatus = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 //previouse 
 // Get Applications by Status for an Agency
@@ -1514,65 +1518,6 @@ exports.getApplicationsByStatus = async (req, res) => {
 // };
 
 
-// exports.getApplicationsByUniversity = async (req, res) => {
-//   try {
-//     const { universityId } = req.params;
-//     const { status } = req.query;
-
-//     // Validate universityId
-//     if (!mongoose.Types.ObjectId.isValid(universityId)) {
-//       return res.status(400).json({ error: 'Invalid university ID.' });
-//     }
-
-//     // Check university existence
-//     const university = await University.findById(universityId);
-//     if (!university) {
-//       return res.status(404).json({ message: 'University not found.' });
-//     }
-
-//     // Validate status query (if provided)
-//     const validStatuses = ['Accepted', 'Rejected'];
-//     if (status && !validStatuses.includes(status)) {
-//       return res.status(400).json({ error: 'Invalid status value. Allowed: Accepted, Rejected.' });
-//     }
-
-//     let query = {
-//       university: universityId,
-//       isDeleted: false
-//     };
-
-
-//     if (status) {
-//       query.status = status;
-//     }
-
-//     // Fetch applications
-//     const applications = await Application.find(query)
-//       .populate('student', 'firstName lastName email')
-//       .populate('course', 'name')
-//       .populate('assignedAgent', 'username email')
-//       .populate('assignedSolicitor', 'username email')
-//       .select('student course status assignedAgent assignedSolicitor');
-
-//     res.status(200).json({
-//       message: `Applications fetched successfully${status ? ` with status '${status}'` : ''}.`,
-//       count: applications.length,
-//       applications: applications.map(app => ({
-//         _id: app._id,
-//         student: app.student,
-//         course: app.course,
-//         status: app.status,
-//         assignedAgent: app.assignedAgent,
-//         assignedSolicitor: app.assignedSolicitor
-//       }))
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching applications by university:', error);
-//     res.status(500).json({ error: 'Internal server error.' });
-//   }
-// };
-
 exports.getApplicationsByUniversity = async (req, res) => {
   try {
     const { universityId } = req.params;
@@ -1620,7 +1565,7 @@ exports.getApplicationsByUniversity = async (req, res) => {
       .populate('course', 'name')
       .populate('assignedAgent', 'username email')
       .populate('assignedSolicitor', 'username email')
-      .select('student course status assignedAgent assignedSolicitor');
+      .select('student course status assignedAgent submissionDate assignedSolicitor');
 
     if (!applications.length) {
       return res.status(404).json({ message: `No ${status || ''} applications found.` });
@@ -1635,7 +1580,8 @@ exports.getApplicationsByUniversity = async (req, res) => {
         course: app.course,
         status: status === 'Processing' ? 'Processing' : app.status,
         assignedAgent: app.assignedAgent,
-        assignedSolicitor: app.assignedSolicitor
+        assignedSolicitor: app.assignedSolicitor,
+        submissionDate:app.submissionDate
       }))
     });
 

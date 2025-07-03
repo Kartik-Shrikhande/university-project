@@ -186,6 +186,10 @@ const studentSchema = new mongoose.Schema(
       type: Boolean, 
       default: false,
     },
+    emailSubscribed: {
+  type: Boolean,
+  default: true
+},
     // Additional metadata fields
     metadata: {
       profile_completeness: { type: Number, default: 100 },
