@@ -60,10 +60,10 @@ const startCronJob = () => {
 
       for (const student of notLoggedInStudents) {
         const message = `We noticed you haven't logged into your account yet. Don't miss out on the exciting opportunities waiting for you!`;
-        await sendReminderEmail(student, 'We Miss You!', message, '#007bff', {
-          text: 'Log In Now',
-          link: `${process.env.CLIENT_BASE_URL}/login`
-        });
+        // await sendReminderEmail(student, 'We Miss You!', message, '#007bff', {
+        //   text: 'Log In Now',
+        //   link: `${process.env.CLIENT_BASE_URL}/login`
+        // });
       }
 
       const notPaidStudents = await Students.find({
@@ -74,10 +74,10 @@ const startCronJob = () => {
 
       for (const student of notPaidStudents) {
         const message = `You haven't purchased a subscription yet. Subscribe now to unlock access to top universities and courses!`;
-        await sendReminderEmail(student, 'Unlock Your Learning Journey!', message, '#28a745', {
-          text: 'Subscribe Now',
-          link: `${process.env.CLIENT_BASE_URL}/create-payment-intent`
-        });
+        // await sendReminderEmail(student, 'Unlock Your Learning Journey!', message, '#28a745', {
+        //   text: 'Subscribe Now',
+        //   link: `${process.env.CLIENT_BASE_URL}/create-payment-intent`
+        // });
       }
 
       const paidInactiveStudents = await Students.find({
@@ -88,10 +88,10 @@ const startCronJob = () => {
 
       for (const student of paidInactiveStudents) {
         const message = `You’ve taken the first step by subscribing! Now, discover our partner universities and their amazing opportunities.`;
-        await sendReminderEmail(student, 'Time to Explore!', message, '#ffc107', {
-          text: 'Browse Universities',
-          link: `${process.env.CLIENT_BASE_URL}/get/universities`
-        });
+        // await sendReminderEmail(student, 'Time to Explore!', message, '#ffc107', {
+        //   text: 'Browse Universities',
+        //   link: `${process.env.CLIENT_BASE_URL}/get/universities`
+        // });
       }
 
       const studentsWithVisitedCourses = await Students.find({
@@ -108,10 +108,10 @@ const startCronJob = () => {
   continue;
 }
           const message = `You viewed <strong>${course.name}</strong> at <strong>${course.university && course.university.name}</strong> but didn't enrol. Take the next step and apply today!`;
-          await sendReminderEmail(student, 'Don’t Miss Out!', message, '#17a2b8', {
-            text: 'Explore Now',
-            link: `${process.env.CLIENT_BASE_URL}/courses/${course._id}`
-          });
+          // await sendReminderEmail(student, 'Don’t Miss Out!', message, '#17a2b8', {
+          //   text: 'Explore Now',
+          //   link: `${process.env.CLIENT_BASE_URL}/courses/${course._id}`
+          // });
         }
       }
 

@@ -1351,7 +1351,6 @@ exports.getApplicationByIdForAgency = async (req, res) => {
   }
 };
 
-// Get Applications by Status for an Agency
 exports.getApplicationsByStatus = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -1385,19 +1384,16 @@ exports.getApplicationsByStatus = async (req, res) => {
 
     let applicationIds = [];
 
-    // Get application IDs based on agency record fields
     if (status === 'Processing') {
       applicationIds = agency.pendingApplications.map(id => id.toString());
     } else if (status === 'Accepted') {
       applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
     } else {
-      // For Rejected / Withdrawn — query Application model by status field
       const apps = await Application.find({
         agency: agencyId,
         status: status,
         isDeleted: false
       }).select('_id');
-
       applicationIds = apps.map(app => app._id.toString());
     }
 
@@ -1412,10 +1408,29 @@ exports.getApplicationsByStatus = async (req, res) => {
       .populate('assignedAgent', 'name email')
       .populate('assignedSolicitor', 'name email');
 
+    // Prepare response, overriding status field for Processing/Accepted based on agency mapping
+    const formattedApplications = applications.map(app => {
+      let appStatus = app.status; // default for Rejected/Withdrawn
+
+      if (status === 'Processing' || status === 'Accepted') {
+        appStatus = status;  // override status from Application model
+      }
+
+      return {
+        _id: app._id,
+        student: app.student,
+        university: app.university,
+        course: app.course,
+        assignedAgent: app.assignedAgent,
+        assignedSolicitor: app.assignedSolicitor,
+        status: appStatus
+      };
+    });
+
     res.status(200).json({
       message: `Applications with status '${status}' fetched successfully.`,
-      count: applications.length,
-      applications
+      count: formattedApplications.length,
+      applications: formattedApplications
     });
 
   } catch (error) {
@@ -1423,6 +1438,80 @@ exports.getApplicationsByStatus = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+//previouse 
+// Get Applications by Status for an Agency
+// exports.getApplicationsByStatus = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const userRole = req.user.role;
+//     const { status } = req.query;
+
+//     // Validate status input
+//     const validStatuses = ['Processing', 'Accepted', 'Rejected', 'Withdrawn'];
+//     if (!status || !validStatuses.includes(status)) {
+//       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
+//     }
+
+//     let agencyId;
+
+//     if (userRole === 'admin') {
+//       agencyId = userId;
+//     } else if (userRole === 'agent') {
+//       const agent = await Agent.findById(userId);
+//       if (!agent) {
+//         return res.status(404).json({ error: 'Agent not found.' });
+//       }
+//       agencyId = agent.agency;
+//     } else {
+//       return res.status(403).json({ error: 'Unauthorized role.' });
+//     }
+
+//     const agency = await Agency.findById(agencyId).lean();
+//     if (!agency) {
+//       return res.status(404).json({ error: 'Agency not found.' });
+//     }
+
+//     let applicationIds = [];
+
+//     // Get application IDs based on agency record fields
+//     if (status === 'Processing') {
+//       applicationIds = agency.pendingApplications.map(id => id.toString());
+//     } else if (status === 'Accepted') {
+//       applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
+//     } else {
+//       // For Rejected / Withdrawn — query Application model by status field
+//       const apps = await Application.find({
+//         agency: agencyId,
+//         status: status,
+//         isDeleted: false
+//       }).select('_id');
+
+//       applicationIds = apps.map(app => app._id.toString());
+//     }
+
+//     // Fetch Applications based on these IDs
+//     const applications = await Application.find({
+//       _id: { $in: applicationIds },
+//       isDeleted: false
+//     })
+//       .populate('student', 'firstName lastName email')
+//       .populate('university', 'name')
+//       .populate('course', 'name')
+//       .populate('assignedAgent', 'name email')
+//       .populate('assignedSolicitor', 'name email');
+
+//     res.status(200).json({
+//       message: `Applications with status '${status}' fetched successfully.`,
+//       count: applications.length,
+//       applications
+//     });
+
+//   } catch (error) {
+//     console.error('Error fetching applications by status:', error);
+//     res.status(500).json({ error: 'Internal server error.' });
+//   }
+// };
 
 
 exports.getApplicationsByUniversity = async (req, res) => {
@@ -1725,20 +1814,33 @@ exports.rejectApplication = async (req, res) => {
       return res.status(400).json({ message: 'Invalid application ID provided.' });
     }
 
-    const application = await Application.findById(applicationId).populate({ path: 'student' }).exec();
+    const application = await Application.findById(applicationId).populate('student').exec();
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
 
- // ✅ Check if application is already rejected
- if (application.status === 'Rejected') {
-  return res.status(400).json({ success: false, message: 'Application has already been rejected.' });
- }
- 
+    // ✅ Check if application is already rejected
+    if (application.status === 'Rejected') {
+      return res.status(400).json({ success: false, message: 'Application has already been rejected.' });
+    }
+
+    // ✅ Check if application exists in agency.pendingApplications
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found' });
+    }
+
+    const isPending = agency.pendingApplications.some(id => id.toString() === applicationId);
+    if (!isPending) {
+      return res.status(400).json({ message: 'Application is not in the agencys pending applications and cannot be rejected.' });
+    }
+
+    // ✅ Proceed to reject
     application.status = 'Rejected';
     application.reason = reason;
     await application.save();
 
+    // ✅ Remove from agency.pendingApplications
     await Agency.findByIdAndUpdate(agencyId, {
       $pull: { pendingApplications: applicationId },
     });
@@ -1746,24 +1848,30 @@ exports.rejectApplication = async (req, res) => {
     const studentId = application.student._id;
     const studentEmail = application.student.email;
 
- // ✅ Save Notification in MongoDB
- const notification = await new Notification({
-  user: studentId,
-  message: `Your application has been rejected. Reason: ${reason}`,
-  type: "Application",
-}).save();
+    // ✅ Save Notification in DB
+    const notification = await new Notification({
+      user: studentId,
+      message: `Your application has been rejected. Reason: ${reason}`,
+      type: "Application",
+    }).save();
+
     // ✅ Send Rejection Email
     await sendRejectionEmail(studentEmail, reason);
-    
-// ✅ Send real-time notification
- sendNotification(studentId.toString(), notification.message, "Application");
 
-    res.status(200).json({ success: true, message: 'Application rejected, student notified via email & notification.' });
+    // ✅ Send Real-time Notification
+    sendNotification(studentId.toString(), notification.message, "Application");
+
+    res.status(200).json({
+      success: true,
+      message: 'Application rejected, student notified via email & notification.'
+    });
+
   } catch (error) {
     console.error('Error rejecting application:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
 
 
 //university 
