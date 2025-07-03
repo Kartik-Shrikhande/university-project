@@ -1353,28 +1353,13 @@ exports.getApplicationByIdForAgency = async (req, res) => {
 
 exports.getApplicationsByStatus = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const agencyId = req.user.id;  // Directly use authenticated user’s ID as agencyId
     const { status } = req.query;
 
     // Validate status input
     const validStatuses = ['Processing', 'Accepted', 'Rejected', 'Withdrawn'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
-    }
-
-    let agencyId;
-
-    if (userRole === 'admin') {
-      agencyId = userId;
-    } else if (userRole === 'agent') {
-      const agent = await Agent.findById(userId);
-      if (!agent) {
-        return res.status(404).json({ error: 'Agent not found.' });
-      }
-      agencyId = agent.agency;
-    } else {
-      return res.status(403).json({ error: 'Unauthorized role.' });
     }
 
     const agency = await Agency.findById(agencyId).lean();
@@ -1426,7 +1411,7 @@ exports.getApplicationsByStatus = async (req, res) => {
         assignedAgent: app.assignedAgent,
         assignedSolicitor: app.assignedSolicitor,
         status: appStatus,
-        submissionDate: app.submissionDate   // ✅ added submissionDate
+        submissionDate: app.submissionDate
       };
     });
 
@@ -1518,75 +1503,78 @@ exports.getApplicationsByStatus = async (req, res) => {
 // };
 
 
-exports.getApplicationsByUniversity = async (req, res) => {
+exports.getApplicationsStatusByAllUniversities = async (req, res) => {
   try {
-    const { universityId } = req.params;
     const { status } = req.query;
 
-    // Validate universityId
-    if (!mongoose.Types.ObjectId.isValid(universityId)) {
-      return res.status(400).json({ error: 'Invalid university ID.' });
-    }
-
-    // Check university existence
-    const university = await University.findById(universityId);
-    if (!university) {
-      return res.status(404).json({ message: 'University not found.' });
-    }
-
-    // Valid statuses
+    // Validate status if provided
     const validStatuses = ['Accepted', 'Rejected', 'Processing'];
     if (status && !validStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status value. Allowed: ${validStatuses.join(', ')}.` });
     }
 
-    let query = {
-      university: universityId,
-      isDeleted: false
-    };
+    // Fetch all universities
+    const universities = await University.find().lean();
 
-    // If status is Processing → fetch from pendingApplications array
-    if (status === 'Processing') {
-      const pendingAppIds = university.pendingApplications.map(item => item.applicationId);
+    const result = [];
 
-      if (!pendingAppIds.length) {
-        return res.status(404).json({ message: 'No processing applications found.' });
+    for (const university of universities) {
+      let query = {
+        university: university._id,
+        isDeleted: false
+      };
+
+      // If status is 'Processing', get applications from university.pendingApplications array
+      if (status === 'Processing') {
+        const pendingAppIds = university.pendingApplications.map(item => item.applicationId);
+
+        if (!pendingAppIds.length) continue; // Skip university with no processing applications
+
+        query._id = { $in: pendingAppIds };
+      } 
+      else if (status) {
+        query.status = status;
       }
 
-      query._id = { $in: pendingAppIds };
-    } 
-    else if (status) {
-      query.status = status;
+      // Fetch applications matching query for this university
+      const applications = await Application.find(query)
+        .populate('student', 'firstName lastName email')
+        .populate('course', 'name')
+        .populate('assignedAgent', 'username email')
+        .populate('assignedSolicitor', 'username email')
+        .select('student course status assignedAgent submissionDate assignedSolicitor');
+
+      if (!applications.length) continue; // Skip universities with no matching applications
+
+      // Push result for this university
+      result.push({
+        universityId: university._id,
+        universityName: university.name,
+        count: applications.length,
+        applications: applications.map(app => ({
+          _id: app._id,
+          student: app.student,
+          course: app.course,
+          status: status === 'Processing' ? 'Processing' : app.status,
+          assignedAgent: app.assignedAgent,
+          assignedSolicitor: app.assignedSolicitor,
+          submissionDate: app.submissionDate
+        }))
+      });
     }
 
-    // Fetch applications
-    const applications = await Application.find(query)
-      .populate('student', 'firstName lastName email')
-      .populate('course', 'name')
-      .populate('assignedAgent', 'username email')
-      .populate('assignedSolicitor', 'username email')
-      .select('student course status assignedAgent submissionDate assignedSolicitor');
-
-    if (!applications.length) {
-      return res.status(404).json({ message: `No ${status || ''} applications found.` });
+    if (!result.length) {
+      return res.status(404).json({ message: `No ${status || ''} applications found across universities.` });
     }
 
     res.status(200).json({
+      total:result.length,
       message: `Applications fetched successfully${status ? ` with status '${status}'` : ''}.`,
-      count: applications.length,
-      applications: applications.map(app => ({
-        _id: app._id,
-        student: app.student,
-        course: app.course,
-        status: status === 'Processing' ? 'Processing' : app.status,
-        assignedAgent: app.assignedAgent,
-        assignedSolicitor: app.assignedSolicitor,
-        submissionDate:app.submissionDate
-      }))
+      universities: result
     });
 
   } catch (error) {
-    console.error('Error fetching applications by university:', error);
+    console.error('Error fetching applications by universities:', error);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
