@@ -1875,7 +1875,6 @@ exports.rejectApplication = async (req, res) => {
 
 
 //university 
-
 exports.promoteUniversity = async (req, res) => {
   try {
     const {universityId} = req.params; // Retrieve university ID from middleware
