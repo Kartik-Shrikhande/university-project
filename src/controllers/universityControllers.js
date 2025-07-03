@@ -659,6 +659,7 @@ exports.updateUniversity = async (req, res) => {
     university.phoneNumber = phoneNumber || university.phoneNumber;
     university.address = address
       ? {
+        addressline: address.addressline || university.address.addressline,
           country: address.country || university.address.country,
           city: address.city || university.address.city,
           state: address.state || university.address.state,
@@ -1069,7 +1070,7 @@ exports.getAllCourses = async (req, res) => {
       .populate({
         path: 'courses',
         match: { isDeleted: false },
-        select: 'name fees description description2 description3 status expiryDate courseType courseDuration courseImage',
+        // select: 'name fees description description2 description3 status expiryDate courseType courseDuration courseImage',
       });
 
     if (!university) {

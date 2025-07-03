@@ -18,6 +18,7 @@ const universitySchema = new mongoose.Schema(
      // ✅ Newly added fields for login response:
      phoneNumber: { type: String, required: true },
      address: {
+      addressline : { type: String, required: true },
       country: { type: String, required: true },
       city: { type: String, required: true },
       state: { type: String},

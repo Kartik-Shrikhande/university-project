@@ -36,23 +36,45 @@ const validateResult = (req, res, next) => {
 // Validation rules for creating a university
 const validateUniversity = [
   check('name').trim().notEmpty().withMessage('University name is required.'),
- check('email')
-   .notEmpty()
-   .withMessage('Email is required.')
-   .custom((value) => {
-     // Simple custom check, for example: must contain "@" and "."
-     if (!value.includes('@') || !value.includes('.')) {
-       throw new Error('Email must contain @ and .');
-     }
-     return true;
-   }),
-  // check('password').trim().notEmpty().withMessage('Password is required.').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.'),
+  check('email')
+    .notEmpty().withMessage('Email is required.')
+    .custom((value) => {
+      if (!value.includes('@') || !value.includes('.')) {
+        throw new Error('Email must contain @ and .');
+      }
+      return true;
+    }),
   check('website').trim().notEmpty().withMessage('Website is required.').isURL().withMessage('Invalid website URL.'),
-  // check('phoneNumber').trim().notEmpty().withMessage('Phone number is required.').isNumeric().withMessage('Invalid phone number format.'),
+  check('address.addressline').trim().notEmpty().withMessage('Address line is required.'),  // 👈 Added this
   check('address.country').trim().notEmpty().withMessage('Country is required.'),
   check('address.city').trim().notEmpty().withMessage('City is required.'),
-  check('address.state').trim().optional(),
+  check('address.state').optional(),
   check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.').isPostalCode('any').withMessage('Invalid Zip Code.'),
+  validateResult,
+];
+
+
+
+// Validation rules for updating a university
+// const validateUpdateUniversity = [
+//   check('id').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
+//   check('email').optional().isEmail().withMessage('Invalid email format'),
+//   check('isPromoted').optional().isIn(['YES', 'NO']).withMessage('isPromoted must be either "YES" or "NO"'),
+//   validateResult, // Call the generic validation handler
+// ];
+
+// Validation rules for updating a university
+const validateUniversityUpdate = [
+  check('email').not().exists().withMessage('Email cannot be updated.'),
+  check('password').not().exists().withMessage('Password cannot be updated.'),
+  check('isPromoted').not().exists().withMessage('isPromoted cannot be updated.'),
+  check('name').optional().trim().notEmpty().withMessage('Name cannot be empty.'),
+  check('website').optional().trim().isURL().withMessage('Invalid website URL.'),
+  check('address.addressline').optional().trim().notEmpty().withMessage('Address line cannot be empty.'),  // 👈 Added this
+  check('address.country').optional().trim().notEmpty().withMessage('Country cannot be empty.'),
+  check('address.city').optional().trim().notEmpty().withMessage('City cannot be empty.'),
+  check('address.state').optional().trim(),
+  check('address.zipCode').optional().trim().notEmpty().withMessage('Zip Code cannot be empty.').isPostalCode('any').withMessage('Invalid Zip Code.'),
   validateResult,
 ];
 
@@ -71,41 +93,6 @@ const validateUniversityLogin = [
   check('password').notEmpty().withMessage('Password is required'),
   validateResult, // Call the generic validation handler
 ];
-
-// Validation rules for updating a university
-// const validateUpdateUniversity = [
-//   check('id').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
-//   check('email').optional().isEmail().withMessage('Invalid email format'),
-//   check('isPromoted').optional().isIn(['YES', 'NO']).withMessage('isPromoted must be either "YES" or "NO"'),
-//   validateResult, // Call the generic validation handler
-// ];
-
-// Validation rules for updating a university
-const validateUniversityUpdate = [
-  // checkEmptyBody,
-  check('email').not().exists().withMessage('Email cannot be updated.'),
-  check('password').not().exists().withMessage('Password cannot be updated.'),
-  check('isPromoted').not().exists().withMessage('isPromoted cannot be updated.'),
-
-  check('name').optional().trim().notEmpty().withMessage('Name cannot be empty.'),
-  check('website').optional().trim().isURL().withMessage('Invalid website URL.'),
-  // check('phoneNumber').optional().trim().isMobilePhone().withMessage('Invalid phone number.'),
-
-  check('address.country').optional().trim().notEmpty().withMessage('Country cannot be empty.'),
-  check('address.city').optional().trim().notEmpty().withMessage('City cannot be empty.'),
-  check('address.state').optional().trim().notEmpty().withMessage('State cannot be empty.'),
-  check('address.zipCode')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Zip Code cannot be empty.')
-    .isPostalCode('any')
-    .withMessage('Invalid Zip Code.'),
-
-  validateResult, // Generic validation handler
-];
-
-
 // Validation rules for university ID
 const validateUniversityId = [
   check('universityId').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
