@@ -34,6 +34,7 @@ const universitySchema = new mongoose.Schema(
       },
     ],
     approvedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }], // ✅ Added field to track approved applications
+    rejectedApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     payments:[],
     ratings: [{ type: Number }],
     currentToken: { type: String, default: null },

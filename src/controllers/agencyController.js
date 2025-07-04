@@ -1514,37 +1514,52 @@ exports.getApplicationsStatusByAllUniversities = async (req, res) => {
     }
 
     // Fetch all universities
-    const universities = await University.find().lean();
+    const universities = await University.find({ isDeleted: false }).lean();
 
     const result = [];
 
     for (const university of universities) {
-      let query = {
-        university: university._id,
-        isDeleted: false
-      };
+      let applicationIds = [];
 
-      // If status is 'Processing', get applications from university.pendingApplications array
+      // Pick application IDs based on requested status
       if (status === 'Processing') {
-        const pendingAppIds = university.pendingApplications.map(item => item.applicationId);
-
-        if (!pendingAppIds.length) continue; // Skip university with no processing applications
-
-        query._id = { $in: pendingAppIds };
-      } 
-      else if (status) {
-        query.status = status;
+        applicationIds = university.pendingApplications.map(item => item.applicationId.toString());
+      } else if (status === 'Accepted') {
+        applicationIds = university.approvedApplications.map(id => id.toString());
+      } else if (status === 'Rejected') {
+        applicationIds = university.rejectedApplications.map(id => id.toString());
       }
 
-      // Fetch applications matching query for this university
+      // If status is given and no application IDs, skip this university
+      if (status && !applicationIds.length) continue;
+
+      let query = {
+        university: university._id
+      };
+
+      // Status-specific conditions
+      if (status === 'Rejected') {
+        // For Rejected — include deleted applications
+        query._id = { $in: applicationIds };
+      } else if (status) {
+        // For Processing / Accepted — only non-deleted applications
+        query._id = { $in: applicationIds };
+        query.isDeleted = false;
+      } else {
+        // If no status filter — get non-deleted applications
+        query.isDeleted = false;
+      }
+
+      // Fetch matching applications
       const applications = await Application.find(query)
         .populate('student', 'firstName lastName email')
         .populate('course', 'name')
         .populate('assignedAgent', 'username email')
         .populate('assignedSolicitor', 'username email')
-        .select('student course status assignedAgent submissionDate assignedSolicitor');
+        .select('student course status assignedAgent assignedSolicitor submissionDate');
 
-      if (!applications.length) continue; // Skip universities with no matching applications
+      // If no applications found, skip this university
+      if (!applications.length) continue;
 
       // Push result for this university
       result.push({
@@ -1555,7 +1570,7 @@ exports.getApplicationsStatusByAllUniversities = async (req, res) => {
           _id: app._id,
           student: app.student,
           course: app.course,
-          status: status === 'Processing' ? 'Processing' : app.status,
+          status: status ? status : app.status,  // Override if filtered by status
           assignedAgent: app.assignedAgent,
           assignedSolicitor: app.assignedSolicitor,
           submissionDate: app.submissionDate
@@ -1568,7 +1583,7 @@ exports.getApplicationsStatusByAllUniversities = async (req, res) => {
     }
 
     res.status(200).json({
-      total:result.length,
+      total: result.length,
       message: `Applications fetched successfully${status ? ` with status '${status}'` : ''}.`,
       universities: result
     });

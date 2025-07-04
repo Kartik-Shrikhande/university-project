@@ -428,68 +428,6 @@ await new Notification({
 };
 
 
-// exports.acceptApplication = async (req, res) => {
-//   try {
-//     const { applicationId } = req.params;
-//     const universityId = req.user.id; // Get university ID from authenticated user
-
-//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res .status(400).json({ success: false, message: "Invalid Application ID" });
-//     }
-
-//      // Find the university and check if the application exists in pendingApplications
-//      const university = await University.findById(universityId);
-//      if (!university) {
-//        return res.status(404).json({ success: false, message: 'University not found' });
-//      }
-//  // Check if the application originally belonged to this university
-//  const wasApplicationForThisUniversity =
-//  university.pendingApplications.some(app => app.applicationId.toString() === applicationId) ||
-//  university.approvedApplications.some(appId => appId.toString() === applicationId);
-
-// if (!wasApplicationForThisUniversity) {
-//  return res.status(403).json({
-//    success: false,
-//    message: 'This application does not belong to your university',
-//  });
-// }
-
-//     // Find the application
-//     const application = await Application.findById(applicationId);
-//     if (!application) {
-//       return res.status(404).json({ success: false, message: 'Application not found' });
-//     }
-
-//     // Check if already accepted/rejected
-//     if (application.status !== 'Processing') {
-//       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
-//     }
-
-//     // Update application status to 'Accepted'
-//     application.status = 'Accepted';
-//     application.reviewDate = new Date();
-//     await application.save();
-
-//     // Update university's pending and approved applications
-//     await University.findByIdAndUpdate(universityId, {
-//       $pull: { pendingApplications: { applicationId } },
-//       $push: { approvedApplications: applicationId },
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       message: 'Application accepted successfully',
-//     });
-//   } catch (error) {
-//     console.error('Error accepting application:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//     });
-//   }
-// };
-
-
 exports.rejectApplication = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -509,15 +447,16 @@ exports.rejectApplication = async (req, res) => {
     if (application.status !== 'Processing') {
       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
     }
+
     const studentName = `${application.student.firstName} ${application.student.lastName}`;
     const studentId = application.student._id;
     const studentEmail = application.student.email;
     const message = `Your application has been rejected by the university. Reason: ${reason}`;
 
-    // ✅ Send rejection email first
+    // ✅ Send rejection email
     await sendRejectionEmail(studentEmail, reason);
 
-    // ✅ Save notification
+    // ✅ Save student notification
     await new Notification({
       user: studentId,
       message,
@@ -530,10 +469,10 @@ exports.rejectApplication = async (req, res) => {
     // ✅ Now safely update application status
     application.status = 'Rejected';
     application.reviewDate = new Date();
-   application.isDeleted = true;
+    application.isDeleted = true;
     await application.save();
 
-    // ✅ Remove from university's pending applications
+    // ✅ Remove from university's pending applications and add to rejectedApplications
     await University.findByIdAndUpdate(universityId, {
       $pull: {
         pendingApplications: {
@@ -541,21 +480,24 @@ exports.rejectApplication = async (req, res) => {
           student: application.student._id,
         },
       },
+      $push: {
+        rejectedApplications: application._id
+      }
     });
 
-   // Step 6: Notify agency
-   if (application.agency) {
-    const agency = await Agency.findById(application.agency);
-    if (agency) {
-      await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Rejected');
+    // ✅ Notify agency (if assigned)
+    if (application.agency) {
+      const agency = await Agency.findById(application.agency);
+      if (agency) {
+        await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Rejected');
 
-      await new Notification({
-        user: agency._id,
-        message: `Application for ${studentName} (ID: ${studentId}) has been rejected by the university.`,
-        type: 'Application',
-      }).save();
+        await new Notification({
+          user: agency._id,
+          message: `Application for ${studentName} (ID: ${studentId}) has been rejected by the university.`,
+          type: 'Application',
+        }).save();
+      }
     }
-  }
 
     return res.status(200).json({
       success: true,
@@ -567,6 +509,86 @@ exports.rejectApplication = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+
+
+// exports.rejectApplication = async (req, res) => {
+//   try {
+//     const { applicationId } = req.params;
+//     const { reason } = req.body;
+//     const universityId = req.user.id;
+
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ success: false, message: "Invalid Application ID" });
+//     }
+
+//     // Find the application and populate student for email
+//     const application = await Application.findById(applicationId).populate('student');
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: 'Application not found' });
+//     }
+
+//     if (application.status !== 'Processing') {
+//       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
+//     }
+//     const studentName = `${application.student.firstName} ${application.student.lastName}`;
+//     const studentId = application.student._id;
+//     const studentEmail = application.student.email;
+//     const message = `Your application has been rejected by the university. Reason: ${reason}`;
+
+//     // ✅ Send rejection email first
+//     await sendRejectionEmail(studentEmail, reason);
+
+//     // ✅ Save notification
+//     await new Notification({
+//       user: studentId,
+//       message,
+//       type: 'Application',
+//     }).save();
+
+//     // ✅ Send real-time notification
+//     sendNotification(studentId.toString(), message, "Application");
+
+//     // ✅ Now safely update application status
+//     application.status = 'Rejected';
+//     application.reviewDate = new Date();
+//    application.isDeleted = true;
+//     await application.save();
+
+//     // ✅ Remove from university's pending applications
+//     await University.findByIdAndUpdate(universityId, {
+//       $pull: {
+//         pendingApplications: {
+//           applicationId: application._id,
+//           student: application.student._id,
+//         },
+//       },
+//     });
+
+//    // Step 6: Notify agency
+//    if (application.agency) {
+//     const agency = await Agency.findById(application.agency);
+//     if (agency) {
+//       await sendAgencyNotificationEmail(agency.email, studentName, studentId, 'Rejected');
+
+//       await new Notification({
+//         user: agency._id,
+//         message: `Application for ${studentName} (ID: ${studentId}) has been rejected by the university.`,
+//         type: 'Application',
+//       }).save();
+//     }
+//   }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Application rejected successfully',
+//     });
+
+//   } catch (error) {
+//     console.error('Error rejecting application:', error);
+//     return res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// };
 
 
 
