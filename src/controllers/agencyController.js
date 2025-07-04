@@ -741,6 +741,120 @@ exports.getStudentById = async (req, res) => {
   }
 };
 
+exports.updateStudentById = async (req, res) => {
+  let session;
+  try {
+    const { studentId } = req.params;
+
+   if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ success: false, message: "Invalid student ID" });
+    }
+
+
+    let updates = req.body;
+
+
+    // Remove empty fields from updates
+    updates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== '')
+    );
+
+    // Restricted fields that cannot be updated
+    const restrictedFields = [
+      'email',
+      'password',
+      'visitedUniversities',
+      'visitedCourses',
+      'enrolledCourses',
+    ];
+
+    // Check for restricted fields in updates
+    const invalidFields = Object.keys(updates).filter((field) =>
+      restrictedFields.includes(field)
+    );
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        message: `Fields ${invalidFields.join(', ')} cannot be updated directly.`,
+      });
+    }
+
+    // Check if there are valid fields to update or files to upload
+    if (
+      Object.keys(updates).length === 0 &&
+      (!req.files || (!req.files['document'] && !req.files['documentUpload']))
+    ) {
+      return res.status(400).json({ message: 'No valid fields to update.' });
+    }
+
+    // Start session for transaction
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    // Handle document uploads
+    let uploadedDocuments = [];
+    let uploadedDocumentUploads = [];
+
+    if (req.files) {
+      if (req.files['document']) {
+        uploadedDocuments = await uploadFilesToS3(req.files['document']);
+      }
+
+      if (req.files['documentUpload']) {
+        uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);
+      }
+    }
+
+    // Append uploaded documents if any
+    if (uploadedDocuments.length > 0) {
+      updates.document = [
+        ...(Array.isArray(updates.document) ? updates.document : []),
+        ...uploadedDocuments,
+      ];
+    }
+
+    if (uploadedDocumentUploads.length > 0) {
+      updates.documentUpload = [
+        ...(Array.isArray(updates.documentUpload)
+          ? updates.documentUpload
+          : []),
+        ...uploadedDocumentUploads,
+      ];
+    }
+
+    // Update student document
+    const updatedStudent = await Students.findByIdAndUpdate(
+      studentId,
+      { $set: updates },
+      { new: true, runValidators: true, session }
+    );
+
+    if (!updatedStudent) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: 'Student updated successfully.',
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error('Error updating student:', error);
+    if (session) {
+      await session.abortTransaction();
+    }
+    return res
+      .status(500)
+      .json({ message: 'Internal server error.', error: error.message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
+  }
+};
+
 
 
 //COURSES 

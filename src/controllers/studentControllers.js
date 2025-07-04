@@ -541,6 +541,41 @@ exports.verifyEmail = async (req, res) => {
 };
 
 
+
+// Unsubscribe student from reminder emails
+exports.unsubscribeStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).send(`
+        <h2 style="font-family:sans-serif;color:#d9534f;">Student not found.</h2>
+      `);
+    }
+
+    if (!student.emailSubscribed) {
+      return res.send(`
+        <h2 style="font-family:sans-serif;color:#28a745;">You are already unsubscribed from reminder emails.</h2>
+      `);
+    }
+
+    student.emailSubscribed = false;
+    await student.save();
+
+   return res.send(`
+  <h2 style="font-family:sans-serif;color:#000000;">You have successfully unsubscribed from future reminder emails.</h2>
+`);
+
+
+  } catch (error) {
+    console.error('Unsubscribe error:', error);
+    return res.status(500).send(`
+      <h2 style="font-family:sans-serif;color:#d9534f;">An error occurred while unsubscribing. Please try again later.</h2>
+    `);
+  }
+};
+
 exports.verifyOtpForRegistration = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

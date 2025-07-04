@@ -8,6 +8,7 @@ const receiptController = require('../controllers/receiptController');
 const { body, validationResult } = require('express-validator');
 const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
 const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
+const studentValidations = require('../validators/studentValidations');
 
 const {
 validateUniversity,
@@ -147,6 +148,16 @@ router.post('/assign-agent', agencyController.assignAgentToApplication);
 // Routes for students
 router.get('/students', agencyController.getAllStudents); // Get all students
 router.get('/students/:id', agencyController.getStudentById); // Get student by ID
+
+router.put('/update/student/:studentId',
+  upload.fields([
+    { name: 'document', maxCount: 5 },
+    { name: 'documentUpload', maxCount: 5 },
+  ]),
+  studentValidations.validateUpdateStudent,
+    validate,
+  agencyController.updateStudentById
+);
 
 
 

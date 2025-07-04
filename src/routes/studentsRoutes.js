@@ -104,6 +104,7 @@ router.post('/refresh-token', authenticationMiddleware.refreshToken);
 // 🔹 Verify Token Route (Checks if access token is valid)
 router.post('/verify-token', authenticationMiddleware.verifyToken);
 
+router.get('/unsubscribe/:studentId', studentController.unsubscribeStudent);
 
 router.use(authenticationMiddleware.authenticateUser, authenticationMiddleware.authorizeRoles(['student']))
 

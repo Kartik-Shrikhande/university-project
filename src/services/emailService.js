@@ -20,7 +20,8 @@ const COMPANY_LOGO = `
 `;
 
 // 📦 Enhanced Email Template Generator with Modern UI
-const generateEmailTemplate = (title, color, contentHtml, actionButton = null) => `
+// 📦 Enhanced Email Template Generator with Modern UI + Unsubscribe Option
+const generateEmailTemplate = (title, color, contentHtml, actionButton = null, studentId = null) => `
   <div style="max-width:600px;margin:20px auto;padding:0;font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;">
     <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
       <!-- Header with Logo -->
@@ -34,22 +35,29 @@ const generateEmailTemplate = (title, color, contentHtml, actionButton = null) =
         ${contentHtml}
         
         ${actionButton ? `
-        <div style="margin:30px 0;text-align:center;">
-          <a href="${actionButton.link}" 
-             style="background-color:${color};color:#ffffff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:500;display:inline-block;">
-            ${actionButton.text}
-          </a>
-        </div>
-        ` : ''}
-        
+          <div style="margin:30px 0;text-align:center;">
+            <a href="${actionButton.link}" 
+               style="background-color:${color};color:#ffffff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:500;display:inline-block;">
+              ${actionButton.text}
+            </a>
+          </div>` : ''}
+
         <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eeeeee;color:#666666;font-size:14px;">
-          <p style="margin:5px 0;">If you didn't request this email, you can safely ignore it.</p>
+          <p style="margin:5px 0;">If you didn’t request this email, you can safely ignore it.</p>
           <p style="margin:5px 0;">© ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
+          
+          ${studentId ? `
+            <p style="margin:5px 0;font-size:12px;color:#999;text-align:center;">
+              <a href="${process.env.SERVER_URL}/student/unsubscribe/${studentId}" style="color:#007bff;text-decoration:underline;">
+                Unsubscribe from reminders
+              </a>
+            </p>` : ''}
         </div>
       </div>
     </div>
   </div>
 `;
+
 
 // 📧 Send Verification Email
 const sendVerificationEmail = async (student) => {
