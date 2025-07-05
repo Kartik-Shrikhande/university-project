@@ -12,7 +12,9 @@ const Course = require('../models/coursesModel');
 const university = require('../models/universityModel');
 const Notification = require('../models/notificationModel');
 const AssociateSolicitor = require('../models/associateModel');
+const Solicitor = require("../models/solicitorModel");
 const checkEmailExists = require('../utils/checkEmailExists');
+
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
 const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
@@ -294,6 +296,265 @@ exports.hardDeleteAgent = async (req, res) => {
   } catch (error) {
     console.error("Error hard deleting agent:", error);
     res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+
+
+//SOLICITOR 
+
+
+exports.createSolicitor = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      address,
+      // countryCode,
+      phoneNumber,
+    } = req.body;
+
+    // Get associate ID from authenticated user
+    const nameOfAssociate = req.user.id;
+
+    // Check if the email is already registered
+    const existingSolicitor = await Solicitor.findOne({ email });
+    
+     const existingRole = await checkEmailExists(email, null);
+    if (existingRole) {
+  return res.status(400).json({ message: `This email is already registered as a ${existingRole}.` });
+}
+    
+        // If the associate exists but isDeleted: true, remove the old record
+        if (existingSolicitor && existingSolicitor.isDeleted) {
+          await solicitorModel.deleteOne({ email });
+        }
+    
+    
+    // **Auto-generate a password**
+    const password = generator.generate({
+      length: 12,
+      numbers: true,
+      symbols: true,
+      uppercase: true,
+      excludeSimilarCharacters: true,
+      exclude: `"'\\\``  // excludes ", ', \, and `
+    });
+
+    // **Hash the generated password**
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new solicitor
+    const newSolicitor = new Solicitor({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword, // Store hashed password
+      address,
+      // countryCode,
+      phoneNumber,
+      nameOfAssociate,
+    });
+
+    // Save the solicitor to the database
+    await newSolicitor.save();
+
+    // **Send credentials via email**
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your Solicitor Account Credentials',
+      text: `hi,${firstName} ${lastName},\n\nYour account has been successfully created.\n\nHere are your credentials:\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately for security.\n\nThank you.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'Solicitor created successfully. Check your email for credentials.',
+    });
+  } catch (error) {
+    console.error('Error creating solicitor:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+exports.updateSolicitorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate if ID format is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Solicitor ID" });
+    }
+
+    // Find the solicitor and ensure it belongs to the logged-in associate
+    const solicitor = await Solicitor.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    // Check if solicitor exists and belongs to the associate
+    if (!solicitor) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Solicitor not found",
+        });
+    }
+
+    // Define restricted fields that cannot be updated
+    const restrictedFields = [
+      "email",
+      "password",
+      "nameOfAssociate",
+      "completedVisa",
+      "isActive",
+      "visaRequestStatus",
+      "reason",
+      "role",
+      "isDeleted",
+    ];
+
+    // Check if any restricted field is present in the request body
+    const invalidFields = Object.keys(req.body).filter((field) =>
+      restrictedFields.includes(field)
+    );
+
+    // Return error if restricted fields are found in the request
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `The following fields cannot be updated: ${invalidFields.join(
+          ", "
+        )}`,
+      });
+    }
+
+    // Extract allowed fields from request body
+    const { firstName, lastName, address, countryCode, phoneNumber } = req.body;
+
+    // Update only the allowed fields
+    solicitor.firstName = firstName || solicitor.firstName;
+    solicitor.lastName = lastName || solicitor.lastName;
+    solicitor.address = address || solicitor.address;
+    // solicitor.countryCode = countryCode || solicitor.countryCode;
+    solicitor.phoneNumber = phoneNumber || solicitor.phoneNumber;
+
+    // Save the updated solicitor
+    await solicitor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Solicitor updated successfully",
+      solicitor,
+    });
+  } catch (error) {
+    console.error("Error updating solicitor:", error);
+    res.status(500).json({ success: false, message: "Error updating solicitor" });
+  }
+};
+
+exports.getAllSolicitors = async (req, res) => {
+  try {
+    // Get Associate ID from toke
+
+    // Find all solicitors created by this associate and not deleted
+    const solicitors = await Solicitor.find({
+      isDeleted: false,
+    }).select("firstName lastName email countryCode phoneNumber studentAssigned isActive");
+
+    res.status(200).json({
+      total: solicitors.length,
+      data: solicitors,
+    });
+  } catch (error) {
+    console.error("Error fetching solicitors:", error);
+    res.status(500).json({ error: "Error fetching solicitors" });
+  }
+};
+
+// @desc Get Solicitor by ID
+// @route GET /api/solicitors/:id
+exports.getSolicitorById = async (req, res) => {
+  try {
+   
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Solicitor ID" });
+    }
+
+    // Find the solicitor by ID and ensure it belongs to the logged-in associate
+    const solicitor = await Solicitor.findOne({
+      _id: id,
+      isDeleted: false,
+    }).select('-currentToken -password');
+
+    if (!solicitor) {
+      return res.status(404).json({ error: "Solicitor not found" });
+    }
+    
+    res.status(200).json(solicitor);
+  } catch (error) {
+    console.error("Error fetching solicitor:", error);
+    res.status(500).json({ error: "Error fetching solicitor" });
+  }
+};
+// @desc Update Solicitor
+// @route PUT /api/solicitors/:id
+
+
+
+// @desc Delete Solicitor
+// @route DELETE /api/solicitors/:id
+exports.deleteSolicitor = async (req, res) => {
+  try {
+   
+    const { id } = req.params;
+
+    // Validate if ID format is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Solicitor ID" });
+    }
+
+    // Find the solicitor by ID
+    const solicitor = await Solicitor.findById(id);
+
+    
+    // Check if solicitor exists or is already deleted
+    if (!solicitor || solicitor.isDeleted) {
+      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    }
+
+
+    // Mark solicitor as deleted (Soft delete)
+    solicitor.isDeleted = true;
+    await solicitor.save();
+
+    res
+      .status(200)
+      .json({ success: true, message: "Solicitor deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting solicitor:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error deleting solicitor" });
   }
 };
 
@@ -1044,10 +1305,6 @@ exports.getallCoursesWithFiltersforAgency = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-
-
-
 
 // Get course by id
 exports.getCourseByIdforAgency = async (req, res) => {

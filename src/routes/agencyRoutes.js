@@ -8,6 +8,7 @@ const receiptController = require('../controllers/receiptController');
 const { body, validationResult } = require('express-validator');
 const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handleValidationErrors } = require('../validators/coursesValidations');
 const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
+const {validateCreateSolicitor,validateUpdateSolicitor}=require('../validators/solicitorValidations')
 const studentValidations = require('../validators/studentValidations');
 
 const {
@@ -41,6 +42,14 @@ router.use(
   authenticationMiddleware.resolveAgencyContext // <-- New middleware here
 );
 
+
+
+//SOLICITOR
+router.post('/solicitor/create', validateCreateSolicitor,validate,agencyController.createSolicitor);
+router.put('/solicitor/update/:id',validateUpdateSolicitor,validate,agencyController.updateSolicitorById);
+router.get('/solicitors',agencyController.getAllSolicitors);
+router.get('/solicitor/:id',agencyController.getSolicitorById);
+router.delete('/solicitor/delete/:id',agencyController.deleteSolicitor);
 
 
 
