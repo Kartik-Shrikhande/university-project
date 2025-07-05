@@ -231,8 +231,8 @@ const validateUpdateStudent = [
 
   body('documentType').optional().isIn(['Passport']).withMessage('Document type must be Passport.'),
 
-  body('mostRecentEducation').optional().isIn(['BTech', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'])
-    .withMessage('Most recent education must be BTech, Diploma, Degree, Masters, PhD, or Other.'),
+  body('mostRecentEducation').optional().isIn(['Bachelors', 'Diploma', 'Degree', 'Masters', 'PhD', 'Other'])
+    .withMessage('Most recent education must be Bachelors, Diploma, Degree, Masters, PhD, or Other.'),
 
   // body('yearOfGraduation').optional().isInt({ min: 2014, max: new Date().getFullYear() })
   //   .withMessage(`Year of graduation must be between 2014 and ${new Date().getFullYear()}.`),

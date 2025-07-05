@@ -2240,7 +2240,7 @@ exports.updateUniversityByAgency = async (req, res) => {
 exports.getUniversities = async (req, res) => {
   try {
   
-  const universities = await University.find({ isDeleted: false }).sort({ isPromoted: -1 });
+  const universities = await University.find({ isDeleted: false }).select('-password').sort({ isPromoted: -1 });
     if (universities.length === 0) {
       return res.status(404).json({ message: 'No universities found.' });
     }
