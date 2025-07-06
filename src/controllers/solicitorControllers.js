@@ -137,6 +137,7 @@ exports.approveSolicitorRequest = async (req, res) => {
 
     // Remove applicationId from solicitor's assignedSolicitorRequests (optional, if it should be cleared post approval)
     solicitor.assignedSolicitorRequests.pull(applicationId);
+     solicitor.completedSolicitorRequests.push(applicationId);
     await solicitor.save();
 
     // Send confirmation email to student

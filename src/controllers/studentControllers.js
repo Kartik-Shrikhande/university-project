@@ -69,6 +69,10 @@ exports.applyForSolicitor = async (req, res) => {
     agency.solicitorRequests.push(applicationId);
     await agency.save();
 
+      // ✅ Update student's solicitorService status to true
+    student.solicitorService = true;
+    await student.save();
+
     res.status(200).json({ success: true, message: "Solicitor service request submitted successfully" });
     
   } catch (err) {
@@ -133,18 +137,6 @@ exports.checkSolicitorStatus = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Your solicitor request is being processed by the agency.",
-        status: "Processing",
-        isAssigned: false,
-        solicitor: null
-      });
-    }
-
-    // Check if request is being processed by an associate
-    const associateWithRequest = await AssociateSolicitor.findOne({ assignedSolicitorRequests: applicationId });
-    if (associateWithRequest) {
-      return res.status(200).json({
-        success: true,
-        message: "Your solicitor request is being processed by the associate.",
         status: "Processing",
         isAssigned: false,
         solicitor: null

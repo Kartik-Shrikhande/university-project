@@ -355,6 +355,7 @@ exports.createSolicitor = async (req, res) => {
       // countryCode,
       phoneNumber,
       nameOfAssociate,
+       agency: process.env.DEFAULT_AGENCY_ID
     });
 
     // Save the solicitor to the database
@@ -577,7 +578,8 @@ exports.getAllSolicitorRequests = async (req, res) => {
       status: 'Accepted'
     })
       .populate('student', 'firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline')
-      .populate('course', 'name');
+      .populate('course', 'name')
+      .sort({ createdAt: -1 })
 
     if (!applications.length) {
       return res.status(200).json({
@@ -658,25 +660,21 @@ exports.getSolicitorRequestByApplicationId = async (req, res) => {
 };
 
 
-exports.assignSolicitorRequestToAssociate = async (req, res) => {
+exports.assignSolicitorRequestToSolicitor = async (req, res) => {
   try {
-    const agencyId = req.user.id; // From agencyAuth middleware
-    const { associateId, applicationId } = req.body;
+    const { solicitorId, applicationId } = req.body;
 
     // Validate input
-    if (!associateId || !applicationId) {
-      return res.status(400).json({ success: false, message: "associateId and applicationId are required" });
+    if (!solicitorId || !applicationId) {
+      return res.status(400).json({ success: false, message: "solicitorId and applicationId are required" });
     }
 
-     // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(associateId)) {
-      return res.status(400).json({ success: false, message: "Invalid associateId ID" });
+    if (!mongoose.Types.ObjectId.isValid(solicitorId)) {
+      return res.status(400).json({ success: false, message: "Invalid solicitor ID" });
     }
-      // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid application ID" });
     }
-
 
     // Verify application exists
     const application = await Application.findById(applicationId).populate('student');
@@ -684,43 +682,48 @@ exports.assignSolicitorRequestToAssociate = async (req, res) => {
       return res.status(404).json({ success: false, message: "Application not found" });
     }
 
-    // Verify agency owns this solicitor request
-    const agency = await Agency.findById(agencyId);
-    if (!agency || !agency.solicitorRequests.includes(applicationId)) {
-      return res.status(403).json({ success: false, message: "This solicitor request is not associated with your agency" });
+    // ✅ Find solicitor and their agency
+    const solicitor = await Solicitor.findById(solicitorId).populate('agency');
+    if (!solicitor) {
+      return res.status(404).json({ success: false, message: "Solicitor not found" });
     }
 
-    // Find associate and validate
-    const associate = await AssociateSolicitor.findById(associateId);
-    if (!associate) {
-      return res.status(404).json({ success: false, message: "Associate not found" });
+    const agency = solicitor.agency;
+    if (!agency) {
+      return res.status(404).json({ success: false, message: "Solicitor's agency not found" });
+    }
+
+    // Verify agency owns this solicitor request
+    if (!agency.solicitorRequests.includes(applicationId)) {
+      return res.status(403).json({ success: false, message: "This solicitor request is not associated with this agency" });
     }
 
     // Prevent duplicate assignments
-    if (associate.assignedSolicitorRequests.includes(applicationId)) {
-      return res.status(400).json({ success: false, message: "This application is already assigned to this associate" });
+    if (solicitor.assignedSolicitorRequests.includes(applicationId)) {
+      return res.status(400).json({ success: false, message: "This application is already assigned to this solicitor" });
     }
 
-    // Check if this application was already assigned to any associate
-    const alreadyAssignedToAnyAssociate = await AssociateSolicitor.findOne({
+    // Check if this application was already assigned to any solicitor
+    const alreadyAssignedToAnySolicitor = await Solicitor.findOne({
       assignedSolicitorRequests: applicationId
     });
 
-    // Assign application to associate
-    associate.assignedSolicitorRequests.push(applicationId);
-    await associate.save();
+    // Assign application to solicitor
+    solicitor.assignedSolicitorRequests.push(applicationId);
+    solicitor.studentAssigned.push(application.student._id);
+    await solicitor.save();
 
-    // // ✅ Remove application from agency's pending solicitor requests list
+    // Remove application from agency's pending solicitor requests list
     await Agency.findByIdAndUpdate(
-      agencyId,
+      agency._id,
       { $pull: { solicitorRequests: applicationId } }
     );
 
     // ✅ Only send notification/email if this is the first assignment
-    if (!alreadyAssignedToAnyAssociate) {
+    if (!alreadyAssignedToAnySolicitor) {
       await Notification.create({
         user: application.student._id,
-        message: `🎉 Congratulations! Your solicitor request has been approved. An associate will be assigned to you shortly.`,
+        message: `🎉 Congratulations! Your solicitor request has been approved. A solicitor will be assigned to you shortly.`,
         type: 'General',
       });
 
@@ -729,12 +732,12 @@ exports.assignSolicitorRequestToAssociate = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Solicitor request successfully assigned to associate",
-      data: associate
+      message: "Solicitor request successfully assigned to solicitor",
+      data: solicitor
     });
 
   } catch (error) {
-    console.error("Error assigning solicitor request to associate:", error);
+    console.error("Error assigning solicitor request:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -1558,6 +1561,7 @@ exports.getPendingApplications = async (req, res) => {
     // Populate pending applications
     await agency.populate({
       path: 'pendingApplications',
+       options: { sort: { createdAt: -1 } }, 
       select: 'student university course status submissionDate',
       populate: [
         { path: 'student', select: 'firstName lastName email' },
