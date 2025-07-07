@@ -170,7 +170,7 @@ router.put('/update/student/:studentId',
   agencyController.updateStudentById
 );
 
-
+router.delete('/students/:studentId',agencyController.deleteStudentByAdmin);
 
 //ASSOCIATE 
 // Define routes

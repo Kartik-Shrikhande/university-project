@@ -1184,6 +1184,36 @@ exports.updateStudentById = async (req, res) => {
   }
 };
 
+exports.deleteStudentByAdmin = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // Validate studentId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ success: false, message: 'Invalid student ID' });
+    }
+
+    // Check if student exists
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    // If already deleted
+    if (student.isDeleted) {
+      return res.status(400).json({ success: false, message: 'Student already deleted' });
+    }
+
+    // Mark student as deleted
+    student.isDeleted = true;
+    await student.save();
+
+    res.status(200).json({ success: true, message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
 
 
 //COURSES 
