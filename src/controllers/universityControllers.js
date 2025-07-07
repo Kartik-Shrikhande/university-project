@@ -156,6 +156,11 @@ exports.getPendingApplications = async (req, res) => {
         : null
     }));
 
+    pendingApplications.sort(
+  (a, b) => new Date(b.submissionDate) - new Date(a.submissionDate)
+);
+
+
     res.status(200).json({
       success: true,
       total: pendingApplications.length,
@@ -295,7 +300,9 @@ exports.getApplicationsByStatus = async (req, res) => {
       .populate('course', 'name')
       .populate('assignedAgent', 'name email')
       .populate('assignedSolicitor', 'name email')
-      .populate('agency', 'name email');
+      .populate('agency', 'name email')
+      .sort({ submissionDate: -1 });
+
 
     res.status(200).json({
       message: `Applications with status '${status}' fetched successfully.`,

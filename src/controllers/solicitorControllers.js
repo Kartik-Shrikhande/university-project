@@ -44,7 +44,7 @@ exports.getAllAssignedSolicitorRequestsForSolicitor = async (req, res) => {
       path: "assignedSolicitorRequests",
       populate: {
         path: "student",
-        select: "firstName lastName email telephoneNumber countryApplyingFrom courseStartTimeline"
+        select: "firstName lastName email countryCode telephoneNumber countryApplyingFrom courseStartTimeline"
       }
     });
 
@@ -84,7 +84,7 @@ exports.getSolicitorRequestByIdForSolicitor = async (req, res) => {
 
     // Fetch application details
     const application = await Application.findById(applicationId)
-      .populate("student", "firstName lastName email telephoneNumber courseStartTimeline countryApplyingFrom")
+      .populate("student", "firstName lastName email countryCode telephoneNumber courseStartTimeline countryApplyingFrom")
       .populate("university", "name")
       .populate("course", "name");
 

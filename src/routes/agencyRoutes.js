@@ -42,6 +42,8 @@ router.use(
   authenticationMiddleware.resolveAgencyContext // <-- New middleware here
 );
 
+//RESET PASSWORD FOR ALL ROLES
+router.post('/roles/reset-password', agencyController.resetUserPasswordByAdmin);
 
 
 //SOLICITOR

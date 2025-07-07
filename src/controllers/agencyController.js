@@ -14,13 +14,68 @@ const Notification = require('../models/notificationModel');
 const AssociateSolicitor = require('../models/associateModel');
 const Solicitor = require("../models/solicitorModel");
 const checkEmailExists = require('../utils/checkEmailExists');
-
+const crypto = require("crypto");
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
-const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency} = require('../services/emailService');
+const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency,sendPasswordResetByAdminEmail} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
+
+//reset password of all the roles 
+exports.resetUserPasswordByAdmin = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // List of models to check, order doesn't matter if emails are globally unique
+    const models = [
+      { name: "agent", model: Agent },
+      { name: "solicitor", model: Solicitor },
+      { name: "university", model: University },
+      { name: "agency", model: Agency },
+    ];
+
+    let user = null;
+    let role = null;
+
+    // Find user by email in any model
+    for (const item of models) {
+      const found = await item.model.findOne({ email });
+      if (found) {
+        user = found;
+        role = item.name;
+        break;
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "No user found with the provided email." });
+    }
+
+    // Generate new password
+    const newPassword = crypto.randomBytes(5).toString("hex");
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send email with new password
+    await sendPasswordResetByAdminEmail(user, newPassword);
+
+    res.status(200).json({
+      message: `Password reset successfully for ${role}. New password sent on email: ${email}`,
+    });
+
+  } catch (error) {
+    console.error("Error resetting password by admin:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 //AGENT APIS
@@ -708,10 +763,20 @@ exports.assignSolicitorRequestToSolicitor = async (req, res) => {
       assignedSolicitorRequests: applicationId
     });
 
-    // Assign application to solicitor
-    solicitor.assignedSolicitorRequests.push(applicationId);
-    solicitor.studentAssigned.push(application.student._id);
-    await solicitor.save();
+if (alreadyAssignedToAnySolicitor) {
+  return res.status(400).json({ 
+    success: false, 
+    message: "This solicitor request is already assigned to another solicitor." 
+  });
+}
+
+solicitor.assignedSolicitorRequests.push(applicationId);
+// Prevent duplicate student assignment
+if (!solicitor.studentAssigned.includes(application.student._id)) {
+  solicitor.studentAssigned.push(application.student._id);
+}
+
+await solicitor.save();
 
     // Remove application from agency's pending solicitor requests list
     await Agency.findByIdAndUpdate(
@@ -1768,7 +1833,8 @@ exports.getApplicationsByStatus = async (req, res) => {
       .populate('university', 'name')
       .populate('course', 'name')
       .populate('assignedAgent', 'name email')
-      .populate('assignedSolicitor', 'name email');
+      .populate('assignedSolicitor', 'name email')
+      .sort({ submissionDate: -1 });
 
     // Prepare response, overriding status for Processing/Accepted based on agency mapping
     const formattedApplications = applications.map(app => {
@@ -1931,8 +1997,8 @@ exports.getApplicationsStatusByAllUniversities = async (req, res) => {
         .populate('course', 'name')
         .populate('assignedAgent', 'username email')
         .populate('assignedSolicitor', 'username email')
-        .select('student course status assignedAgent assignedSolicitor submissionDate');
-
+        .select('student course status assignedAgent assignedSolicitor submissionDate')
+.sort({ submissionDate: -1 });  
       // If no applications found, skip this university
       if (!applications.length) continue;
 
@@ -2518,7 +2584,10 @@ exports.getUniversityById = async (req, res) => {
     const { id } = req.params;
 
     // Find university by ID
-    const university = await University.findById(id);
+    const university = await University.findById(id).populate({
+        path: 'courses',
+        select: 'name fees description'  // 👈 Only fetch these fields from each course
+      });
     
     // Check if university exists
     if (!university) {

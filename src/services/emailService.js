@@ -479,6 +479,28 @@ const sendReceiptRejectedEmailToAgency = async (agency, student, universityName,
   });
 };
 
+
+
+const sendPasswordResetByAdminEmail = async (user, newPassword) => {
+  const html = `
+    <h2 style="font-family:sans-serif;color:#333;">Hello ${user.firstName || "User"},</h2>
+    <p style="font-size:16px;color:#555;">Your password has been reset by the admin.</p>
+    <p style="font-size:16px;color:#333;">Here is your new password:</p>
+    <p style="font-size:18px;color:#007bff;"><strong>${newPassword}</strong></p>
+    <p>Please log in and change your password immediately after.</p>
+    <br>
+    <p style="font-size:14px;color:#777;">Regards,<br>Connect2Uni Admin Team</p>
+  `;
+
+  await transporter.sendMail({
+    from: `"Connect2Uni" <${process.env.EMAIL_USER}>`,
+    to: user.email,
+    subject: "Your password has been reset",
+    html
+  });
+};
+
+
 // ✅ Export all
 module.exports = {
    generateEmailTemplate,
@@ -497,7 +519,8 @@ module.exports = {
   sendReceiptRejectedEmail,
   sendReceiptUploadedEmailToAgency,
   sendReceiptAcceptedEmailToAgency,
-  sendReceiptRejectedEmailToAgency
+  sendReceiptRejectedEmailToAgency,
+  sendPasswordResetByAdminEmail
 };
 
 

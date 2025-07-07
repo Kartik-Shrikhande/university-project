@@ -564,8 +564,8 @@ exports.getApplicationById = async (req, res) => {
       .populate('university', 'name country')
       .populate('course', 'name fees')
       .populate('agency', 'name email')
-      .populate('assignedAgent', 'name email');
-
+      .populate('assignedAgent', 'name email')
+         .select('-extraDocuments'); 
       if (!application) {
           return res.status(404).json({ message: "Application not found" });
       }
