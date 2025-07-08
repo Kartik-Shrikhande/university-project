@@ -994,14 +994,14 @@ exports.updateCourse = async (req, res) => {
     }
     if (courseType) course.courseType = courseType;
 
-    if (courseDuration !== undefined) {
-      if (!/^\d+$/.test(courseDuration)) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ message: 'Course duration must be a positive integer.' });
-      }
-      course.courseDuration = courseDuration;
-    }
+    // if (courseDuration !== undefined) {
+    //   if (!/^\d+$/.test(courseDuration)) {
+    //     await session.abortTransaction();
+    //     session.endSession();
+    //     return res.status(400).json({ message: 'Course duration must be a positive integer.' });
+    //   }
+    //   course.courseDuration = courseDuration;
+    // }
 
     if (name) course.name = name;
     if (description) course.description = description;

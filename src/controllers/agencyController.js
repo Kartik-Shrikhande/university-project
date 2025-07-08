@@ -2845,15 +2845,15 @@ exports.updateCourseByAgency = async (req, res) => {
       course.courseType = courseType;
     }
 
-    // Validate and apply courseDuration
-    if (courseDuration !== undefined) {
-      if (!/^\d+$/.test(courseDuration)) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ message: 'Course duration must be a positive integer.' });
-      }
-      course.courseDuration = courseDuration;
-    }
+    // // Validate and apply courseDuration
+    // if (courseDuration !== undefined) {
+    //   if (!/^\d+$/.test(courseDuration)) {
+    //     await session.abortTransaction();
+    //     session.endSession();
+    //     return res.status(400).json({ message: 'Course duration must be a positive integer.' });
+    //   }
+    //   course.courseDuration = courseDuration;
+    // }
 
     // Directly assign UCSA and level (since express-validator already validated)
     if (UCSA) course.UCSA = UCSA;
