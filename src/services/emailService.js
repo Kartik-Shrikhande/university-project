@@ -76,7 +76,7 @@ const generateEmailTemplate = (
     <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
       <!-- Header with Logo -->
       <div style="text-align:center;padding-top:20px;">
-        <div>${logoimage}</div>
+        <img src="${logoimage}">
         <h1 style="margin-top:25px;color:#004AAC;font-size:24px;font-weight:600;">${title}</h1>
       </div>
       
@@ -151,6 +151,11 @@ const sendVerificationEmail = async (student) => {
                     </p>
                 </div>
 
+                 <div>
+                    <p style="font-weight: 300;">
+                        This link will expire in 24 hours, so don’t wait too long. If you didn’t sign up for Connect2Uni, feel free to ignore this email.
+                    </p>
+                </div>
 
 
 `,
@@ -162,14 +167,8 @@ const sendVerificationEmail = async (student) => {
     {
       text: "Verify My Email",
       link: verificationLink,
-    },
-
-                  ` <div>
-                    <p style="font-weight: 300;">
-                        This link will expire in 24 hours, so don’t wait too long. If you didn’t sign up for Connect2Uni, feel free to ignore this email.
-                    </p>
-                </div>`,
-
+    }
+                 
   );
 
 
