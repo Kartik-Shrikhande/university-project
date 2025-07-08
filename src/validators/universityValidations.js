@@ -49,7 +49,7 @@ const validateUniversity = [
   check('address.country').trim().notEmpty().withMessage('Country is required.'),
   check('address.city').trim().notEmpty().withMessage('City is required.'),
   check('address.state').optional(),
-  check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.').isPostalCode('any').withMessage('Invalid Zip Code.'),
+  check('address.zipCode').trim().notEmpty().withMessage('Zip Code is required.'),
   validateResult,
 ];
 
@@ -74,7 +74,7 @@ const validateUniversityUpdate = [
   check('address.country').optional().trim().notEmpty().withMessage('Country cannot be empty.'),
   check('address.city').optional().trim().notEmpty().withMessage('City cannot be empty.'),
   check('address.state').optional().trim(),
-  check('address.zipCode').optional().trim().notEmpty().withMessage('Zip Code cannot be empty.').isPostalCode('any').withMessage('Invalid Zip Code.'),
+  check('address.zipCode').optional().trim().notEmpty().withMessage('Zip Code cannot be empty.'),
   validateResult,
 ];
 
