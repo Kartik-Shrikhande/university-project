@@ -4,8 +4,8 @@ const crypto = require("crypto");
 require("dotenv").config({ path: ".env" });
 const fs = require('fs');
 const path = require('path');
-const logoPath = path.join(__dirname, '../images/logo.svg');
-const logoimage = fs.readFileSync(logoPath, 'utf8');
+const logoPath = path.join(__dirname,'../images/logo.png'); // Adjusted path to logo
+// const logoimage = fs.readFileSync(logoPath, 'utf8');
 const mongoose = require("mongoose");
 
 const transporter = nodemailer.createTransport({
@@ -147,7 +147,7 @@ await transporter.sendMail({
   html,
   attachments: [
     {
-      filename: 'logo.svg',
+      filename: 'logo.png',
       path: logoPath,
       cid: 'unique-logo-cid'  // same as in HTML img src
     }
