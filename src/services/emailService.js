@@ -144,7 +144,7 @@ await transporter.sendMail({
   from: `"Connect2Uni" <${process.env.EMAIL_USER}>`,
   to: student.email,
   subject: "Let's Get You Started",
-  html: htmlContent,
+  html,
   attachments: [
     {
       filename: 'logo.svg',
