@@ -1823,11 +1823,11 @@ exports.getApplicationByIdForAgency = async (req, res) => {
 
 exports.getApplicationsByStatus = async (req, res) => {
   try {
-    const agencyId = req.user.id;  // Directly use authenticated user’s ID as agencyId
+    const agencyId = req.user.id;  // Authenticated user’s ID as agencyId
     const { status } = req.query;
 
-    // Validate status input
-    const validStatuses = ['Processing', 'Accepted', 'Rejected', 'Withdrawn'];
+    // ✅ Update: Valid statuses — replacing 'Accepted' with 'Sent to University'
+    const validStatuses = ['Processing', 'Sent to University', 'Rejected', 'Withdrawn'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
     }
@@ -1839,10 +1839,10 @@ exports.getApplicationsByStatus = async (req, res) => {
 
     let applicationIds = [];
 
-    // Fetch application IDs based on agency collections for Processing / Accepted
+    // Fetch application IDs based on agency collections
     if (status === 'Processing') {
       applicationIds = agency.pendingApplications.map(id => id.toString());
-    } else if (status === 'Accepted') {
+    } else if (status === 'Sent to University') {
       applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
     } else {
       // For Rejected / Withdrawn — query Application model by status field
@@ -1866,25 +1866,17 @@ exports.getApplicationsByStatus = async (req, res) => {
       .populate('assignedSolicitor', 'name email')
       .sort({ submissionDate: -1 });
 
-    // Prepare response, overriding status for Processing/Accepted based on agency mapping
-    const formattedApplications = applications.map(app => {
-      let appStatus = app.status; // default for Rejected/Withdrawn
-
-      if (status === 'Processing' || status === 'Accepted') {
-        appStatus = status;  // override status from Application model
-      }
-
-      return {
-        _id: app._id,
-        student: app.student,
-        university: app.university,
-        course: app.course,
-        assignedAgent: app.assignedAgent,
-        assignedSolicitor: app.assignedSolicitor,
-        status: appStatus,
-        submissionDate: app.submissionDate
-      };
-    });
+    // Prepare response
+    const formattedApplications = applications.map(app => ({
+      _id: app._id,
+      student: app.student,
+      university: app.university,
+      course: app.course,
+      assignedAgent: app.assignedAgent,
+      assignedSolicitor: app.assignedSolicitor,
+      status: status,  // status as per query param — either Processing / Sent to University / Rejected / Withdrawn
+      submissionDate: app.submissionDate
+    }));
 
     res.status(200).json({
       message: `Applications with status '${status}' fetched successfully.`,
@@ -1897,6 +1889,7 @@ exports.getApplicationsByStatus = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 
 //previouse 
