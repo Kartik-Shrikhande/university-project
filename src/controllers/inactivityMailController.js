@@ -3,7 +3,7 @@ const cron = require('node-cron');
 const nodemailer = require('nodemailer');
 const Students = require('../models/studentsModel');
 require('dotenv').config();
-const { generateEmailTemplate, COMPANY_LOGO } = require('../services/emailService');
+const { generateEmailTemplate,sendEmailWithLogo } = require('../services/emailService');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+let inactivityCronJob;
 // Function to send a styled HTML reminder email with unsubscribe link
 const sendReminderEmail = async (student, title, message, color, button = null) => {
   const html = generateEmailTemplate(
@@ -34,20 +35,27 @@ const sendReminderEmail = async (student, title, message, color, button = null) 
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    await sendEmailWithLogo(mailOptions);
     console.log(`Reminder email sent to ${student.email}`);
   } catch (error) {
-    console.error(`Failed to send email to ${student.email}:`, error);
+    if (error.message.includes("Daily user sending limit exceeded")) {
+      console.error("Gmail daily limit hit. Stopping cron job for today.");
+      if (inactivityCronJob) inactivityCronJob.stop();  // stop the job safely
+      throw new Error("Daily email limit exceeded. Cron job stopped.");
+    } else {
+      console.error(`Failed to send email to ${student.email}:`, error);
+    }
   }
 };
+
 
 const startCronJob = () => {
 
 
-//   cron.schedule('*/2 * * * *', async () => {
-//     try {
-//       const now = Date.now();
-//       const inactivityLimit = 2 * 60 * 1000; // 2 minutes
+  // cron.schedule('*/2 * * * *', async () => {
+  //   try {
+  //     const now = Date.now();
+  //     const inactivityLimit = 2 * 60 * 1000; // 2 minutes
 
 
  cron.schedule('0 0 * * *', async () => {

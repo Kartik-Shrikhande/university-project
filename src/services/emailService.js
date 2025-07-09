@@ -26,7 +26,7 @@ const generateEmailTemplate = (
   reminderHtml = null
 ) => `
   <div style="max-width:600px;margin:20px auto;padding:0;font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;">
-    <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+    <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);-webkit-box-shadow:0 4px 12px rgba(0,0,0,0.05);">
       <!-- Header with Logo -->
       <div style="text-align:center;padding-top:20px;">
         <img src="cid:unique-logo-cid" alt="connect2uni logo">
@@ -43,7 +43,7 @@ const generateEmailTemplate = (
             ? `
           <div style="margin:30px 0;text-align:center;">
             <a href="${actionButton.link}" 
-               style="background-color:${color};color:#ffffff;padding:10px 40px;border-radius:5px;text-decoration:none;font-weight:400;display:inline-block;">
+               style="background-color:#004AAC;color:#ffffff;padding:10px 40px;border-radius:5px;text-decoration:none;font-weight:400;display:inline-block;">
               ${actionButton.text}
             </a>
           </div>`
@@ -174,6 +174,13 @@ const sendRejectionEmail = async (email, reason) => {
     to: email,
     subject: "Your Application Status Update",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -204,6 +211,13 @@ const sendPaymentSuccessEmail = async (student) => {
     to: student.email,
     subject: "Payment Successful - Thank You!",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -232,6 +246,13 @@ const sendSolicitorPaymentEmail = async (student) => {
     to: student.email,
     subject: "Solicitor Service Payment Confirmation",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -255,6 +276,13 @@ const sendAcceptanceEmail = async (email, courseName, universityName) => {
     to: email,
     subject: "Application Accepted - Congratulations!",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -301,6 +329,13 @@ const sendAgencyNotificationEmail = async (
     to: email,
     subject: `Student Application Update: ${studentName}`,
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -332,6 +367,13 @@ const sendOfferLetterEmailByAgency = async (
     to: email,
     subject: `Official Acceptance Letter from ${universityName}`,
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -356,6 +398,13 @@ const sendSolicitorRequestApprovedEmail = async (student) => {
     to: student.email,
     subject: "Solicitor Request Approved",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -384,6 +433,13 @@ const sendSolicitorAssignedEmail = async (student, solicitor) => {
     to: student.email,
     subject: "Solicitor Assigned to Your Request",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -420,6 +476,13 @@ const sendReceiptUploadedEmailToUniversity = async (
     to: university.email,
     subject: "New Payment Receipt Uploaded for Review",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -448,6 +511,13 @@ const sendReceiptAcceptedEmail = async (student, application) => {
     to: student.email,
     subject: "Payment Receipt Accepted",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -474,6 +544,13 @@ const sendReceiptRejectedEmail = async (student, application, remark) => {
     to: student.email,
     subject: "Payment Receipt Requires Correction",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -513,6 +590,13 @@ const sendReceiptUploadedEmailToAgency = async (
     to: agency.email,
     subject: `New Payment Receipt from ${student.firstName} ${student.lastName}`,
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -541,6 +625,13 @@ const sendReceiptAcceptedEmailToAgency = async (
     to: agency.email,
     subject: `Receipt Accepted for ${student.firstName} ${student.lastName}`,
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -573,6 +664,13 @@ const sendReceiptRejectedEmailToAgency = async (
     to: agency.email,
     subject: `Receipt Correction Needed for ${student.firstName} ${student.lastName}`,
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
 
@@ -594,13 +692,36 @@ const sendPasswordResetByAdminEmail = async (user, newPassword) => {
     to: user.email,
     subject: "Your password has been reset",
     html,
+     attachments: [
+    {
+      filename: "logo.png",
+      path: logoPath,
+      cid: "unique-logo-cid",
+    },
+  ],
   });
 };
+
+
+// const path = require('path');
+// const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+
+const sendEmailWithLogo = async (mailOptions) => {
+  mailOptions.attachments = [
+    {
+      filename: 'logo.png',
+      path: logoPath,
+      cid: 'unique-logo-cid',
+    },
+  ];
+  return transporter.sendMail(mailOptions);
+};
+
 
 // ✅ Export all
 module.exports = {
   generateEmailTemplate,
-  // COMPANY_LOGO,
+ sendEmailWithLogo, 
   sendVerificationEmail,
   sendRejectionEmail,
   sendPaymentSuccessEmail,
