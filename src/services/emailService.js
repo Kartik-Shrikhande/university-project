@@ -9,6 +9,7 @@ const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to
 // const logoimage = fs.readFileSync(logoPath, 'utf8');
 const mongoose = require("mongoose");
 
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -16,6 +17,73 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
+///previousely used 
+// const generateEmailTemplate = (
+//   title,
+//   color,
+//   contentHtml,
+//   actionButton = null,
+//   studentId = null,
+//   reminderHtml = null
+// ) => `
+//   <div style="max-width:600px;margin:20px auto;padding:0;font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;">
+//     <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);-webkit-box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+//       <!-- Header with Logo -->
+//       <div style="text-align:center;padding-top:20px;">
+//         <img src="cid:unique-logo-cid" alt="connect2uni logo">
+//         <h1 style="margin-top:25px;color:#004AAC;font-size:24px;font-weight:600;">${title}</h1>
+//       </div>
+      
+//       <div style="padding:30px;">
+
+
+//         ${contentHtml}
+        
+//         ${
+//           actionButton
+//             ? `
+//           <div style="margin:30px 0;text-align:center;">
+//             <a href="${actionButton.link}" 
+//                style="background-color:#004AAC;color:#ffffff;padding:10px 40px;border-radius:5px;text-decoration:none;font-weight:400;display:inline-block;">
+//               ${actionButton.text}
+//             </a>
+//           </div>`
+//             : ""
+//         }
+//         ${reminderHtml || ""}
+
+//         <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eeeeee;">
+       
+
+          
+// <p style="margin: 0;">Happy exploring!</p>
+//                     <p style="margin: 0;">— The Connect2Uni Team</p>
+
+//                     <p style="margin: 0;font-size:14px;line-height: normal;margin-top: 30px;">
+//                         If you didn’t request this email, you can safely ignore it.
+//                     </p>
+//                     <p style="margin: 0;font-size: 14px;margin-top: 7px;">
+//                         © ${new Date().getFullYear()} Connect2Uni. All rights reserved
+//                     </p>
+
+
+//           ${
+//             studentId
+//               ? `
+//             <p style="margin:5px 0;font-size:12px;text-align:center;">
+//               <a href="${process.env.SERVER_URL}/student/unsubscribe/${studentId}" style="color:#004AAC;text-decoration:underline;">
+//                 Unsubscribe from reminders
+//               </a>
+//             </p>`
+//               : ""
+//           }
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// `;
+
 
 const generateEmailTemplate = (
   title,
@@ -26,61 +94,78 @@ const generateEmailTemplate = (
   reminderHtml = null
 ) => `
   <div style="max-width:600px;margin:20px auto;padding:0;font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;">
-    <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);-webkit-box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-      <!-- Header with Logo -->
-      <div style="text-align:center;padding-top:20px;">
-        <img src="cid:unique-logo-cid" alt="connect2uni logo">
-        <h1 style="margin-top:25px;color:#004AAC;font-size:24px;font-weight:600;">${title}</h1>
-      </div>
-      
-      <div style="padding:30px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" border="0" style="
+            background-color:#ffffff;
+            border-radius:8px;
+            overflow:hidden;
+            border:1px solid #ddd;
+            box-shadow:0 4px 12px rgba(0,0,0,0.12);
+            -webkit-box-shadow:0 4px 12px rgba(0,0,0,0.12);
+            ">
+            <tr>
+              <td style="padding: 20px 30px 0 30px; text-align:center;">
+                <img src="cid:unique-logo-cid" alt="connect2uni logo" style="margin-bottom: 20px;" />
+                <h1 style="margin:0 0 20px 0; color:#004AAC; font-size:24px; font-weight:600;">${title}</h1>
+              </td>
+            </tr>
 
+            <tr>
+              <td style="padding: 0 30px 30px 30px; font-size:16px; color:#333; line-height:1.6;">
+                ${contentHtml}
 
-        ${contentHtml}
-        
-        ${
-          actionButton
-            ? `
-          <div style="margin:30px 0;text-align:center;">
-            <a href="${actionButton.link}" 
-               style="background-color:#004AAC;color:#ffffff;padding:10px 40px;border-radius:5px;text-decoration:none;font-weight:400;display:inline-block;">
-              ${actionButton.text}
-            </a>
-          </div>`
-            : ""
-        }
-        ${reminderHtml || ""}
+                ${
+                  actionButton
+                    ? `
+                    <div style="margin:30px 0; text-align:center;">
+                      <a href="${actionButton.link}" 
+                        style="background-color:#004AAC; color:#ffffff; padding:10px 40px; border-radius:5px; text-decoration:none; font-weight:400; display:inline-block;">
+                        ${actionButton.text}
+                      </a>
+                    </div>`
+                    : ""
+                }
 
-        <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eeeeee;">
-       
+                ${reminderHtml || ""}
 
-          
-<p style="margin: 0;">Happy exploring!</p>
-                    <p style="margin: 0;">— The Connect2Uni Team</p>
+                <div style="margin-top:30px; padding-top:20px; border-top:1px solid #eeeeee; text-align:left;">
+                  <p style="margin:0;">Happy exploring!</p>
+                  <p style="margin:0;">— The Connect2Uni Team</p>
 
-                    <p style="margin: 0;font-size:14px;line-height: normal;margin-top: 30px;">
-                        If you didn’t request this email, you can safely ignore it.
-                    </p>
-                    <p style="margin: 0;font-size: 14px;margin-top: 7px;">
-                        © ${new Date().getFullYear()} Connect2Uni. All rights reserved
-                    </p>
+                  <p style="margin:0; font-size:14px; line-height:normal; margin-top:30px;">
+                    If you didn’t request this email, you can safely ignore it.
+                  </p>
+                  <p style="margin:0; font-size:14px; margin-top:7px;">
+                    © ${new Date().getFullYear()} Connect2Uni. All rights reserved.
+                  </p>
 
-
-          ${
-            studentId
-              ? `
-            <p style="margin:5px 0;font-size:12px;text-align:center;">
-              <a href="${process.env.SERVER_URL}/student/unsubscribe/${studentId}" style="color:#004AAC;text-decoration:underline;">
-                Unsubscribe from reminders
-              </a>
-            </p>`
-              : ""
-          }
-        </div>
-      </div>
-    </div>
+                  ${
+                    studentId
+                      ? `
+                    <p style="margin:5px 0; font-size:12px; text-align:center;">
+                      <a href="${process.env.SERVER_URL}/student/unsubscribe/${studentId}" style="color:#004AAC; text-decoration:underline;">
+                        Unsubscribe from reminders
+                      </a>
+                    </p>`
+                      : ""
+                  }
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
+
+
+
+
+
+
 
 // 📧 Send Verification Email
 const sendVerificationEmail = async (student) => {
@@ -702,26 +787,22 @@ const sendPasswordResetByAdminEmail = async (user, newPassword) => {
   });
 };
 
-
-// const path = require('path');
-// const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
-
 const sendEmailWithLogo = async (mailOptions) => {
   mailOptions.attachments = [
     {
       filename: 'logo.png',
       path: logoPath,
-      cid: 'unique-logo-cid',
-    },
+      cid: 'unique-logo-cid'
+    }
   ];
-  return transporter.sendMail(mailOptions);
-};
 
+  await transporter.sendMail(mailOptions);
+};
 
 // ✅ Export all
 module.exports = {
-  generateEmailTemplate,
- sendEmailWithLogo, 
+  generateEmailTemplate, 
+  sendEmailWithLogo,
   sendVerificationEmail,
   sendRejectionEmail,
   sendPaymentSuccessEmail,
@@ -739,6 +820,8 @@ module.exports = {
   sendReceiptRejectedEmailToAgency,
   sendPasswordResetByAdminEmail,
 };
+
+//////777
 
 // const nodemailer = require('nodemailer');
 // const Student = require('../models/studentsModel');

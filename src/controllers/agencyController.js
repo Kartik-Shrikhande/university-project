@@ -16,7 +16,7 @@ const Solicitor = require("../models/solicitorModel");
 const checkEmailExists = require('../utils/checkEmailExists');
 const crypto = require("crypto");
 const { encryptData,decryptData } = require('../services/encryption&decryptionKey');
-const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency,sendPasswordResetByAdminEmail} = require('../services/emailService');
+const { sendRejectionEmail,sendSolicitorRequestApprovedEmail,sendOfferLetterEmailByAgency,sendPasswordResetByAdminEmail,generateEmailTemplate,sendEmailWithLogo} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
 const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
@@ -139,23 +139,34 @@ if (existingRole) {
       $push: { agents: newAgent._id }
     });
 
-    // Send credentials email directly here
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+     // ✅ Prepare HTML email using your styled template
+    const html = generateEmailTemplate(
+      "Your Agent Account is Ready!",
+      "#004AAC",
+      `
+      <p style="font-size:16px;color:#333;">Hi <strong>${username}</strong>,</p>
+      <p style="font-size:16px;color:#555;">Your agent account has been successfully created. Here are your login credentials:</p>
+      <ul style="font-size:16px;color:#555;">
+        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Password:</strong> ${password}</li>
+      </ul>
+      <p style="font-size:16px;color:#555;">Please log in and change your password immediately for security reasons.</p>
+      `,
+      {
+        text: "Log In Now",
+        link: `${process.env.CLIENT_BASE_URL}/agent/login`
+      }
+    );
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Your Agent Account Credentials",
-      text: `Your agent account has been created successfully.\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately.`
+      html,
     };
 
-    await transporter.sendMail(mailOptions);
+    // ✅ Send using your common mailer utility
+    await sendEmailWithLogo(mailOptions);
 
     res.status(201).json({
       success: true,
@@ -416,23 +427,33 @@ exports.createSolicitor = async (req, res) => {
     // Save the solicitor to the database
     await newSolicitor.save();
 
-    // **Send credentials via email**
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // ✅ Styled HTML credentials email
+    const html = generateEmailTemplate(
+      "Your Solicitor Account is Ready!",
+      "#004AAC",
+      `
+      <p style="font-size:16px;color:#333;">Hi <strong>${firstName} ${lastName}</strong>,</p>
+      <p style="font-size:16px;color:#555;">Your solicitor account has been created. Here are your login credentials:</p>
+      <ul style="font-size:16px;color:#555;">
+        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Password:</strong> ${password}</li>
+      </ul>
+      <p style="font-size:16px;color:#555;">Please log in and change your password immediately.</p>
+      `,
+      {
+        text: "Log In Now",
+        link: `${process.env.CLIENT_BASE_URL}/solicitor/login`
+      }
+    );
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Your Solicitor Account Credentials',
-      text: `hi,${firstName} ${lastName},\n\nYour account has been successfully created.\n\nHere are your credentials:\n\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password immediately for security.\n\nThank you.`,
+      subject: "Your Solicitor Account Credentials",
+      html
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmailWithLogo(mailOptions);
 
     // Return success response
     res.status(201).json({
@@ -1034,7 +1055,7 @@ exports.deleteNotificationByIdAgency = async (req, res) => {
 
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await Students.find()
+    const students = await Students.find({isDeleted: false})
       .select('firstName middleName lastName email countryCode telephoneNumber address documentType documentUpload countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
       .populate('agency', 'name') // Assuming you want to populate agency name
       .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
@@ -2573,25 +2594,34 @@ if (existingRole) {
     // Save the new university to the database
     await newUniversity.save();
 
-// Send OTP email
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+  // ✅ Styled HTML credentials email
+    const html = generateEmailTemplate(
+      "Your University Account is Ready!",
+      "#004AAC",
+      `
+      <p style="font-size:16px;color:#333;">Hi <strong>${name}</strong>,</p>
+      <p style="font-size:16px;color:#555;">Your university account has been created successfully. Here are your login credentials:</p>
+      <ul style="font-size:16px;color:#555;">
+        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Password:</strong> ${password}</li>
+      </ul>
+      <p style="font-size:16px;color:#555;">Please log in and change your password immediately for security.</p>
+      `,
+      {
+        text: "Log In Now",
+        link: `${process.env.CLIENT_BASE_URL}/university/login`
+      }
+    );
 
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "University Account Credentials",
+      html
+    };
 
-//LINK 
-const mailOptions = {
-from: process.env.EMAIL_USER,
-to: email,
-subject: 'Credentials for University Account',
-text: `Your account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease change your password after logging in.`,
-};
+    await sendEmailWithLogo(mailOptions);
 
-await transporter.sendMail(mailOptions);
 
 
 

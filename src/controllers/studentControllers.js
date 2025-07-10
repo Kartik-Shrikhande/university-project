@@ -120,6 +120,8 @@ exports.checkSolicitorStatus = async (req, res) => {
       });
     }
 
+    
+
     // If solicitor is already assigned to this application
     if (application.assignedSolicitor) {
       return res.status(200).json({

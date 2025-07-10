@@ -66,7 +66,6 @@ exports.createPaymentIntent = async (req, res) => {
       return res.status(400).json({ error: "Amount must be at least £0.30 GBP." });
     }
   
-console.log('hi')
     const paymentIntent = await stripe.paymentIntents.create({
       amount: PAYMENT_AMOUNT,
       currency: CURRENCY,
