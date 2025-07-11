@@ -1055,10 +1055,20 @@ exports.deleteNotificationByIdAgency = async (req, res) => {
 
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await Students.find({isDeleted: false})
-      .select('firstName middleName lastName email countryCode telephoneNumber address documentType documentUpload countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation') // Select fields to be shown
-      .populate('agency', 'name') // Assuming you want to populate agency name
-      .populate('assignedAgent', 'name'); // Assuming you want to populate assigned agent name
+    const { isDeleted } = req.query;
+
+    // Build query condition
+    let queryCondition = {};
+    if (isDeleted === 'true') {
+      queryCondition.isDeleted = true;
+    } else {
+      queryCondition.isDeleted = false; // default behavior
+    }
+
+    const students = await Students.find(queryCondition)
+      .select('firstName middleName lastName email countryCode telephoneNumber address documentType documentUpload countryApplyingFrom preferredUniversity courseStartTimeline mostRecentEducation')
+      .populate('agency', 'name')
+      .populate('assignedAgent', 'name');
 
     return res.status(200).json({
       totalStudents: students.length,
@@ -1069,6 +1079,7 @@ exports.getAllStudents = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 exports.getStudentById = async (req, res) => {
   try {
@@ -2764,10 +2775,17 @@ exports.deleteUniversityByAgency = async (req, res) => {
       return res.status(400).json({ message: 'University is already deleted.' });
     }
 
+    // Mark university as deleted
     university.isDeleted = true;
     await university.save();
 
-    return res.status(200).json({ message: 'University deleted successfully.' });
+    // Soft delete all courses belonging to this university
+    await Course.updateMany(
+      { university: universityId },
+      { $set: { isDeleted: true } }
+    );
+
+    return res.status(200).json({ message: 'University and its courses deleted successfully.' });
   } catch (error) {
     console.error('Error deleting university by agency:', error);
     return res.status(500).json({ message: 'Internal server error.' });

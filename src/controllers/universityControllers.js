@@ -419,8 +419,15 @@ await new Notification({
       }
 }).save();
 
-     }
-   }
+    
+    // ✅ Step 7: Remove application from agency’s sentAppliactionsToUniversities
+        await Agency.findByIdAndUpdate(application.agency, {
+          $pull: {
+            sentAppliactionsToUniversities: application._id
+          }
+        });
+      }
+    }
 
 
     res.status(200).json({
@@ -503,8 +510,17 @@ exports.rejectApplication = async (req, res) => {
           message: `Application for ${studentName} (ID: ${studentId}) has been rejected by the university.`,
           type: 'Application',
         }).save();
+
+        
+        await Agency.findByIdAndUpdate(agency._id, {
+          $pull: {
+            sentAppliactionsToUniversities: application._id
+          }
+        });
       }
     }
+
+    
 
     return res.status(200).json({
       success: true,
