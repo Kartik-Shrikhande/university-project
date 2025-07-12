@@ -760,32 +760,33 @@ const sendReceiptRejectedEmailToAgency = async (
 };
 
 const sendPasswordResetByAdminEmail = async (user, newPassword) => {
-  const html = `
-    <h2 style="font-family:sans-serif;color:#333;">Hello ${
-      user.firstName || "User"
-    },</h2>
-    <p style="font-size:16px;color:#555;">Your password has been reset by the admin.</p>
-    <p style="font-size:16px;color:#333;">Here is your new password:</p>
-    <p style="font-size:18px;color:#007bff;"><strong>${newPassword}</strong></p>
-    <p>Please log in and change your password immediately after.</p>
-    <br>
-    <p style="font-size:14px;color:#777;">Regards,<br>Connect2Uni Admin Team</p>
-  `;
+  const html = generateEmailTemplate(
+    "Password Reset by Admin",
+    "#007bff", // color theme for info
+    `<p style="font-size:16px;color:#333333;line-height:1.6;">Hello <strong>${user.firstName || "User"}</strong>,</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">Your password has been reset by an administrator.</p>
+     <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+       <h4 style="margin:0 0 10px 0;color:#007bff;">Your New Password</h4>
+       <p style="font-size:18px;color:#333333;"><strong>${newPassword}</strong></p>
+     </div>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">Please log in using this password and change it immediately for your account security.</p>`
+  );
 
   await transporter.sendMail({
-    from: `"Connect2Uni" <${process.env.EMAIL_USER}>`,
+    from: `"Connect2Uni Admin Team" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: "Your password has been reset",
+    subject: "Your Password Has Been Reset",
     html,
-     attachments: [
-    {
-      filename: "logo.png",
-      path: logoPath,
-      cid: "unique-logo-cid",
-    },
-  ],
+    attachments: [
+      {
+        filename: "logo.png",
+        path: logoPath,
+        cid: "unique-logo-cid",
+      },
+    ],
   });
 };
+
 
 const sendEmailWithLogo = async (mailOptions) => {
   mailOptions.attachments = [

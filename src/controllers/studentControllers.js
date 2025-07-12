@@ -25,6 +25,7 @@ const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
+const { generateEmailTemplate, sendEmailWithLogo } = require('../services/emailService');
 
 //SOLICTOR  
 exports.applyForSolicitor = async (req, res) => {
@@ -511,6 +512,30 @@ exports.verifyEmail = async (req, res) => {
     student.verificationToken = null;
     await student.save();
 
+    // ✅ Send verification success email using styled template
+    const html = generateEmailTemplate(
+      "Email Verified Successfully!",
+      "#28a745",
+      `
+      <p style="font-size:16px;color:#333;">Hi ${student.firstName},</p>
+      <p style="font-size:16px;color:#555;">Your email has been successfully verified. You can now log in and continue your journey with us.</p>
+      `,
+      {
+        text: "Go to Login",
+        link: process.env.CLIENT_LOGIN_PAGE
+      }
+    );
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: student.email,
+      subject: "Your Connect2Uni Email Verified",
+      html
+    };
+
+    await sendEmailWithLogo(mailOptions);
+
+    // ✅ Return success HTML response
     res.status(200).send(`
       <html>
         <head><title>Email Verified</title></head>
@@ -521,6 +546,7 @@ exports.verifyEmail = async (req, res) => {
         </body>
       </html>
     `);
+
   } catch (error) {
     console.error('Error verifying email:', error);
     res.status(500).send(`
@@ -533,7 +559,6 @@ exports.verifyEmail = async (req, res) => {
     `);
   }
 };
-
 
 
 // Unsubscribe student from reminder emails

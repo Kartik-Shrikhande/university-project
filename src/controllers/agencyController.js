@@ -34,6 +34,7 @@ exports.resetUserPasswordByAdmin = async (req, res) => {
     // List of models to check, order doesn't matter if emails are globally unique
     const models = [
       { name: "agent", model: Agent },
+       { name: "student", model: Students },
       { name: "solicitor", model: Solicitor },
       { name: "university", model: University },
       { name: "agency", model: Agency },
