@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors')
 const http = require('http');
 const { initializeSocket } = require('../src/services/socketNotification'); // Import socket service
-
+const path = require("path");
 const app = express()
 require('dotenv').config({ path: '.env' })
 require('./utils/passport');
@@ -65,7 +65,7 @@ const allowedOrigins = [
   }));
   
 
-
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 // Set up express-session
 app.use(

@@ -27,6 +27,10 @@ const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
 const { generateEmailTemplate, sendEmailWithLogo } = require('../services/emailService');
 
+const path = require("path");
+const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to logo
+
+
 //SOLICTOR  
 exports.applyForSolicitor = async (req, res) => {
   try {   
@@ -491,72 +495,65 @@ exports.verifyStudentStatus = async (req, res) => {
 };
 
 
+
+// Web page template generator (matching your email style)
+const generateWebPageTemplate = (title, message, color) => `
+  <html>
+    <head>
+      <title>${title}</title>
+    </head>
+    <body style="font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;margin:0;padding:30px;">
+      <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+        <div style="text-align:center;padding:30px 20px 10px;">
+          <img src="${process.env.SERVER_URL}/images/logo.png" alt="Connect2Uni" style="margin-bottom:20px;max-height:60px;">
+          <h1 style="color:#004AAC;font-size:24px;font-weight:600;margin:0 0 10px;">${title}</h1>
+        </div>
+        <div style="padding:0 30px 30px;font-size:16px;color:#333;line-height:1.6;text-align:center;">
+          <p style="color:${color}; font-size:18px; margin: 20px 0;">${message}</p>
+          <p style="margin-top:40px;color:#888;font-size:14px;">&copy; ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+  </html>
+`;
+
+// 📌 Email verification API
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
+
     const student = await Students.findOne({ verificationToken: token });
 
     if (!student) {
-      return res.status(400).send(`
-        <html>
-          <head><title>Email Verification</title></head>
-          <body style="font-family:sans-serif; text-align:center; padding:50px;">
-            <h2 style="color:red;">Invalid or expired verification link.</h2>
-            <p style="font-size:16px; color:#555;">You can request a new verification link by logging in to your account.</p>
-          </body>
-        </html>
-      `);
+      return res.status(400).send(
+        generateWebPageTemplate(
+          "Email Verification",
+          "Invalid or expired verification link.",
+          "red"
+        )
+      );
     }
 
-    student.isVerified = true;
+    student.isEmailVerified = true;
     student.verificationToken = null;
     await student.save();
 
-    // ✅ Send verification success email using styled template
-    const html = generateEmailTemplate(
-      "Email Verified Successfully!",
-      "#28a745",
-      `
-      <p style="font-size:16px;color:#333;">Hi ${student.firstName},</p>
-      <p style="font-size:16px;color:#555;">Your email has been successfully verified. You can now log in and continue your journey with us.</p>
-      `,
-      {
-        text: "Go to Login",
-        link: process.env.CLIENT_LOGIN_PAGE
-      }
+    res.status(200).send(
+      generateWebPageTemplate(
+        "Email Verified!",
+        "Your email has been successfully verified. You can now login to your Connect2Uni account.",
+        "#00AA55"
+      )
     );
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: student.email,
-      subject: "Your Connect2Uni Email Verified",
-      html
-    };
-
-    await sendEmailWithLogo(mailOptions);
-
-    // ✅ Return success HTML response
-    res.status(200).send(`
-      <html>
-        <head><title>Email Verified</title></head>
-        <body style="font-family:sans-serif; text-align:center; padding:50px;">
-          <h2 style="color:green;">Email verified successfully!</h2>
-          <p style="font-size:16px;color:#333;">Thank you for verifying your email. You can now log in to your account.</p>
-          <a href="${process.env.CLIENT_LOGIN_PAGE}" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#007bff; color:#fff; text-decoration:none; border-radius:4px;">Go to Login</a>
-        </body>
-      </html>
-    `);
-
-  } catch (error) {
-    console.error('Error verifying email:', error);
-    res.status(500).send(`
-      <html>
-        <head><title>Error</title></head>
-        <body style="font-family:sans-serif; text-align:center; padding:50px;">
-          <h2 style="color:red;">Something went wrong while verifying your email.</h2>
-        </body>
-      </html>
-    `);
+  } catch (err) {
+    console.error("Email verification error:", err);
+    res.status(500).send(
+      generateWebPageTemplate(
+        "Something Went Wrong",
+        "An error occurred while verifying your email. Please try again later.",
+        "red"
+      )
+    );
   }
 };
 

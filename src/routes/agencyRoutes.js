@@ -10,6 +10,8 @@ const { validateCreateCourse, validateUpdateCourse, validateDeleteCourse, handle
 const {validateAssociateCreation,validateAssociateUpdate}=require('../validators/associateValidations')
 const {validateCreateSolicitor,validateUpdateSolicitor}=require('../validators/solicitorValidations')
 const studentValidations = require('../validators/studentValidations');
+const contactController = require("../controllers/contactControllers");
+
 
 const {
 validateUniversity,
@@ -31,6 +33,7 @@ const validate = (req, res, next) => {
   next();
 };
 
+router.post("/contact/create", contactController.createContact);
 
 // Create Agency
 router.post('/create', agencyController.createAgency);
@@ -44,6 +47,12 @@ router.use(
 
 //RESET PASSWORD FOR ALL ROLES
 router.post('/roles/reset-password', agencyController.resetUserPasswordByAdmin);
+
+
+//CONTACT
+
+router.get("/contacts", contactController.getAllContacts);
+router.delete("/contact/delete/:contactId", contactController.deleteContact);
 
 
 //SOLICITOR
