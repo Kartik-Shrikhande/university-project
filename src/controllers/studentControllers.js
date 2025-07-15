@@ -534,7 +534,7 @@ exports.verifyEmail = async (req, res) => {
       );
     }
 
-    student.isEmailVerified = true;
+    student.isVerified = true;
     student.verificationToken = null;
     await student.save();
 
