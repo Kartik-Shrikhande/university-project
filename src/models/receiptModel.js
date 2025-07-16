@@ -36,7 +36,7 @@ const receiptSchema = new mongoose.Schema(
   },
  
     amountPaid: {
-      type: Number,
+      type: String,
       required: true,
     },
     dateofPayment: {
