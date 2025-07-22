@@ -295,7 +295,7 @@ exports.getAllStudentReceipts = async (req, res) => {
     }
 
     const receipts = await Receipt.find(query)
-      .populate("student", "firstName lastName email")
+      .populate("student", "firstName lastName email countryCode telephoneNumber")
       .populate("course", "name")
       .populate("applicationsId", "status");
 
@@ -322,7 +322,7 @@ exports.getstudentReceiptById = async (req, res) => {
       _id: receiptId,
       paidToUniversity: universityId,
     })
-      .populate("student", "firstName lastName email")
+      .populate("student", "firstName lastName email countryCode telephoneNumber")
       .populate("course", "name courseType courseDuration")
       .populate("applicationsId");
 
@@ -528,7 +528,7 @@ exports.getAllReceipts = async (req, res) => {
     }
 
     const receipts = await Receipt.find(query)
-      .populate("student", "fullName email")
+      .populate("student", "firstName lastName email countryCode telephoneNumber")
       .populate("paidToUniversity", "name email")
       .populate("course", "name")
       .populate("applicationsId", "status submissionDate")
@@ -552,7 +552,7 @@ exports.getReceiptById = async (req, res) => {
     }
 
     const receipt = await Receipt.findById(receiptId)
-      .populate("student", "fullName email")
+      .populate("student", "firstName lastName email countryCode telephoneNumber")
       .populate("paidToUniversity", "name email")
       .populate("course", "name")
       .populate("applicationsId", "status submissionDate");

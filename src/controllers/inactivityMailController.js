@@ -52,10 +52,10 @@ const sendReminderEmail = async (student, title, message, color, button = null) 
 const startCronJob = () => {
 
 
-  // cron.schedule('*/2 * * * *', async () => {
+  // cron.schedule('*/1 * * * *', async () => {
   //   try {
   //     const now = Date.now();
-  //     const inactivityLimit = 2 * 60 * 1000; // 2 minutes
+  //     const inactivityLimit = 1 * 60 * 1000; // 2 minutes
 
 
  cron.schedule('0 0 * * *', async () => {
@@ -90,7 +90,7 @@ const startCronJob = () => {
         const message = `You haven't purchased a subscription yet. Subscribe now to unlock access to top universities and courses!`;
         await sendReminderEmail(student, 'Unlock Your Learning Journey!', message, '#28a745', {
           text: 'Subscribe Now',
-          link: `${process.env.CLIENT_BASE_URL}/subscription`
+          link: `${process.env.PLATFORM_PAYMENT_URL}`
         });
       }
 
