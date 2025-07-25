@@ -287,7 +287,7 @@ const sendPaymentSuccessEmail = async (student) => {
      <p style="font-size:16px;color:#555555;line-height:1.6;">You now have full access to the student portal. If you have any questions about your payment, please contact our support team.</p>`,
     {
       text: "Access Student Portal",
-      link: "https://yourwebsite.com/student-portal",
+      link:`${process.env.DASHBOARD_BASE_URL}` ,
     }
   );
 

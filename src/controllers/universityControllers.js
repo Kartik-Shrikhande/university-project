@@ -767,6 +767,11 @@ exports.universityUpdatePassword = async (req, res) => {
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: 'New password and confirm password do not match.' });
     }
+  // Check that new password is not the same as current password
+    const isSameAsCurrent = await bcrypt.compare(newPassword, getUniversity.password);
+    if (isSameAsCurrent) {
+      return res.status(400).json({ message: 'New password must be different from current password.' });
+    }
 
     // Hash and update the password
     getUniversity.password = await bcrypt.hash(newPassword, 10);

@@ -124,7 +124,11 @@ exports.associateUpdatePassword = async (req, res) => {
       if (newPassword !== confirmPassword) {
         return res.status(400).json({ message: 'New password and confirm password do not match.' });
       }
-  
+    // Check if new password is same as current
+    const isSameAsCurrent = await bcrypt.compare(newPassword, getAssociate.password);
+    if (isSameAsCurrent) {
+      return res.status(400).json({ message: 'New password must be different from current password.' });
+    }
       // Hash and update the password
       getAssociate.password = await bcrypt.hash(newPassword, 10);
       await getAssociate.save({ session });

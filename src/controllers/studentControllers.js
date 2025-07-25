@@ -260,8 +260,7 @@ exports.deleteStudentNotificationById = async (req, res) => {
 
 // Registration
 exports.registerStudent = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+
   try {
     const {
       firstName,
@@ -321,8 +320,7 @@ if (existingRole) {
 }
 
     if (!countryCode) {
-      await session.abortTransaction();
-      session.endSession();
+   
       return res.status(400).json({ message: 'Country code is required.' });
     }
 
@@ -408,7 +406,7 @@ if (existingRole) {
     });
    
   
-    await newStudent.save({ session });
+    await newStudent.save();
   // Generate JWT Token
   const token = jwt.sign(
     { id: newStudent._id, role: 'student' },
@@ -439,8 +437,6 @@ if (existingRole) {
     // await transporter.sendMail(mailOptions);
 
     // Commit the transaction
-    await session.commitTransaction();
-    session.endSession();
 
     return res.status(200).json({
        message: 'A verification link has been sent to your email. Please click on the link to verify your email address in order to login.' 
@@ -450,8 +446,7 @@ if (existingRole) {
   
   }
    catch (error) {
-    await session.abortTransaction();
-    session.endSession();
+  
     console.error('Error during registration:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
@@ -495,27 +490,58 @@ exports.verifyStudentStatus = async (req, res) => {
 };
 
 
-
-// Web page template generator (matching your email style)
-const generateWebPageTemplate = (title, message, color) => `
+const generateWebPageTemplate = (title, message, color, actionButton = null) => `
   <html>
     <head>
       <title>${title}</title>
     </head>
     <body style="font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;margin:0;padding:30px;">
-      <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+      <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.12);border:1px solid #ddd;">
         <div style="text-align:center;padding:30px 20px 10px;">
           <img src="${process.env.SERVER_URL}/images/logo.png" alt="Connect2Uni" style="margin-bottom:20px;max-height:60px;">
           <h1 style="color:#004AAC;font-size:24px;font-weight:600;margin:0 0 10px;">${title}</h1>
         </div>
         <div style="padding:0 30px 30px;font-size:16px;color:#333;line-height:1.6;text-align:center;">
           <p style="color:${color}; font-size:18px; margin: 20px 0;">${message}</p>
+
+          ${
+            actionButton
+              ? `<div style="margin-top:30px;">
+                  <a href="${actionButton.link}" 
+                    style="background-color:#004AAC; color:#ffffff; padding:10px 40px; border-radius:5px; text-decoration:none; font-weight:400; display:inline-block;">
+                    ${actionButton.text}
+                  </a>
+                </div>`
+              : ""
+          }
+
           <p style="margin-top:40px;color:#888;font-size:14px;">&copy; ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
         </div>
       </div>
     </body>
   </html>
 `;
+
+// Web page template generator (matching your email style)
+// const generateWebPageTemplate = (title, message, color) => `
+//   <html>
+//     <head>
+//       <title>${title}</title>
+//     </head>
+//     <body style="font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;margin:0;padding:30px;">
+//       <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+//         <div style="text-align:center;padding:30px 20px 10px;">
+//           <img src="${process.env.SERVER_URL}/images/logo.png" alt="Connect2Uni" style="margin-bottom:20px;max-height:60px;">
+//           <h1 style="color:#004AAC;font-size:24px;font-weight:600;margin:0 0 10px;">${title}</h1>
+//         </div>
+//         <div style="padding:0 30px 30px;font-size:16px;color:#333;line-height:1.6;text-align:center;">
+//           <p style="color:${color}; font-size:18px; margin: 20px 0;">${message}</p>
+//           <p style="margin-top:40px;color:#888;font-size:14px;">&copy; ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
+//         </div>
+//       </div>
+//     </body>
+//   </html>
+// `;
 
 // 📌 Email verification API
 exports.verifyEmail = async (req, res) => {
@@ -542,7 +568,11 @@ exports.verifyEmail = async (req, res) => {
       generateWebPageTemplate(
         "Email Verified!",
         "Your email has been successfully verified. You can now login to your Connect2Uni account.",
-        "#00AA55"
+        "#00AA55",
+           {
+          text: "Go to Login",
+          link: `${process.env.CLIENT_LOGIN_PAGE}`,
+        }
       )
     );
   } catch (err) {
@@ -1549,6 +1579,14 @@ exports.updatePassword = async (req, res) => {
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: 'New password and confirm password do not match.' });
     }
+
+
+    // Check that new password is not the same as current password
+    const isSameAsCurrent = await bcrypt.compare(newPassword, student.password);
+    if (isSameAsCurrent) {
+      return res.status(400).json({ message: 'New password must be different from current password.' });
+    }
+
 
     // Hash and update the password
     student.password = await bcrypt.hash(newPassword, 10);

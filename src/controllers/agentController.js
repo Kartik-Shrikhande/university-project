@@ -66,6 +66,13 @@ exports.agentUpdatePassword = async (req, res) => {
       return res.status(400).json({ message: 'New password and confirm password do not match.' });
     }
 
+
+  // Check that new password is not the same as the current one
+    const isSameAsCurrent = await bcrypt.compare(newPassword, agent.password);
+    if (isSameAsCurrent) {
+      return res.status(400).json({ message: 'New password must be different from current password.' });
+    }
+
     // Hash and update password
     agent.password = await bcrypt.hash(newPassword, 10);
     await agent.save({ session });

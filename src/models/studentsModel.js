@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const studentSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true, maxlength: 50 },
@@ -204,4 +205,5 @@ currentToken: { type: String, default: null },
 );
 
 
+// module.exports = mongoose.model('Student', studentSchema);
 module.exports = mongoose.model('Student', studentSchema);
