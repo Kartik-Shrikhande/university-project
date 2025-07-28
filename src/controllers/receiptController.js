@@ -76,12 +76,6 @@ exports.uploadReceipt = async (req, res) => {
       course,
     });
 
-    if (existingReceipt) {
-      return res.status(400).json({
-        message: "Receipt already uploaded for this course at this university.",
-      });
-    }
-
     // Upload file to S3 (make sure your file exists)
     const [fileUrl] = await uploadFilesToS3([req.file]);
 
