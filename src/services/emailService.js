@@ -130,14 +130,14 @@ const generateEmailTemplate = (
 
                 ${reminderHtml || ""}
 
-                <div style="margin-top:30px; padding-top:20px; border-top:1px solid #eeeeee; text-align:left;">
+                <div style="margin-top:30px; padding-top:20px; border-top:1px solid #eeeeee; text-align:center;">
                   <p style="margin:0;">Happy exploring!</p>
                   <p style="margin:0;">— The Connect2Uni Team</p>
 
                   <p style="margin:0; font-size:14px; line-height:normal; margin-top:30px;">
                     If you didn’t request this email, you can safely ignore it.
                   </p>
-                  <p style="margin:0; font-size:14px; margin-top:7px;">
+                  <p style="margin:0; font-size:14px; margin-top:7px; text-align:center;">
                     © ${new Date().getFullYear()} Connect2Uni. All rights reserved.
                   </p>
 
