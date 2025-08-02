@@ -45,6 +45,7 @@ app.use(cookieParser());
 const allowedOrigins = [
     "http://localhost:5173",
     "https://connect2-uni.vercel.app",
+    "https://connect2-uni-bck.onrender.com"
 
 ];
   

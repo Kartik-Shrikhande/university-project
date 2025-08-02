@@ -4,7 +4,7 @@ const agentController = require('../controllers/agentController');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 
 // // Routes for Agent CRUD
-router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['agent']))
+router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['Admin']))
 
 //STUDENT
 router.get('/students/:id', agentController.getStudentById); // Get student by ID
