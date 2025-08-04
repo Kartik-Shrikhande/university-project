@@ -52,16 +52,16 @@ const sendReminderEmail = async (student, title, message, color, button = null) 
 const startCronJob = () => {
 
 
-  cron.schedule('*/1 * * * *', async () => {
-    try {
-      const now = Date.now();
-      const inactivityLimit = 1 * 60 * 1000; // 2 minutes
+  // cron.schedule('*/1 * * * *', async () => {
+  //   try {
+  //     const now = Date.now();
+  //     const inactivityLimit = 1 * 60 * 1000; // 2 minutes
 
 
-//  cron.schedule('0 0 * * *', async () => {
-//   try {
-//     const now = Date.now();
-//     const inactivityLimit = 24 * 60 * 60 * 1000; // 24 hours
+ cron.schedule('0 0 * * *', async () => {
+  try {
+    const now = Date.now();
+    const inactivityLimit = 24 * 60 * 60 * 1000; // 24 hours
 
   // 🔹 Students who haven't logged in yet
       const notLoggedInStudents = await Students.find({
