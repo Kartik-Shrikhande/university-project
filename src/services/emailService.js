@@ -821,6 +821,3 @@ module.exports = {
   sendReceiptRejectedEmailToAgency,
   sendPasswordResetByAdminEmail,
 };
-
-
-5

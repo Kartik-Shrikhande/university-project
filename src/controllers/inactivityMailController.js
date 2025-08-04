@@ -52,16 +52,16 @@ const sendReminderEmail = async (student, title, message, color, button = null) 
 const startCronJob = () => {
 
 
-  // cron.schedule('*/1 * * * *', async () => {
-  //   try {
-  //     const now = Date.now();
-  //     const inactivityLimit = 1 * 60 * 1000; // 2 minutes
+  cron.schedule('*/1 * * * *', async () => {
+    try {
+      const now = Date.now();
+      const inactivityLimit = 1 * 60 * 1000; // 2 minutes
 
 
- cron.schedule('0 0 * * *', async () => {
-  try {
-    const now = Date.now();
-    const inactivityLimit = 24 * 60 * 60 * 1000; // 24 hours
+//  cron.schedule('0 0 * * *', async () => {
+//   try {
+//     const now = Date.now();
+//     const inactivityLimit = 24 * 60 * 60 * 1000; // 24 hours
 
   // 🔹 Students who haven't logged in yet
       const notLoggedInStudents = await Students.find({
@@ -106,31 +106,46 @@ const startCronJob = () => {
         const message = `You’ve taken the first step by subscribing! Now, discover our partner universities and their amazing opportunities.`;
         await sendReminderEmail(student, 'Time to Explore!', message, '#ffc107', {
           text: 'Browse Universities',
-          link: `${process.env.CLIENT_BASE_URL}/get/universities`
+          link: `${process.env.DASHBOARD_BASE_URL}`
         });
       }
 
-      // 🔹 Students with visited courses but not enrolled
-      const studentsWithVisitedCourses = await Students.find({
-        visitedCourses: { $exists: true, $not: { $size: 0 } },
-        lastActivity: { $lt: now - inactivityLimit },
-        emailSubscribed: true
-      }).populate({
-        path: 'visitedCourses',
-        populate: { path: 'university', select: 'name' },
-      });
+  // 🔹 Students with visited courses but not enrolled
+const studentsWithVisitedCourses = await Students.find({
+  visitedCourses: { $exists: true, $not: { $size: 0 } },
+  lastActivity: { $lt: now - inactivityLimit },
+  emailSubscribed: true,
+}).populate({
+  path: 'visitedCourses',
+  populate: { path: 'university', select: 'name' },
+});
 
-      for (const student of studentsWithVisitedCourses) {
-        for (const course of student.visitedCourses) {
-          if ((student.enrolledCourses || []).includes(course._id)) continue;
+for (const student of studentsWithVisitedCourses) {
+  const sentCourseIds = (student.reminderSentCourses || []).map(id => id.toString());
+  const enrolledCourseIds = (student.enrolledCourses || []).map(id => id.toString());
 
-          const message = `You viewed <strong>${course.name}</strong> at <strong>${course.university && course.university.name}</strong> but didn't enrol. Take the next step and apply today!`;
-          await sendReminderEmail(student, 'Don’t Miss Out!', message, '#17a2b8', {
-            text: 'Explore Now',
-            link: `${process.env.CLIENT_BASE_URL}/courses/${course._id}`
-          });
-        }
-      }
+  for (const course of student.visitedCourses) {
+    const courseId = course._id.toString();
+
+    const alreadyEnrolled = enrolledCourseIds.includes(courseId);
+    const alreadyReminded = sentCourseIds.includes(courseId);
+
+    if (alreadyEnrolled || alreadyReminded) continue;
+
+    const message = `You viewed <strong>${course.name}</strong> at <strong>${course.university?.name}</strong> but didn't enrol. Take the next step and apply today!`;
+
+    await sendReminderEmail(student, 'Don’t Miss Out!', message, '#17a2b8', {
+      text: 'Explore Now',
+      link: `${process.env.CLIENT_BASE_URL}/student/course/${courseId}`,
+    });
+
+    // ✅ Track this course reminder to avoid resending
+    await Students.findByIdAndUpdate(student._id, {
+      $addToSet: { reminderSentCourses: course._id }
+    });
+  }
+}
+
 
       // If no students found for any category
       if (
