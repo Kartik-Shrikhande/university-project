@@ -11,13 +11,13 @@ exports.createContact = async (req, res) => {
 
 
  // Check if contact with the same email already exists and is not deleted
-    const existingContact = await Contact.findOne({ email, isDeleted: false });
-    if (existingContact) {
-      return res.status(400).json({
-        success: false,
-        message: "A contact with this email already exists.",
-      });
-    }
+    // const existingContact = await Contact.findOne({ email, isDeleted: false });
+    // if (existingContact) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "A contact with this email already exists.",
+    //   });
+    // }
 
     const newContact = new Contact({
       email,
