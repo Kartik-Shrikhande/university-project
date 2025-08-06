@@ -18,21 +18,7 @@ const validateResult = (req, res, next) => {
   }
   next();
 };
-// const validateResult = (req, res, next) => {
-//   const errors = validationResult(req).formatWith(({ msg, param, location, value }) => ({
-//     field: param,        // Field that failed validation
-//     parameter: param,    // Parameter name (explicitly added)
-//     message: msg,        // Error message (renamed from "msg")
-//     location: location,  // Where the validation failed (e.g., body, params, query)
-//     value: value !== undefined ? value : "Not provided" // Invalid input value or fallback
-//   }));
 
-//   if (!errors.isEmpty()) {
-//     return res.status(400).json({ errors: errors.array() });
-//   }
-
-//   next();
-// };
 // Validation rules for creating a university
 const validateUniversity = [
   check('name').trim().notEmpty().withMessage('University name is required.'),
@@ -53,15 +39,6 @@ const validateUniversity = [
   validateResult,
 ];
 
-
-
-// Validation rules for updating a university
-// const validateUpdateUniversity = [
-//   check('id').custom((value) => mongoose.Types.ObjectId.isValid(value)).withMessage('Invalid University ID'),
-//   check('email').optional().isEmail().withMessage('Invalid email format'),
-//   check('isPromoted').optional().isIn(['YES', 'NO']).withMessage('isPromoted must be either "YES" or "NO"'),
-//   validateResult, // Call the generic validation handler
-// ];
 
 // Validation rules for updating a university
 const validateUniversityUpdate = [

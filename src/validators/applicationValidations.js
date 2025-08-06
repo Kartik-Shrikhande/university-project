@@ -89,10 +89,6 @@ const validateUpdateApplication = [
       return true;
     }),
 
-  // body('previousDegree')
-  //   .optional()
-  //   .isIn(['Masters', 'Bachelors', 'Others'])
-  //   .withMessage('Previous degree must be either Masters, Bachelors, or Others.'),
 
   body('grades')
     .optional()
@@ -104,21 +100,6 @@ const validateUpdateApplication = [
     .notEmpty()
     .withMessage('enter valid marks.'),
 
-  // body('fromYear')
-  //   .optional()
-  //   .isInt({ min: 1900, max: new Date().getFullYear() })
-  //   .withMessage(`From year must be between 1900 and ${new Date().getFullYear()}.`),
-
-  // body('toYear')
-  //   .optional()
-  //   .isInt({ min: 1900, max: new Date().getFullYear() })
-  //   .withMessage(`To year must be between 1900 and ${new Date().getFullYear()}.`)
-  //   .custom((value, { req }) => {
-  //     if (req.body.fromYear && value < req.body.fromYear) {
-  //       throw new Error('To year must be greater than or equal to From year.');
-  //     }
-  //     return true;
-  //   }),
 
   // ✅ Error Handling Middleware
   (req, res, next) => {

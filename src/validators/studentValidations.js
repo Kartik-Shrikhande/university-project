@@ -119,9 +119,7 @@ body('toYear')
    }
    return true;
  }),
-  // body('yearOfGraduation').notEmpty()
-  //   .isInt({ min: 2014, max: new Date().getFullYear() })
-  //   .withMessage(`From year must be between 2014 and ${new Date().getFullYear()}.`),
+
 
   // Validate programType
   body('programType')
@@ -136,13 +134,7 @@ body('toYear')
     .isIn(['Computers', 'Business', 'Marketing', 'Other'])
     .withMessage('Discipline must be one of the following: Computers, Business, Marketing, or Other. Please choose one of these options.'),
 
-  // // Validate countryApplyingFrom
-  // body('countryApplyingFrom')
-  //   .notEmpty()
-  //   .withMessage('Country applying from is required.')
-  //   .isIn(['India', 'UK', 'Other'])
-  //   .withMessage('Country applying from must be one of the following: India, UK, or Other. Please choose one of these options.'),
-
+  
   // Validate preferredUniversity
   body('preferredUniversity')
     .notEmpty()
@@ -196,18 +188,8 @@ body('toYear')
     .withMessage('GDPR compliance must be accepted.')
     .equals('true')
     .withMessage('GDPR compliance must be explicitly accepted.'),
-
-
-    // body('NameOfUniversity').notEmpty().withMessage('Name Of University is required'),
-    // body('preferredCommunicationMethod').notEmpty().withMessage('preferred communication method is required'),
     body('preferredUniversity').notEmpty().withMessage('preferredUniversity is required')
   
-    // // Validate referralSource
-  // body('referralSource')
-  // .notEmpty()
-  // .withMessage('Referral source is required. Choose one from: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other.')
-  // .isIn(['Social Media', 'Online Search/Google', 'Referral from friend/family member', 'Education fair/exhibition', 'Advertisement(online/offline)', 'Other'])
-  // .withMessage('Referral source must be one of the following: Social Media, Online Search/Google, Referral from friend/family member, Education fair/exhibition, Advertisement (online/offline), or Other. Please choose one of these options.')
 ];
 
 
@@ -302,26 +284,6 @@ body('email')
     .withMessage('Password must be at least 8 characters long.'),
 ];
 
-
-
-const validateVerifyOtpForLogin = [
-  // Validate email
-  body('email')
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Invalid email format.'),
-
-  // Validate OTP
-  body('otp')
-    .notEmpty()
-    .withMessage('OTP is required.')
-    .isNumeric()
-    .withMessage('OTP must be a numeric value.')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('OTP must be a 6-digit number.'),
-];
-
 const validateResendOtpForLogin = [
   // Validate email
   body('email')
@@ -377,7 +339,6 @@ module.exports = {
   validateRegisterStudent,
   validateLoginStudent,
   validateUpdateStudent,
-  // validateVerifyOtpForLogin,
   validateResendOtpForLogin,
   validateVerifyOtpForRegistration,
   validateCourseFilters
