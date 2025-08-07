@@ -18,71 +18,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-///previousely used 
-// const generateEmailTemplate = (
-//   title,
-//   color,
-//   contentHtml,
-//   actionButton = null,
-//   studentId = null,
-//   reminderHtml = null
-// ) => `
-//   <div style="max-width:600px;margin:20px auto;padding:0;font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;">
-//     <div style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);-webkit-box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-//       <!-- Header with Logo -->
-//       <div style="text-align:center;padding-top:20px;">
-//         <img src="cid:unique-logo-cid" alt="connect2uni logo">
-//         <h1 style="margin-top:25px;color:#004AAC;font-size:24px;font-weight:600;">${title}</h1>
-//       </div>
-      
-//       <div style="padding:30px;">
-
-
-//         ${contentHtml}
-        
-//         ${
-//           actionButton
-//             ? `
-//           <div style="margin:30px 0;text-align:center;">
-//             <a href="${actionButton.link}" 
-//                style="background-color:#004AAC;color:#ffffff;padding:10px 40px;border-radius:5px;text-decoration:none;font-weight:400;display:inline-block;">
-//               ${actionButton.text}
-//             </a>
-//           </div>`
-//             : ""
-//         }
-//         ${reminderHtml || ""}
-
-//         <div style="margin-top:30px;padding-top:20px;border-top:1px solid #eeeeee;">
-       
-
-          
-// <p style="margin: 0;">Happy exploring!</p>
-//                     <p style="margin: 0;">— The Connect2Uni Team</p>
-
-//                     <p style="margin: 0;font-size:14px;line-height: normal;margin-top: 30px;">
-//                         If you didn’t request this email, you can safely ignore it.
-//                     </p>
-//                     <p style="margin: 0;font-size: 14px;margin-top: 7px;">
-//                         © ${new Date().getFullYear()} Connect2Uni. All rights reserved
-//                     </p>
-
-
-//           ${
-//             studentId
-//               ? `
-//             <p style="margin:5px 0;font-size:12px;text-align:center;">
-//               <a href="${process.env.SERVER_URL}/student/unsubscribe/${studentId}" style="color:#004AAC;text-decoration:underline;">
-//                 Unsubscribe from reminders
-//               </a>
-//             </p>`
-//               : ""
-//           }
-//         </div>
-//       </div>
-//     </div>
-//   </div>
-// `;
 
 
 const generateEmailTemplate = (
@@ -163,10 +98,6 @@ const generateEmailTemplate = (
 
 
 
-
-
-
-
 // 📧 Send Verification Email
 const sendVerificationEmail = async (student) => {
   const token = crypto.randomBytes(32).toString("hex");
@@ -190,16 +121,6 @@ const sendVerificationEmail = async (student) => {
                 </div>
 
 `,
-    //  <div>
-    //     <p style="font-weight: 300;">
-    //         This link will expire in 24 hours, so don’t wait too long. If you didn’t sign up for Connect2Uni, feel free to ignore this email.
-    //     </p>
-    // </div>
-
-    // <p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
-    //  <p style="font-size:16px;color:#555555;line-height:1.6;">Welcome to Connect2Uni! We're excited to have you on board. To complete your registration, please verify your email address by clicking the button below:</p>
-    //  <p style="font-size:14px;color:#888888;text-align:center;margin:20px 0;">This link will expire in 24 hours</p>
-    //
 
     {
       text: "Verify My Email",
@@ -216,14 +137,6 @@ const sendVerificationEmail = async (student) => {
 `
   );
 
-  //   await transporter.sendMail({
-  //     from: `"Connect2Uni" <${process.env.EMAIL_USER}>`,
-  //     to: student.email,
-  //     subject: "Let's Get You Started",
-  //     html,
-
-  //   });
-  // };
 
   await transporter.sendMail({
     from: `"Connect2Uni" <${process.env.EMAIL_USER}>`,
