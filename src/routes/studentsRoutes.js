@@ -47,6 +47,9 @@ const validate = (req, res, next) => {
   next();
 };
 
+
+router.post('/check-email', studentController.checkMailStudent);
+
 router.post(
   '/register',
   upload.fields([

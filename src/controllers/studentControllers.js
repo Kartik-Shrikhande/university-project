@@ -255,7 +255,29 @@ exports.deleteStudentNotificationById = async (req, res) => {
 };
 
 
+// routes/studentRoutes.js
+// router.get("/check-email", async 
+  
+exports.checkMailStudent = async (req, res) => {
+  try {
+    const { email } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const existingRole = await checkEmailExists(email); // No session needed here
+    if (existingRole) {
+      return res.status(400).json({status:false, message: `This email is already in use.` });
+    }
+
+    return res.json({status:true, message: "Email is available." });
+
+  } catch (error) {
+    console.error("Error checking email:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 
 
 // Registration
