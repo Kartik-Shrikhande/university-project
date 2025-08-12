@@ -278,31 +278,48 @@ exports.getApplicationsByStatus = async (req, res) => {
     const universityId = req.user.id;
     const { status } = req.query;
 
-    // Validate status input
-    const validStatuses = ['Processing', 'Accepted'];
+    // Extend valid statuses
+    const validStatuses = ['Processing', 'Accepted', 'Rejected'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
     }
 
     // Check if university exists
-    const university = await University.findById(universityId);
+    const university = await University.findById(universityId)
+      .populate({
+        path: 'rejectedApplications',
+        populate: [
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'course', select: 'name' },
+          { path: 'assignedAgent', select: 'name email' },
+          { path: 'assignedSolicitor', select: 'name email' },
+          { path: 'agency', select: 'name email' }
+        ]
+      });
+
     if (!university) {
       return res.status(404).json({ error: 'University not found.' });
     }
 
-    // Fetch applications by status for this university
-    const applications = await Application.find({
-      university: universityId,
-      status: status,
-      isDeleted: false
-    })
-      .populate('student', 'firstName lastName  email')
-      .populate('course', 'name')
-      .populate('assignedAgent', 'name email')
-      .populate('assignedSolicitor', 'name email')
-      .populate('agency', 'name email')
-      .sort({ submissionDate: -1 });
+    let applications = [];
 
+    if (status === 'Rejected') {
+      // Fetch from University's rejectedApplications array
+      applications = university.rejectedApplications || [];
+    } else {
+      // Fetch directly from Application model for Processing & Accepted
+      applications = await Application.find({
+        university: universityId,
+        status: status,
+        isDeleted: false
+      })
+        .populate('student', 'firstName lastName email')
+        .populate('course', 'name')
+        .populate('assignedAgent', 'name email')
+        .populate('assignedSolicitor', 'name email')
+        .populate('agency', 'name email')
+        .sort({ submissionDate: -1 });
+    }
 
     res.status(200).json({
       message: `Applications with status '${status}' fetched successfully.`,
@@ -315,6 +332,7 @@ exports.getApplicationsByStatus = async (req, res) => {
     res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
 
 
 //NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
