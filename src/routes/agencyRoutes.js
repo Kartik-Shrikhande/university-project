@@ -52,6 +52,7 @@ router.post('/roles/reset-password', agencyController.resetUserPasswordByAdmin);
 //CONTACT
 
 router.get("/contacts", contactController.getAllContacts);
+router.patch("/contacts/:contactId", contactController.markContactAsRead);
 router.delete("/contact/delete/:contactId", contactController.deleteContact);
 
 

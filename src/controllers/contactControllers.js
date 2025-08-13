@@ -10,15 +10,6 @@ exports.createContact = async (req, res) => {
     }
 
 
- // Check if contact with the same email already exists and is not deleted
-    // const existingContact = await Contact.findOne({ email, isDeleted: false });
-    // if (existingContact) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "A contact with this email already exists.",
-    //   });
-    // }
-
     const newContact = new Contact({
       email,
       countryCode,
@@ -48,6 +39,38 @@ exports.getAllContacts = async (req, res) => {
   }
 };
 
+exports.markContactAsRead = async (req, res) => {
+  try {
+    const { contactId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Contact ID" });
+    }
+
+    const updatedContact = await Contact.findByIdAndUpdate(
+      contactId,
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!updatedContact) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Contact not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Contact marked as read.",
+      data: updatedContact,
+    });
+  } catch (error) {
+    console.error("Error marking contact as read:", error);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
 
 // Permanently delete a contact
 exports.deleteContact = async (req, res) => {
