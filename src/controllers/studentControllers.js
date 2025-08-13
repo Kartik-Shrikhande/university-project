@@ -322,6 +322,7 @@ exports.registerStudent = async (req, res) => {
       // preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
+      solicitorService
     } = req.body;
 
 
@@ -417,6 +418,7 @@ if (existingRole) {
       // preferredCommunicationMethod,
       termsAndConditionsAccepted,
       gdprAccepted,
+       solicitorService,
       verificationToken,
       address: {  // Updated Address Structure
         country: address.country,

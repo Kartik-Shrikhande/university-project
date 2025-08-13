@@ -153,6 +153,7 @@ const studentSchema = new mongoose.Schema(
     lastActivity: { type: Date, default: Date.now },
     role:{type: String, default: 'student'},
     isVerified:{type: Boolean, default: false},
+    solicitorService:{ type: Boolean, default: false },
      // **New Fields for Response Structure**
 
     // // Documents to track status
