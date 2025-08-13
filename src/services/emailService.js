@@ -159,12 +159,14 @@ const sendRejectionEmail = async (email, reason) => {
     "Application Status Update",
     "#d9534f",
     `<p style="font-size:16px;color:#333333;line-height:1.6;">Dear Applicant,</p>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">After careful consideration, we regret to inform you that your application has been <strong style="color:#d9534f;">not approved</strong> at this time.</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">After careful consideration, we regret to inform that your application is  <strong style="color:#d9534f;">not approved</strong>
+at this time but you can consider applying to different universities – please login and
+apply for a different university.</p>
      <div style="background-color:#f8f9fa;border-left:4px solid #d9534f;padding:15px;border-radius:0 4px 4px 0;margin:20px 0;">
        <h4 style="margin:0 0 10px 0;color:#d9534f;">Feedback from our team:</h4>
        <p style="margin:0;color:#555555;">${reason}</p>
      </div>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">We appreciate the time and effort you put into your application and encourage you to apply again in the future.</p>`
+     <p style="font-size:16px;color:#555555;line-height:1.6;">If you wish you contact us please email – admin@connect2uni.com.</p>`
   );
 
   await transporter.sendMail({
@@ -197,7 +199,7 @@ const sendPaymentSuccessEmail = async (student) => {
        <p style="margin:5px 0;color:#555555;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#28a745;">Completed</span></p>
      </div>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">You now have full access to the student portal. If you have any questions about your payment, please contact our support team.</p>`,
+     <p style="font-size:16px;color:#555555;line-height:1.6;">You now have full access to the student portal. If you have any questions about your payment, please contact our support team - admin@connect2uni.com</p>`,
     {
       text: "Access Student Portal",
       link:`${process.env.DASHBOARD_BASE_URL}` ,
