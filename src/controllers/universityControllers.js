@@ -1,5 +1,6 @@
 const University = require('../models/universityModel');
 const Application = require('../models/applicationModel');
+const Agent = require('../models/agentModel');
 const Course = require('../models/coursesModel');
 const jwt = require('jsonwebtoken');
 const { isValidObjectId } = require('mongoose');
@@ -336,7 +337,10 @@ exports.getApplicationsByStatus = async (req, res) => {
 
 
 //NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
+
 exports.acceptApplication = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { applicationId } = req.params;
     const universityId = req.user.id;
@@ -345,9 +349,9 @@ exports.acceptApplication = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
 
-    const university = await University.findById(universityId);
+    const university = await University.findById(universityId).session(session);
     if (!university) {
-      return res.status(404).json({ success: false, message: 'University not found' });
+      return res.status(404).json({ success: false, message: "University not found" });
     }
 
     const wasApplicationForThisUniversity =
@@ -355,109 +359,299 @@ exports.acceptApplication = async (req, res) => {
       university.approvedApplications.some(appId => appId.toString() === applicationId);
 
     if (!wasApplicationForThisUniversity) {
-      return res.status(403).json({ success: false, message: 'This application does not belong to your university' });
+      return res.status(403).json({ success: false, message: "This application does not belong to your university" });
     }
 
     const application = await Application.findById(applicationId)
-    .populate('student')
-    .populate('course', 'name')
-    .populate('university', 'name');
+      .populate("student")
+      .populate("course", "name")
+      .populate("university", "name")
+      .session(session);
 
     if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
+      return res.status(404).json({ success: false, message: "Application not found" });
     }
 
-    if (application.status !== 'Processing') {
+    if (application.status !== "Processing") {
       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
     }
 
-    // Step 1: Upload file to S3
+    // Step 1: Upload file to S3 if provided
     let uploadedFileUrl = null;
     if (req.file) {
       const [url] = await uploadFilesToS3([req.file]);
       uploadedFileUrl = url;
-
       application.extraDocuments.push(uploadedFileUrl);
     }
 
-    // Step 2: Update status
-    application.status = 'Accepted';
+    // Step 2: Mark application as accepted
+    application.status = "Accepted";
     application.reviewDate = new Date();
-    await application.save();
+    await application.save({ session });
 
-    // Step 3: Update university document
-    await University.findByIdAndUpdate(universityId, {
-      $pull: { pendingApplications: { applicationId } },
-      $push: { approvedApplications: applicationId },
-    });
+    // Step 3: Update university's application lists
+    await University.findByIdAndUpdate(
+      universityId,
+      {
+        $pull: { pendingApplications: { applicationId } },
+        $push: { approvedApplications: application._id },
+      },
+      { session }
+    );
 
-     // Step 6: Notify agency if exists
-   const studentName = `${application.student.firstName} ${application.student.lastName}`;
-   const studentId = application.student._id;
+    const studentName = `${application.student.firstName} ${application.student.lastName}`;
+    const studentId = application.student._id;
 
-    // Step 4: Send email with file link
-   await sendAcceptanceEmail(
-  application.student.email,
-  application.course.name,
-  application.university.name
-);
+    // ✅ Step 4: Withdraw and delete all other active applications for this student
+    const otherApplications = await Application.find({
+      student: studentId,
+      _id: { $ne: application._id },
+      university: { $ne: application.university._id },
+      status: "Processing",
+      isDeleted: false
+    }).session(session);
 
+    const otherAppIds = otherApplications.map(app => app._id);
 
-    // Step 5: Save in-app notification
-await new Notification({
-  user: application.student._id,
-  message: `Congratulations! Your application for the course ${application.course.name} at ${application.university.name} has been accepted.`,
-  type: 'Application',
-  university: application.university._id,
-  course: application.course._id
-}).save();
+    if (otherAppIds.length > 0) {
+      // Mark them as withdrawn
+      await Application.updateMany(
+        { _id: { $in: otherAppIds } },
+        { $set: { status: "Withdrawn", isDeleted: true } },
+        { session }
+      );
 
-
-  
-   if (application.agency) {
-     const agency = await Agency.findById(application.agency);
-     if (agency) {
-    await sendAgencyNotificationEmail(
-  agency.email,
-  studentName,
-  studentId,
-  'Accepted',
-  application.course.name,
-  application.university.name,
-  uploadedFileUrl
-);
-
-
-await new Notification({
-  user: agency._id,
-  message: `Application for ${studentName} (ID: ${studentId}) to ${application.university.name} for course ${application.course.name} has been accepted.`,
-  type: 'Application',
-   additionalData: {
-        fileUrl: uploadedFileUrl || null
-      }
-}).save();
-
-    
-    // ✅ Step 7: Remove application from agency’s sentAppliactionsToUniversities
-        await Agency.findByIdAndUpdate(application.agency, {
+      // Remove from universities (except rejectedApplications)
+      await University.updateMany(
+        {},
+        {
           $pull: {
-            sentAppliactionsToUniversities: application._id
+            pendingApplications: { applicationId: { $in: otherAppIds } },
           }
-        });
+        },
+        { session }
+      );
+
+      // Remove from agencies
+      await Agency.updateMany(
+        {},
+        {
+          $pull: {
+            pendingApplications: { $in: otherAppIds },
+
+          }
+        },
+        { session }
+      );
+  // Remove from student
+      await Students.updateMany(
+        {},
+        {
+          $pull: {
+            applications: { $in: otherAppIds },
+
+          }
+        },
+        { session }
+      );
+
+      // Remove from agents
+      await Agent.updateMany(
+        {},
+        {
+          $pull: {
+            assignedApplications: { $in: otherAppIds },
+          }
+        },
+        { session }
+      );
+    }
+
+    // Step 5: Send student acceptance email
+    await sendAcceptanceEmail(
+      application.student.email,
+      application.course.name,
+      application.university.name
+    );
+
+    // Step 6: Student notification
+    await new Notification({
+      user: studentId,
+      message: `Congratulations! Your application for the course ${application.course.name} at ${application.university.name} has been accepted.`,
+      type: "Application",
+      university: application.university._id,
+      course: application.course._id
+    }).save({ session });
+
+    // Step 7: Notify agency if exists
+    if (application.agency) {
+      const agency = await Agency.findById(application.agency).session(session);
+      if (agency) {
+        await sendAgencyNotificationEmail(
+          agency.email,
+          studentName,
+          studentId,
+          "Accepted",
+          application.course.name,
+          application.university.name,
+          uploadedFileUrl
+        );
+
+        await new Notification({
+          user: agency._id,
+          message: `Application for ${studentName} (ID: ${studentId}) to ${application.university.name} for course ${application.course.name} has been accepted.`,
+          type: "Application",
+          additionalData: { fileUrl: uploadedFileUrl || null }
+        }).save({ session });
+
+        // Remove accepted app from agency’s sentAppliactionsToUniversities
+        await Agency.findByIdAndUpdate(application.agency, {
+          $pull: { sentAppliactionsToUniversities: application._id }
+        }).session(session);
       }
     }
 
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       success: true,
-      message: 'Application accepted successfully',
+      message: "Application accepted successfully, other applications withdrawn",
       fileUrl: uploadedFileUrl,
     });
   } catch (error) {
-    console.error('Error accepting application:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error accepting application:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+
+
+
+// exports.acceptApplication = async (req, res) => {
+//   try {
+//     const { applicationId } = req.params;
+//     const universityId = req.user.id;
+
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ success: false, message: "Invalid Application ID" });
+//     }
+
+//     const university = await University.findById(universityId);
+//     if (!university) {
+//       return res.status(404).json({ success: false, message: 'University not found' });
+//     }
+
+//     const wasApplicationForThisUniversity =
+//       university.pendingApplications.some(app => app.applicationId.toString() === applicationId) ||
+//       university.approvedApplications.some(appId => appId.toString() === applicationId);
+
+//     if (!wasApplicationForThisUniversity) {
+//       return res.status(403).json({ success: false, message: 'This application does not belong to your university' });
+//     }
+
+//     const application = await Application.findById(applicationId)
+//     .populate('student')
+//     .populate('course', 'name')
+//     .populate('university', 'name');
+
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: 'Application not found' });
+//     }
+
+//     if (application.status !== 'Processing') {
+//       return res.status(400).json({ success: false, message: `Application is already ${application.status}` });
+//     }
+
+//     // Step 1: Upload file to S3
+//     let uploadedFileUrl = null;
+//     if (req.file) {
+//       const [url] = await uploadFilesToS3([req.file]);
+//       uploadedFileUrl = url;
+
+//       application.extraDocuments.push(uploadedFileUrl);
+//     }
+
+//     // Step 2: Update status
+//     application.status = 'Accepted';
+//     application.reviewDate = new Date();
+//     await application.save();
+
+//     // Step 3: Update university document
+//     await University.findByIdAndUpdate(universityId, {
+//       $pull: { pendingApplications: { applicationId } },
+//       $push: { approvedApplications: applicationId },
+//     });
+
+//      // Step 6: Notify agency if exists
+//    const studentName = `${application.student.firstName} ${application.student.lastName}`;
+//    const studentId = application.student._id;
+
+//     // Step 4: Send email with file link
+//    await sendAcceptanceEmail(
+//   application.student.email,
+//   application.course.name,
+//   application.university.name
+// );
+
+
+//     // Step 5: Save in-app notification
+// await new Notification({
+//   user: application.student._id,
+//   message: `Congratulations! Your application for the course ${application.course.name} at ${application.university.name} has been accepted.`,
+//   type: 'Application',
+//   university: application.university._id,
+//   course: application.course._id
+// }).save();
+
+
+  
+//    if (application.agency) {
+//      const agency = await Agency.findById(application.agency);
+//      if (agency) {
+//     await sendAgencyNotificationEmail(
+//   agency.email,
+//   studentName,
+//   studentId,
+//   'Accepted',
+//   application.course.name,
+//   application.university.name,
+//   uploadedFileUrl
+// );
+
+
+// await new Notification({
+//   user: agency._id,
+//   message: `Application for ${studentName} (ID: ${studentId}) to ${application.university.name} for course ${application.course.name} has been accepted.`,
+//   type: 'Application',
+//    additionalData: {
+//         fileUrl: uploadedFileUrl || null
+//       }
+// }).save();
+
+    
+//     // ✅ Step 7: Remove application from agency’s sentAppliactionsToUniversities
+//         await Agency.findByIdAndUpdate(application.agency, {
+//           $pull: {
+//             sentAppliactionsToUniversities: application._id
+//           }
+//         });
+//       }
+//     }
+
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Application accepted successfully',
+//       fileUrl: uploadedFileUrl,
+//     });
+//   } catch (error) {
+//     console.error('Error accepting application:', error);
+//     res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// };
 
 
 exports.rejectApplication = async (req, res) => {
