@@ -2803,7 +2803,9 @@ exports.deleteUniversityByAgency = async (req, res) => {
 
 
 //COURSE
-// Create Course (Agency)
+// ===============================
+// Create Course by Agency
+// ===============================
 exports.createCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -2826,7 +2828,8 @@ exports.createCourseByAgency = async (req, res) => {
       courseType,
       courseDuration,
       level,
-      UCSA   // ✅ newly added
+      UCSA,
+      scholarship
     } = req.body;
 
     const university = await University.findById(universityId).session(session);
@@ -2862,7 +2865,6 @@ exports.createCourseByAgency = async (req, res) => {
       return res.status(400).json({ message: `Invalid course type. Allowed: ${validCourseTypes.join(', ')}` });
     }
 
-
     const course = new Course({
       name,
       description,
@@ -2874,13 +2876,13 @@ exports.createCourseByAgency = async (req, res) => {
       expiryDate: expiry,
       courseType,
       courseDuration,
-      level,    // ✅ set level
-      UCSA,     // ✅ set UCSA
+      level,
+      UCSA,
+      scholarship: scholarship === 'true' || scholarship === true, // ✅ Handle string/boolean
       courseImage: courseImages,
     });
 
     await course.save({ session });
-
     university.courses.push(course._id);
     await university.save({ session });
 
@@ -2897,7 +2899,9 @@ exports.createCourseByAgency = async (req, res) => {
 };
 
 
-// Update Course (Agency)
+// ===============================
+// Update Course by Agency
+// ===============================
 exports.updateCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -2924,7 +2928,8 @@ exports.updateCourseByAgency = async (req, res) => {
       courseType,
       courseDuration,
       level,
-      UCSA
+      UCSA,
+      scholarship
     } = req.body;
 
     const university = await University.findById(universityId).session(session);
@@ -2953,7 +2958,6 @@ exports.updateCourseByAgency = async (req, res) => {
       return res.status(400).json({ message: 'Cannot update an expired course.' });
     }
 
-    // Validate and apply expiryDate
     if (expiryDate) {
       const newExpiry = new Date(expiryDate);
       if (isNaN(newExpiry.getTime()) || newExpiry <= new Date()) {
@@ -2964,7 +2968,6 @@ exports.updateCourseByAgency = async (req, res) => {
       course.expiryDate = newExpiry;
     }
 
-    // Validate and apply fees
     if (fees !== undefined) {
       if (isNaN(fees) || fees <= 0) {
         await session.abortTransaction();
@@ -2974,7 +2977,6 @@ exports.updateCourseByAgency = async (req, res) => {
       course.fees = fees;
     }
 
-    // Validate and apply courseType
     if (courseType) {
       const validCourseTypes = ['fulltime', 'parttime', 'online'];
       if (!validCourseTypes.includes(courseType)) {
@@ -2985,28 +2987,16 @@ exports.updateCourseByAgency = async (req, res) => {
       course.courseType = courseType;
     }
 
-    // // Validate and apply courseDuration
-    // if (courseDuration !== undefined) {
-    //   if (!/^\d+$/.test(courseDuration)) {
-    //     await session.abortTransaction();
-    //     session.endSession();
-    //     return res.status(400).json({ message: 'Course duration must be a positive integer.' });
-    //   }
-    //   course.courseDuration = courseDuration;
-    // }
-
-    // Directly assign UCSA and level (since express-validator already validated)
     if (UCSA) course.UCSA = UCSA;
     if (level) course.level = level;
+    if (scholarship !== undefined) course.scholarship = scholarship === 'true' || scholarship === true;
 
-    // Update other fields if provided
     if (name) course.name = name;
     if (description) course.description = description;
     if (description2) course.description2 = description2;
     if (description3) course.description3 = description3;
     if (ratings) course.ratings = ratings;
 
-    // Handle course images if files are sent
     if (req.files && req.files.length > 0) {
       course.courseImage = await uploadFilesToS3(req.files);
     }
@@ -3023,7 +3013,6 @@ exports.updateCourseByAgency = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 // Delete Course (Agency)
 exports.deleteCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();

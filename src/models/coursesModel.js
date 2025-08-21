@@ -40,6 +40,10 @@ const courseSchema = new mongoose.Schema(
       type: Date, 
       required: true, // University must manually set this
     },
+      scholarship: { 
+      type: Boolean, 
+      default: false,
+    },
     isDeleted: { 
       type: Boolean, 
       default: false,

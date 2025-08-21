@@ -1069,6 +1069,9 @@ exports.deleteUniversity = async (req, res) => {
 
 //COURSES
 
+// ===============================
+// Create Course by University
+// ===============================
 exports.createCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1085,11 +1088,11 @@ exports.createCourse = async (req, res) => {
       courseType,
       courseDuration,
       UCSA,
-      level
+      level,
+      scholarship
     } = req.body;
 
     const universityId = req.user.id;
-
     const universityRecord = await University.findById(universityId).session(session);
     if (!universityRecord) {
       await session.abortTransaction();
@@ -1129,21 +1132,18 @@ exports.createCourse = async (req, res) => {
       courseDuration,
       courseImage: courseImages,
       UCSA,
-      level
+      level,
+      scholarship: scholarship === 'true' || scholarship === true
     });
 
     await course.save({ session });
-
     universityRecord.courses.push(course._id);
     await universityRecord.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(201).json({
-      message: 'Course created successfully',
-      course,
-    });
+    return res.status(201).json({ message: 'Course created successfully', course });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -1153,7 +1153,9 @@ exports.createCourse = async (req, res) => {
 };
 
 
-
+// ===============================
+// Update Course by University
+// ===============================
 exports.updateCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1172,7 +1174,8 @@ exports.updateCourse = async (req, res) => {
       courseType,
       courseDuration,
       UCSA,
-      level
+      level,
+      scholarship
     } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
@@ -1227,21 +1230,13 @@ exports.updateCourse = async (req, res) => {
     }
     if (courseType) course.courseType = courseType;
 
-    // if (courseDuration !== undefined) {
-    //   if (!/^\d+$/.test(courseDuration)) {
-    //     await session.abortTransaction();
-    //     session.endSession();
-    //     return res.status(400).json({ message: 'Course duration must be a positive integer.' });
-    //   }
-    //   course.courseDuration = courseDuration;
-    // }
-
     if (name) course.name = name;
     if (description) course.description = description;
     if (description2) course.description2 = description2;
     if (description3) course.description3 = description3;
     if (ratings) course.ratings = ratings;
     if (UCSA) course.UCSA = UCSA;
+    if (scholarship !== undefined) course.scholarship = scholarship === 'true' || scholarship === true;
 
     const validLevels = ['Undergraduate', 'Postgraduate', 'Foundation', 'ResearchDegree'];
     if (level) {
