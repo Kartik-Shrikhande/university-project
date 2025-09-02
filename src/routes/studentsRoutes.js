@@ -84,6 +84,12 @@ router.post('/login',
    validate,
    userControllers.login);
 
+//OTP FOR LOGIN
+   router.post("/verify-login-otp", studentController.verifyLoginOtp);
+//resend OTP FOR LOGIN 
+    router.post("/resend-login-otp", studentController.resendLoginOtp); 
+
+
 router.post('/logout', userControllers.logout);
 
 

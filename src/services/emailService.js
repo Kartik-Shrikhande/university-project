@@ -1,6 +1,4 @@
 
-
-// Microsoft Graph email service (replacing Gmail SMTP / Nodemailer)
 const { ClientSecretCredential } = require("@azure/identity");
 const fetch = require("isomorphic-fetch");
 const crypto = require("crypto");
@@ -24,67 +22,72 @@ const senderEmail = process.env.EMAIL_USER; // the mailbox that will send via Gr
 const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
 
 // --- Shared helper: send mail through Microsoft Graph with inline logo ---
+// --- Centralized email sender with quota & error handling ---
 async function sendEmail({ to, subject, html }) {
-  // Normalize "to"
   const recipientEmail =
     typeof to === "string" ? to : to?.email || String(to || "");
-
   if (!recipientEmail) {
-    throw new Error("sendEmail(): 'to' address is required.");
+    console.error("❌ Email sending failed: Missing recipient.");
+    return { success: false, reason: "MISSING_RECIPIENT" };
   }
 
-  // Acquire token for Graph
-  const tokenResponse = await credential.getToken(
-    "https://graph.microsoft.com/.default"
-  );
-
-  // Read and inline the logo with the SAME CID used in HTML ("unique-logo-cid")
-  const logoContentBytes = fs.readFileSync(logoPath).toString("base64");
-
-  const payload = {
-    message: {
-      subject,
-      body: {
-        contentType: "HTML",
-        content: html,
-      },
-      toRecipients: [
-        {
-          emailAddress: { address: recipientEmail },
-        },
-      ],
-      attachments: [
-        {
-          "@odata.type": "#microsoft.graph.fileAttachment",
-          name: "logo.png",
-          contentId: "unique-logo-cid", // must match <img src="cid:unique-logo-cid">
-          isInline: true,
-          contentBytes: logoContentBytes,
-        },
-      ],
-    },
-    saveToSentItems: true,
-  };
-
-  const res = await fetch(
-    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(
-      senderEmail
-    )}/sendMail`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${tokenResponse.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(
-      `Graph sendMail failed (${res.status} ${res.statusText}): ${text}`
+  try {
+    const tokenResponse = await credential.getToken(
+      "https://graph.microsoft.com/.default"
     );
+
+    const logoContentBytes = fs.readFileSync(logoPath).toString("base64");
+
+    const payload = {
+      message: {
+        subject,
+        body: { contentType: "HTML", content: html },
+        toRecipients: [{ emailAddress: { address: recipientEmail } }],
+        attachments: [
+          {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            name: "logo.png",
+            contentId: "unique-logo-cid",
+            isInline: true,
+            contentBytes: logoContentBytes,
+          },
+        ],
+      },
+      saveToSentItems: true,
+    };
+
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(
+        senderEmail
+      )}/sendMail`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenResponse.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      const reason =
+        res.status === 429
+          ? "QUOTA_EXCEEDED"
+          : res.status === 403
+          ? "FORBIDDEN_OR_QUOTA_EXCEEDED"
+          : `GRAPH_ERROR_${res.status}`;
+
+      console.error(`❌ Email send failed: ${reason}`, text);
+
+      return { success: false, reason, details: text };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Email send error:", err.message);
+    return { success: false, reason: "NETWORK_OR_UNKNOWN", details: err.message };
   }
 }
 
@@ -633,6 +636,32 @@ const sendPasswordResetByAdminEmail = async (user, newPassword) => {
   });
 };
 
+
+// 📧 Send MFA OTP Email
+const sendLoginOtpEmail = async (email, otpCode) => {
+  const html = generateEmailTemplate(
+    "Your Login Verification Code",
+    "#004AAC",
+    `
+      <p style="font-size:16px;color:#333;">Hi there,</p>
+      <p style="font-size:16px;color:#555;">
+        Use the following verification code to complete your login. This code is valid for 5 minutes.
+      </p>
+      <div style="text-align:center; margin:20px 0;">
+        <div style="font-size:28px; font-weight:bold; letter-spacing:4px; color:#004AAC;">${otpCode}</div>
+      </div>
+      <p style="font-size:14px;color:#888;margin-top:20px;">If you didn't try to log in, you can safely ignore this email.</p>
+    `
+  );
+
+  await sendEmail({
+    to: email,
+    subject: "Your One-Time Login Code",
+    html,
+  });
+};
+
+
 // Optional: a generic helper compatible with your old name, now Graph-backed
 const sendEmailWithLogo = async ({ to, subject, html }) => {
   await sendEmail({ to, subject, html });
@@ -640,6 +669,7 @@ const sendEmailWithLogo = async ({ to, subject, html }) => {
 
 // ✅ Export all (same names/shape as your original)
 module.exports = {
+  sendEmail,  
   generateEmailTemplate,
   sendEmailWithLogo,
   sendVerificationEmail,
@@ -658,6 +688,7 @@ module.exports = {
   sendReceiptAcceptedEmailToAgency,
   sendReceiptRejectedEmailToAgency,
   sendPasswordResetByAdminEmail,
+  sendLoginOtpEmail
 };
 
 

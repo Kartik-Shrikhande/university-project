@@ -1,4 +1,4 @@
-
+//RESET PASSWORD EMAIL USING MICROSOFT GRAPH API
 const path = require('path');
 const { Client } = require('@microsoft/microsoft-graph-client');
 require('isomorphic-fetch');

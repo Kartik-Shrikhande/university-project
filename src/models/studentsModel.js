@@ -154,6 +154,14 @@ const studentSchema = new mongoose.Schema(
     role:{type: String, default: 'student'},
     isVerified:{type: Boolean, default: false},
     solicitorService:{ type: Boolean, default: false },
+
+//otp for MFA
+// Add inside studentSchema before module.exports
+loginOtp: { type: String, default: null },
+loginOtpExpiry: { type: Date, default: null },
+loginOtpAttempts: { type: Number, default: 0 },
+
+
      // **New Fields for Response Structure**
 
     // // Documents to track status

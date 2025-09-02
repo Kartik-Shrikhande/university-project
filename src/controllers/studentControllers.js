@@ -25,7 +25,7 @@ const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
-const { generateEmailTemplate, sendEmailWithLogo } = require('../services/emailService');
+const { generateEmailTemplate, sendEmail,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
 
 const path = require("path");
 const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to logo
@@ -801,53 +801,85 @@ exports.login = async (req, res) => {
       await Students.updateOne({ _id: user._id }, { $set: { loginCompleted: true } });
       user.loginCompleted = true; // Update user object for response
     }
+// Student login branch inside exports.login
+if (role === "student") {
+  // ✅ Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // ✅ Save OTP & expiry (5 min)
+  user.loginOtp = otp;
+  user.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+  user.loginOtpAttempts = 0;
+  await user.save();
+
+  // ✅ Send OTP email using your existing email template + sendEmail()
+  const html = generateEmailTemplate(
+    "Your Login OTP",
+    "#004AAC",
+    `<p style="font-size:16px;color:#333;">Hi ${user.firstName || "there"},</p>
+    <p style="font-size:16px;color:#555;">Your Connect2Uni login OTP is:</p>
+    <h2 style="text-align:center; font-size:28px; margin:20px 0;">${otp}</h2>
+    <p style="font-size:14px;color:#888;">This OTP will expire in 5 minutes.</p>`
+  );
+
+  await sendEmail({
+    to: user.email,
+    subject: "Your Connect2Uni Login OTP",
+    html,
+  });
+
+  return res.status(200).json({
+    message: "OTP sent to your email. Please verify to complete login.",
+    step: "OTP_REQUIRED",
+  });
+}
 
   //  **Custom Response for Students**
-    if (role === "student") {
-      return res.status(200).json({
-        message: 'Login successful.',
-        role: role,
-        token: token,
-        // userDetail:user,
-        user: {
-          id: user._id,
-          email: user.email,
-          // role: role,
-          is_active: true, // Assuming all logged-in users are active
-          email_verified: user.isVerified || false,
-          platform_fee_paid: user.isPaid || false,
-          created_at: user.createdAt,
-          // loginCompleted: user.loginCompleted // Now guaranteed to be true if it was false
-        },
-        platform_access: {
-          courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
-          payment_required: !user.isPaid, // If not paid, payment is required
-          message: user.isPaid
-            ? "You have full access to to view universities and courses."
-            : "Pay the platform fee to view universities and courses."
-        },
-        notifications: [
-          {
-            id: "NOTIF-001",
-            type: "system",
-            title: "Welcome to Connect2Uni!",
-            content: "Complete your profile and pay the platform fee to proceed.",
-            is_read: false,
-            timestamp: new Date().toISOString()
-          }
-        ],
-        applications: user.applications || [],
-        visa_status: null, // You can modify this based on actual visa status logic
-        payment_prompt: !user.isPaid
-          ? {
-              type: "platform_fee",
-              amount: 20,
-              currency: "GBP",
-              payment_url: "/api/payments/platform-fee"
-            }
-          : null
-      });
-    }
+    // if (role === "student") {
+    //   return res.status(200).json({
+    //     message: 'Login successful.',
+    //     role: role,
+    //     token: token,
+    //     // userDetail:user,
+    //     user: {
+    //       id: user._id,
+    //       email: user.email,
+    //       // role: role,
+    //       is_active: true, // Assuming all logged-in users are active
+    //       email_verified: user.isVerified || false,
+    //       platform_fee_paid: user.isPaid || false,
+    //       created_at: user.createdAt,
+    //       // loginCompleted: user.loginCompleted // Now guaranteed to be true if it was false
+    //     },
+    //     platform_access: {
+    //       courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
+    //       payment_required: !user.isPaid, // If not paid, payment is required
+    //       message: user.isPaid
+    //         ? "You have full access to to view universities and courses."
+    //         : "Pay the platform fee to view universities and courses."
+    //     },
+    //     notifications: [
+    //       {
+    //         id: "NOTIF-001",
+    //         type: "system",
+    //         title: "Welcome to Connect2Uni!",
+    //         content: "Complete your profile and pay the platform fee to proceed.",
+    //         is_read: false,
+    //         timestamp: new Date().toISOString()
+    //       }
+    //     ],
+    //     applications: user.applications || [],
+    //     visa_status: null, // You can modify this based on actual visa status logic
+    //     payment_prompt: !user.isPaid
+    //       ? {
+    //           type: "platform_fee",
+    //           amount: 20,
+    //           currency: "GBP",
+    //           payment_url: "/api/payments/platform-fee"
+    //         }
+    //       : null
+    //   });
+    // }
  // **Custom Response for Agent Role**
 if (role === "agent") {
   const token = jwt.sign(
@@ -1051,7 +1083,121 @@ if (role === 'solicitor') {
   }
 };
 
+exports.verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const student = await Students.findOne({ email });
 
+    if (!student || !student.loginOtp) {
+      return res.status(400).json({ message: "OTP not found. Please login again." });
+    }
+
+    // Check OTP expiry
+    if (student.loginOtpExpiry < new Date()) {
+      student.loginOtp = null;
+      student.loginOtpExpiry = null;
+      await student.save();
+      return res.status(400).json({ message: "OTP expired. Please login again." });
+    }
+
+    // Validate OTP
+    if (student.loginOtp !== otp) {
+      student.loginOtpAttempts += 1;
+      await student.save();
+
+      if (student.loginOtpAttempts >= 3) {
+        student.loginOtp = null;
+        student.loginOtpExpiry = null;
+        await student.save();
+        return res.status(400).json({ message: "Too many wrong attempts. Please login again." });
+      }
+
+      return res.status(400).json({ message: "Invalid OTP. Try again." });
+    }
+
+    // ✅ OTP verified — clear OTP & proceed with JWT login
+    student.loginOtp = null;
+    student.loginOtpExpiry = null;
+    student.loginOtpAttempts = 0;
+    await student.save();
+
+    const token = jwt.sign({ id: student._id, role: "student" }, process.env.SECRET_KEY, { expiresIn: "1h" });
+
+    await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
+
+    res.cookie("refreshtoken", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 604800000,
+      path: "/",
+    });
+
+    res.setHeader("Authorization", `Bearer ${token}`);
+
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user: {
+        id: student._id,
+        email: student.email,
+        email_verified: student.isVerified,
+        platform_fee_paid: student.isPaid,
+      },
+    });
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+exports.resendLoginOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const student = await Students.findOne({ email });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found." });
+    }
+
+    // ✅ Prevent abuse: max 3 OTPs within 10 min
+    if (student.loginOtpExpiry && student.loginOtpExpiry > new Date()) {
+      return res.status(429).json({
+        message: "OTP already sent. Wait until it expires or try again later."
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    student.loginOtp = otp;
+    student.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    student.loginOtpAttempts = 0;
+    await student.save();
+
+    const html = generateEmailTemplate(
+      "Your Login OTP",
+      "#004AAC",
+      `<p style="font-size:16px;color:#333;">Hi ${student.firstName || "there"},</p>
+      <p style="font-size:16px;color:#555;">Your new Connect2Uni login OTP is:</p>
+      <h2 style="text-align:center; font-size:28px; margin:20px 0;">${otp}</h2>
+      <p style="font-size:14px;color:#888;">This OTP will expire in 5 minutes.</p>`
+    );
+
+    await sendEmail({
+      to: student.email,
+      subject: "Your Connect2Uni Login OTP (Resent)",
+      html,
+    });
+
+    return res.status(200).json({
+      message: "OTP resent successfully. Please check your email.",
+      step: "OTP_REQUIRED"
+    });
+  } catch (error) {
+    console.error("Resend OTP Error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 ///////////////////////////////////////////////////
 
