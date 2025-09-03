@@ -1115,14 +1115,18 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP. Try again." });
     }
 
-    // ✅ OTP verified — clear OTP & proceed with JWT login
+    // ✅ OTP verified — clear OTP & reset attempts
     student.loginOtp = null;
     student.loginOtpExpiry = null;
     student.loginOtpAttempts = 0;
     await student.save();
 
-    const token = jwt.sign({ id: student._id, role: "student" }, process.env.SECRET_KEY, { expiresIn: "1h" });
-
+    // ✅ Generate JWT & store token
+    const token = jwt.sign(
+      { id: student._id, role: "student" },
+      process.env.SECRET_KEY,
+      { expiresIn: "1h" }
+    );
     await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
 
     res.cookie("refreshtoken", token, {
@@ -1135,21 +1139,63 @@ exports.verifyLoginOtp = async (req, res) => {
 
     res.setHeader("Authorization", `Bearer ${token}`);
 
+    // ✅ Map student to user like verifyToken middleware does
+    const user = {
+      _id: student._id,
+      email: student.email,
+      isVerified: student.isVerified || false,
+      isPaid: student.isPaid || false,
+      createdAt: student.createdAt,
+      applications: student.applications || []
+    };
+
     return res.status(200).json({
       message: "Login successful.",
-      token,
+      role: "student",
+      token: token,
       user: {
-        id: student._id,
-        email: student.email,
-        email_verified: student.isVerified,
-        platform_fee_paid: student.isPaid,
+        id: user._id,
+        email: user.email,
+        is_active: true,
+        email_verified: user.isVerified,
+        platform_fee_paid: user.isPaid,
+        created_at: user.createdAt,
       },
+      platform_access: {
+        courses_visible: user.isPaid,
+        payment_required: !user.isPaid,
+        message: user.isPaid
+          ? "You have full access to to view universities and courses."
+          : "Pay the platform fee to view universities and courses."
+      },
+      notifications: [
+        {
+          id: "NOTIF-001",
+          type: "system",
+          title: "Welcome to Connect2Uni!",
+          content: "Complete your profile and pay the platform fee to proceed.",
+          is_read: false,
+          timestamp: new Date().toISOString()
+        }
+      ],
+      applications: user.applications,
+      visa_status: null,
+      payment_prompt: !user.isPaid
+        ? {
+            type: "platform_fee",
+            amount: 20,
+            currency: "GBP",
+            payment_url: "/api/payments/platform-fee"
+          }
+        : null
     });
+
   } catch (error) {
     console.error("OTP Verification Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 exports.resendLoginOtp = async (req, res) => {
   try {
