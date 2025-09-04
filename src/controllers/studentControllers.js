@@ -1097,7 +1097,7 @@ exports.verifyLoginOtp = async (req, res) => {
       student.loginOtp = null;
       student.loginOtpExpiry = null;
       await student.save();
-      return res.status(400).json({ message: "OTP expired. Please login again." });
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
     }
 
     // Validate OTP
