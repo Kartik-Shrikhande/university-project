@@ -16,17 +16,15 @@ const contactController = require("../controllers/contactControllers");
 
 router.use(
   authenticationMiddleware.authenticateUser,
-  authenticationMiddleware.authorizeRoles(['admin', 'agent']),
+  authenticationMiddleware.authorizeRoles(['University']),
   authenticationMiddleware.resolveAgencyContext // <-- New middleware here
 );
 
-//AGENCY STATS ROUTES
-router.get('/applications/filter',statisticsControllers.getApplicationStats);
-router.get('/applications/stats/universities', statisticsControllers.getApplicationsStatsByAllUniversities);
-router.get('/students/stats/country', statisticsControllers.getAllStudentsCountryStats);
-router.get('/stats/receipt', statisticsControllers.getAllReceiptStats);
 
-
-
+//UNIVERSITY STATS ROUTES
+router.get('/applications', statisticsControllers.getUniversityApplicationStats);
+router.get('/course/stats', statisticsControllers.getUniversityApplicationsByCourse);
+router.get('/students/country/stats', statisticsControllers.getUniversityStudentsByCountry);
+router.get('/receipt/stats', statisticsControllers.getUniversityReceiptStats);
 
 module.exports = router;

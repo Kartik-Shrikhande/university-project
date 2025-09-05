@@ -28,7 +28,7 @@ const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
 
-
+//AGENCY STATS APIs
 exports.getApplicationStats = async (req, res) => {
   try {
     const agencyId = req.user?.id || req.user?._id;
@@ -203,6 +203,239 @@ exports.getAllReceiptStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Get All Receipts (Agency) Error:", error);
+    res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+
+
+//UNIVERSITY STATS APIs
+
+// Get Applications Stats for University Dashboard
+exports.getUniversityApplicationStats = async (req, res) => {
+  try {
+    const universityId = req.user.id;
+
+    // Check if university exists
+    const university = await University.findById(universityId).lean();
+    if (!university) {
+      return res.status(404).json({ error: 'University not found.' });
+    }
+
+    // Count Rejected from University's rejectedApplications array
+    const rejectedCount = university.rejectedApplications?.length || 0;
+
+    // Count Processing & Accepted directly from Application collection
+    const appCounts = await Application.aggregate([
+      {
+        $match: {
+          university: university._id,
+          status: { $in: ['Processing', 'Accepted'] },
+          isDeleted: false
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Convert aggregation result to map
+    const countsMap = appCounts.reduce((acc, cur) => {
+      acc[cur._id] = cur.count;
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      message: 'University application statistics fetched successfully.',
+      stats: {
+        Processing: countsMap.Processing || 0,
+        Accepted: countsMap.Accepted || 0,
+        Rejected: rejectedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching application stats for university:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Get Application Stats by Course for University Dashboard
+exports.getUniversityApplicationsByCourse = async (req, res) => {
+  try {
+    const universityId = req.user.id;
+
+    // Verify university exists
+    const university = await University.findById(universityId)
+      .populate('rejectedApplications', 'course')
+      .lean();
+
+    if (!university) {
+      return res.status(404).json({ error: 'University not found.' });
+    }
+
+    // ✅ Step 1: Get Processing & Accepted counts grouped by course
+    const groupedApps = await Application.aggregate([
+      {
+        $match: {
+          university: university._id,
+          status: { $in: ['Processing', 'Accepted'] },
+          isDeleted: false
+        }
+      },
+      {
+        $group: {
+          _id: { course: '$course', status: '$status' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // ✅ Step 2: Transform results into a course-wise object
+    const courseStats = {};
+    groupedApps.forEach(item => {
+      const courseId = item._id.course?.toString();
+      if (!courseStats[courseId]) {
+        courseStats[courseId] = { Processing: 0, Accepted: 0, Rejected: 0 };
+      }
+      courseStats[courseId][item._id.status] = item.count;
+    });
+
+    // ✅ Step 3: Add Rejected counts (from university.rejectedApplications)
+    university.rejectedApplications?.forEach(app => {
+      const courseId = app.course?.toString();
+      if (!courseId) return;
+      if (!courseStats[courseId]) {
+        courseStats[courseId] = { Processing: 0, Accepted: 0, Rejected: 0 };
+      }
+      courseStats[courseId].Rejected += 1;
+    });
+
+    // ✅ Step 4: Populate course details
+    const courseIds = Object.keys(courseStats);
+    const courses = await Course.find({ _id: { $in: courseIds } })
+      .select('name');
+
+    // ✅ Step 5: Build final response
+    const result = courses.map(course => ({
+      courseId: course._id,
+      courseName: course.name,
+      stats: courseStats[course._id.toString()]
+    }));
+
+    res.status(200).json({
+      message: 'University applications by course fetched successfully.',
+      totalCourses: result.length,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error fetching applications by course for university:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Get Students by Country for University Dashboard
+exports.getUniversityStudentsByCountry = async (req, res) => {
+  try {
+    const universityId = req.user.id;
+
+    // Step 1: Find all applications for this university (only non-deleted ones)
+    const applications = await Application.find({
+      university: universityId,
+      isDeleted: false
+    }).select('student');
+
+    if (!applications.length) {
+      return res.status(200).json({
+        message: 'No students found for this university.',
+        totalCountries: 0,
+        data: []
+      });
+    }
+
+    // Extract unique student IDs from applications
+    const studentIds = [...new Set(applications.map(app => app.student.toString()))];
+
+    // Step 2: Fetch students who match those IDs (only not deleted)
+    const students = await Students.find({
+      _id: { $in: studentIds },
+      isDeleted: false
+    }).select('address.country');
+
+    if (!students.length) {
+      return res.status(200).json({
+        message: 'No active students found for this university.',
+        totalCountries: 0,
+        data: []
+      });
+    }
+
+    // Step 3: Group students by country
+    const countryCounts = {};
+    students.forEach(student => {
+      const country = student.address?.country || 'Unknown';
+      countryCounts[country] = (countryCounts[country] || 0) + 1;
+    });
+
+    // Step 4: Convert to array format for UI
+    const result = Object.keys(countryCounts).map(country => ({
+      country,
+      count: countryCounts[country]
+    }));
+
+    res.status(200).json({
+      message: 'Students by country fetched successfully.',
+      totalCountries: result.length,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error fetching students by country for university:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Get Receipt Stats for University Dashboard
+exports.getUniversityReceiptStats = async (req, res) => {
+  try {
+    const universityId = req.user.id; // from verifyToken middleware
+
+    // Count receipts grouped by status
+    const receiptCounts = await Receipt.aggregate([
+      {
+        $match: {
+          paidToUniversity: universityId
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Convert aggregation result to object
+    const countsMap = receiptCounts.reduce((acc, cur) => {
+      acc[cur._id] = cur.count;
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      message: 'University receipt statistics fetched successfully.',
+      stats: {
+        Pending: countsMap.Pending || 0,
+        Accepted: countsMap.Accepted || 0,
+        Rejected: countsMap.Rejected || 0
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching university receipt stats:", error);
     res.status(500).json({ message: "Something went wrong." });
   }
 };
