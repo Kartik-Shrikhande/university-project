@@ -25,6 +25,7 @@ const agencySchema = new mongoose.Schema(
     pendingApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], //here im storing applicationId for solicitor
     solicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    visaRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     sentAppliactionsToUniversities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     role:{type: String, default: 'admin'},
     lastAssignedAgentIndex: { type: Number, default: 0 }, // <--- new field

@@ -27,6 +27,7 @@ const googleAuthRoutes = require('../src/routes/googleLoginRoutes')// New Google
 const solicitorRoutes = require('../src/routes/solicitorRoutes')
 const statisticsRoutes = require('../src/routes/statisticsRoutes')
 const statisticUniversitysRoutes = require('../src/routes/statisticsUniversityRoutes')
+const visaRoutes = require('../src/routes/visaRoutes');
 
 
 const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // import
@@ -97,6 +98,7 @@ app.use('/redirect', googleAuthRoutes); // Google Auth route
 app.use('/solicitor', solicitorRoutes);
 app.use('/statistics',statisticsRoutes);
 app.use('/stats/university',statisticUniversitysRoutes);
+app.use('/visa', visaRoutes);
 
 app.use(globalErrorHandler);
 

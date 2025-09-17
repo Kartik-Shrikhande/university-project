@@ -637,6 +637,100 @@ const sendPasswordResetByAdminEmail = async (user, newPassword) => {
 };
 
 
+
+/**
+ * 📩 Visa / Solicitor Request Accepted Email
+ */
+const sendRequestAcceptedEmail = async (student, application, actor = "Solicitor/Agency") => {
+  const html = generateEmailTemplate(
+    "Visa Request Accepted ✅",
+    "#28a745",
+    `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">
+       Your visa request has been <strong style="color:#28a745;">accepted</strong> by the ${actor}.
+     </p>
+     <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+       <h4 style="margin:0 0 10px 0;color:#28a745;">Application Details</h4>
+       <p style="margin:5px 0;color:#555555;"><strong>University:</strong> ${application.university.name}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Course:</strong> ${application.course.name}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#28a745;">Accepted</span></p>
+     </div>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">You’ll be updated with further steps soon.</p>`,
+    // {
+    //   text: "View Application",
+    //   link: "https://yourwebsite.com/student-portal/application-status",
+    // }
+  );
+
+  await sendEmail({
+    to: student.email,
+    subject: "Your Visa Request Has Been Accepted",
+    html,
+  });
+};
+
+/**
+ * 📩 Visa / Solicitor Request Rejected Email
+ */
+const sendRequestRejectedEmail = async (student, application, reason, actor = "Solicitor/Agency") => {
+  const html = generateEmailTemplate(
+    "Visa Request Rejected ❌",
+    "#dc3545",
+    `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">
+       Unfortunately, your visa request was <strong style="color:#dc3545;">rejected</strong> by the ${actor}.
+     </p>
+     <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+       <h4 style="margin:0 0 10px 0;color:#dc3545;">Application Details</h4>
+       <p style="margin:5px 0;color:#555555;"><strong>University:</strong> ${application.university.name}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Course:</strong> ${application.course.name}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#dc3545;">Rejected</span></p>
+       <p style="margin:5px 0;color:#555555;"><strong>Reason:</strong> ${reason}</p>
+     </div>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">You may contact your agency for further guidance.</p>`,
+    // {
+    //   text: "View Application",
+    //   link: "https://yourwebsite.com/student-portal/application-status",
+    // }
+  );
+
+  await sendEmail({
+    to: student.email,
+    subject: "Your Visa Request Has Been Rejected",
+    html,
+  });
+};
+
+
+// 📧 Reset Password Email
+const sendResetPasswordEmail = async (to, resetLink) => {
+  const html = generateEmailTemplate(
+    "Reset Your Password",
+    "#004AAC",
+    `
+      <p style="font-size:16px;color:#333;">Hi there,</p>
+      <p style="font-size:16px;color:#555;">
+        We received a request to reset your Connect2Uni password. Click the button below to proceed:
+      </p>
+      <p style="font-size:14px;color:#888;margin-top:20px;">
+        This link will expire in 5 minutes.
+      </p>
+    `,
+    {
+      text: "Reset My Password",
+      link: resetLink,
+    }
+  );
+
+  await sendEmail({
+    to,
+    subject: "Reset your Connect2Uni password",
+    html,
+  });
+};
+
+
+
 // 📧 Send MFA OTP Email
 const sendLoginOtpEmail = async (email, otpCode) => {
   const html = generateEmailTemplate(
@@ -660,6 +754,38 @@ const sendLoginOtpEmail = async (email, otpCode) => {
     html,
   });
 };
+
+
+const sendVisaRequestCreatedEmail = async (student, application) => {
+  const html = generateEmailTemplate(
+    "Visa Request Submitted ✈️",
+    "#007bff",
+    `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">
+       Your <strong>visa request</strong> for your application has been successfully created. 
+       Our team will review it and update you soon.
+     </p>
+     <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+       <h4 style="margin:0 0 10px 0;color:#007bff;">Application Details</h4>
+       <p style="margin:5px 0;color:#555555;"><strong>University:</strong> ${application.university.name}</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Course:</strong> ${application.course.name}</p>
+     </div>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">
+       We’ll notify you once your solicitor or agency processes this request.
+     </p>`,
+    // {
+    //   text: "View Application Status",
+    //   link: "https://yourwebsite.com/student-portal/application-status",
+    // }
+  );
+
+  await sendEmail({
+    to: student.email,
+    subject: "Visa Request Created",
+    html,
+  });
+};
+
 
 
 // Optional: a generic helper compatible with your old name, now Graph-backed
@@ -688,7 +814,11 @@ module.exports = {
   sendReceiptAcceptedEmailToAgency,
   sendReceiptRejectedEmailToAgency,
   sendPasswordResetByAdminEmail,
-  sendLoginOtpEmail
+  sendLoginOtpEmail,
+  sendVisaRequestCreatedEmail,
+   sendRequestAcceptedEmail,
+  sendRequestRejectedEmail,
+  sendResetPasswordEmail,
 };
 
 

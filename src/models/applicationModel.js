@@ -72,6 +72,7 @@ const applicationSchema = new mongoose.Schema(
       ref: 'Agency', 
       // default: '677f6b7c701bc85481046b64', // Default agency ID
     },
+    visaApproved: { type: Boolean, default: false },
     isDeleted: { 
       type: Boolean, 
       default: false,

@@ -4,7 +4,7 @@ const Students = require('../models/studentsModel');
 const Universities = require('../models/universityModel');
 const solicitorModel = require('../models/solicitorModel');
 const Admins = require('../models/agencyModel');
-const sendEmail = require('../utils/otpMail');
+const sendEmail = require('../services/emailService'); // assuming you have a mail service file
 const AssociateSolicitor = require('../models/associateModel');
 
 // // Utility function to find user by role

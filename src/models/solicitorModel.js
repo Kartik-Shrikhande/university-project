@@ -20,11 +20,8 @@ const SolicitorSchema = new mongoose.Schema(
     completedSolicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application',default:null}],
     completedVisa:{ type:Number, default:0},
     // isActive: { type: Boolean, default: true }, // Active status
-    visaRequestStatus: {
-      type: String,
-      enum: ["accepted", "rejected", "completed", "inprogress"],
-      default: "inprogress", // Default status when solicitor is created
-    },
+    visaRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    approvedvisaRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     reason: { type: String, maxlength: 200 }, // Reason for deactivation, if applicable
     role: { type: String, default: "solicitor" },
     currentToken: { type: String, default: null },
