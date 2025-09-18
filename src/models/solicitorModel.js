@@ -22,6 +22,7 @@ const SolicitorSchema = new mongoose.Schema(
     // isActive: { type: Boolean, default: true }, // Active status
     visaRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     approvedvisaRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
+    rejectRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
     reason: { type: String, maxlength: 200 }, // Reason for deactivation, if applicable
     role: { type: String, default: "solicitor" },
     currentToken: { type: String, default: null },

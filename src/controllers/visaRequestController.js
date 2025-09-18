@@ -253,21 +253,30 @@ exports.agencyRejectVisaRequest = async (req, res) => {
       Agency.findById(agencyId),
     ]);
 
-    if (!application || !agency) {
-      return res.status(404).json({ success: false, message: "Application or Agency not found" });
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+    if (!agency) {
+      return res.status(404).json({ success: false, message: "Agency not found" });
     }
     if (String(application.agency) !== String(agency._id)) {
       return res.status(403).json({ success: false, message: "Not your agency application" });
     }
 
+    // Remove from agency queue
     agency.visaRequests = agency.visaRequests.filter(id => String(id) !== String(application._id));
     await agency.save();
 
+    // Pull from solicitors' queues + push to rejectRequests
     await Solicitor.updateMany(
       { $or: [{ visaRequests: application._id }, { assignedSolicitorRequests: application._id }] },
-      { $pull: { visaRequests: application._id, assignedSolicitorRequests: application._id } }
+      { 
+        $pull: { visaRequests: application._id, assignedSolicitorRequests: application._id },
+        $addToSet: { rejectRequests: application._id }
+      }
     );
 
+    application.visaApproved = false;
     application.notes = (application.notes || "") + ` | Agency rejected: ${reason}`;
     await application.save();
 
@@ -293,37 +302,106 @@ exports.agencyRejectVisaRequest = async (req, res) => {
 
 
 
+
 // GET /api/agency/visa-requests
 // GET /api/agency/visa-requests
+// controllers/visaRequestController.js
+
+
+// helper: flatten populated arrays from multiple solicitors and dedupe by app id
+function flattenAndDedupeApplications(arrays) {
+  const map = new Map();
+  for (const arr of arrays) {
+    if (!Array.isArray(arr)) continue;
+    for (const app of arr) {
+      if (!app || !app._id) continue;
+      const id = String(app._id);
+      if (!map.has(id)) map.set(id, app);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * GET /api/visa-requests/agency?status=pending|accepted|rejected
+ * - If status is omitted, returns grouped { pending, accepted, rejected }.
+ */
 exports.getAllVisaRequestsForAgency = async (req, res) => {
   try {
     const agencyId = req.user.id;
+    const status = (req.query.status || '').toLowerCase();
 
-    const agency = await Agency.findById(agencyId)
-      .populate({
-        path: "visaRequests",
+    // make sure agency exists
+    const agency = await Agency.findById(agencyId).populate({
+      path: 'visaRequests',
+      populate: [
+        { path: 'student', select: 'firstName lastName email' },
+        { path: 'assignedSolicitor', select: 'firstName lastName email' },
+        { path: 'university', select: 'name' },
+        { path: 'course', select: 'name' },
+      ],
+    });
+
+    if (!agency) return res.status(404).json({ success: false, message: 'Agency not found' });
+
+    // fetch solicitors that belong to this agency and populate their accepted/rejected lists
+    const solicitors = await Solicitor.find({ agency: agencyId }).populate([
+      {
+        path: 'approvedvisaRequests',
         populate: [
-          { path: "student", select: "firstName lastName email" },
-          { path: "assignedSolicitor", select: "name email" },
-          { path: "university", select: "name" },
-          { path: "course", select: "name" }
-        ]
-      });
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'assignedSolicitor', select: 'firstName lastName email' },
+          { path: 'university', select: 'name' },
+          { path: 'course', select: 'name' },
+        ],
+      },
+      {
+        path: 'rejectRequests',
+        populate: [
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'assignedSolicitor', select: 'firstName lastName email' },
+          { path: 'university', select: 'name' },
+          { path: 'course', select: 'name' },
+        ],
+      },
+    ]);
 
-    if (!agency) {
-      return res.status(404).json({ success: false, message: "Agency not found" });
+    // aggregate accepted & rejected across solicitors (deduped)
+    const accepted = flattenAndDedupeApplications(solicitors.map(s => s.approvedvisaRequests));
+    const rejected = flattenAndDedupeApplications(solicitors.map(s => s.rejectRequests));
+    const pending = Array.isArray(agency.visaRequests) ? agency.visaRequests : [];
+
+    // if a specific status requested, return only that section
+    if (status) {
+      if (status === 'pending') {
+        return res.json({ success: true, count: pending.length, data: pending });
+      }
+      if (status === 'accepted') {
+        return res.json({ success: true, count: accepted.length, data: accepted });
+      }
+      if (status === 'rejected') {
+        return res.json({ success: true, count: rejected.length, data: rejected });
+      }
+      return res.status(400).json({ success: false, message: 'Invalid status filter. Use pending|accepted|rejected' });
     }
 
-    res.status(200).json({
+    // default: return grouped
+    return res.json({
       success: true,
-      count: agency.visaRequests.length,
-      data: agency.visaRequests,
+      counts: { pending: pending.length, accepted: accepted.length, rejected: rejected.length },
+      data: { pending, accepted, rejected },
     });
-  } catch (error) {
-    console.error("Error fetching agency visa requests:", error);
-    res.status(500).json({ success: false, error: "Server error" });
+  } catch (err) {
+    console.error('Error fetching agency visa requests:', err);
+    return res.status(500).json({ success: false, error: 'Server error' });
   }
 };
+
+/**
+ * GET /api/visa-requests/solicitor?status=pending|accepted|rejected
+ */
+
+
 
 
 
@@ -482,9 +560,13 @@ exports.solicitorRejectVisaRequest = async (req, res) => {
       await agency.save();
     }
 
+ // Remove from solicitor queues + push to rejectRequests
     await Solicitor.updateMany(
       { $or: [{ visaRequests: application._id }, { assignedSolicitorRequests: application._id }] },
-      { $pull: { visaRequests: application._id, assignedSolicitorRequests: application._id } }
+      { 
+        $pull: { visaRequests: application._id, assignedSolicitorRequests: application._id },
+        $addToSet: { rejectRequests: application._id }
+      }
     );
 
     application.visaApproved = false;
@@ -517,30 +599,59 @@ exports.solicitorRejectVisaRequest = async (req, res) => {
 exports.getAllVisaRequestsForSolicitor = async (req, res) => {
   try {
     const solicitorId = req.user.id;
+    const status = (req.query.status || '').toLowerCase();
 
-    const solicitor = await Solicitor.findById(solicitorId)
-      .populate({
-        path: "visaRequests",
+    const solicitor = await Solicitor.findById(solicitorId).populate([
+      {
+        path: 'visaRequests',
         populate: [
-          { path: "student", select: "firstName lastName email" },
-          { path: "agency", select: "name email" },
-          { path: "university", select: "name" },
-          { path: "course", select: "name" }
-        ]
-      });
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'agency', select: 'name email' },
+          { path: 'university', select: 'name' },
+          { path: 'course', select: 'name' },
+        ],
+      },
+      {
+        path: 'approvedvisaRequests',
+        populate: [
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'agency', select: 'name email' },
+          { path: 'university', select: 'name' },
+          { path: 'course', select: 'name' },
+        ],
+      },
+      {
+        path: 'rejectRequests',
+        populate: [
+          { path: 'student', select: 'firstName lastName email' },
+          { path: 'agency', select: 'name email' },
+          { path: 'university', select: 'name' },
+          { path: 'course', select: 'name' },
+        ],
+      },
+    ]);
 
-    if (!solicitor) {
-      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    if (!solicitor) return res.status(404).json({ success: false, message: 'Solicitor not found' });
+
+    const pending = Array.isArray(solicitor.visaRequests) ? solicitor.visaRequests : [];
+    const accepted = Array.isArray(solicitor.approvedvisaRequests) ? solicitor.approvedvisaRequests : [];
+    const rejected = Array.isArray(solicitor.rejectRequests) ? solicitor.rejectRequests : [];
+
+    if (status) {
+      if (status === 'pending') return res.json({ success: true, count: pending.length, data: pending });
+      if (status === 'accepted') return res.json({ success: true, count: accepted.length, data: accepted });
+      if (status === 'rejected') return res.json({ success: true, count: rejected.length, data: rejected });
+      return res.status(400).json({ success: false, message: 'Invalid status filter. Use pending|accepted|rejected' });
     }
 
-    res.status(200).json({
+    return res.json({
       success: true,
-      count: solicitor.visaRequests.length,
-      data: solicitor.visaRequests,
+      counts: { pending: pending.length, accepted: accepted.length, rejected: rejected.length },
+      data: { pending, accepted, rejected },
     });
-  } catch (error) {
-    console.error("Error fetching solicitor visa requests:", error);
-    res.status(500).json({ success: false, error: "Server error" });
+  } catch (err) {
+    console.error('Error fetching solicitor visa requests:', err);
+    return res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 
