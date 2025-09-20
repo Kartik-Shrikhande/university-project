@@ -4,7 +4,7 @@ const visaController = require('../controllers/visaRequestController');
 const { authenticateUser, authorizeRoles } = require('../middlewares/authenticationRoleBased'); // adapt to your auth
 
 // Student creates visa request
-router.post('/visa/request/:applicationId', authenticateUser, authorizeRoles('student'), visaController.createVisaRequest);
+// router.post('/visa/request/:applicationId', authenticateUser, authorizeRoles('student'), visaController.createVisaRequest);
 
 // Agency accepts/rejects solicitor request
 router.get("/agency/visa-requests", authenticateUser, authorizeRoles('admin'), visaController.getAllVisaRequestsForAgency);

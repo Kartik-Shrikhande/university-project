@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const Notification = require('../models/notificationModel'); // Import Notification model
 const { sendSolicitorAssignedEmail} = require('../services/emailService');
 const { sendNotification } = require('../services/socketNotification');
-
+const emailService = require('../services/emailService');
 
 //STUDENT 
 exports.getStudentById = async (req, res) => {
@@ -104,55 +104,117 @@ exports.getSolicitorRequestByIdForSolicitor = async (req, res) => {
   }
 };
 
-
-
 exports.approveSolicitorRequest = async (req, res) => {
   try {
     const solicitorId = req.user.id;
     const { applicationId } = req.params;
 
-    // Validate applicationId
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid application ID" });
     }
 
-    // Find solicitor and verify this application is assigned to them
     const solicitor = await Solicitor.findById(solicitorId);
     if (!solicitor || !solicitor.assignedSolicitorRequests.includes(applicationId)) {
       return res.status(404).json({ success: false, message: "This request is not assigned to this solicitor" });
     }
 
-    // Fetch application with student details
-    const application = await Application.findById(applicationId).populate("student");
+    const application = await Application.findById(applicationId)
+      .populate("student")
+      .populate("agency", "name visaRequests")
+      .populate("assignedSolicitor", "firstName lastName email visaRequests")
+      .populate("university", "name")
+      .populate("course", "name");
+
     if (!application) {
       return res.status(404).json({ success: false, message: "Application not found" });
     }
 
     const student = application.student;
 
-    // Assign solicitor to this application
+    // ✅ Approve solicitor request
     application.assignedSolicitor = solicitorId;
     application.status = "Accepted";
     await application.save();
 
-    // Remove applicationId from solicitor's assignedSolicitorRequests (optional, if it should be cleared post approval)
     solicitor.assignedSolicitorRequests.pull(applicationId);
-     solicitor.completedSolicitorRequests.push(applicationId);
+    solicitor.completedSolicitorRequests.push(applicationId);
     await solicitor.save();
 
-    // Send confirmation email to student
+    // ✅ Email + Notification for solicitor approval
     await sendSolicitorAssignedEmail(student, solicitor);
-
-    // Create in-app notification for student
     await Notification.create({
       user: student._id,
-      message: "Your solicitor service request has been approved. Your assigned solicitor will be reaching out to you shortly to assist with your visa application process.",
-      type: "General"
+      message: "Your solicitor service request has been approved. Your assigned solicitor will be reaching out shortly.",
+      type: "General",
     });
+
+ // 🔄 -------- AUTOMATE VISA REQUEST CREATION -------- 🔄
+
+const agency = application.agency ? await Agency.findById(application.agency._id) : null;
+
+// Check if already exists
+if (agency?.visaRequests.includes(application._id) || solicitor.visaRequests.includes(application._id)) {
+  console.log("Visa request already exists for this application, skipping auto-create.");
+} else {
+  // ✅ Add to agency
+  if (agency) {
+    agency.visaRequests.push(application._id);
+    await agency.save();
+  }
+
+  // ✅ Add to solicitor
+  solicitor.visaRequests.push(application._id);
+  await solicitor.save();
+
+  // ✅ Assign solicitor on application + update notes
+  application.assignedSolicitor = solicitor._id;   // <-- FIXED
+  application.notes = (application.notes || "") + " | Visa request auto-created on solicitor approval.";
+  await application.save();
+
+  // ✅ Email student
+  if (student?.email) {
+    await emailService.sendVisaRequestCreatedEmail(student, application).catch(() => {});
+  }
+
+  // ✅ Notifications
+  const notifMessage = `Visa request created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`;
+
+  // Student
+  const studentNotif = await Notification.create({
+    user: student._id,
+    message: notifMessage,
+    type: "Application",
+    additionalData: { applicationId },
+  });
+  sendNotification(student._id.toString(), studentNotif.message, "visa_request_created");
+
+  // Agency
+  if (agency) {
+    const agencyNotif = await Notification.create({
+      user: agency._id,
+      message: `A student’s visa request was auto-created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
+      type: "Application",
+      additionalData: { applicationId },
+    });
+    sendNotification(agency._id.toString(), agencyNotif.message, "visa_request_created");
+  }
+
+  // Solicitor
+  const solicitorNotif = await Notification.create({
+    user: solicitor._id,
+    message: `A new visa request was auto-created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
+    type: "Application",
+    additionalData: { applicationId },
+  });
+  sendNotification(solicitor._id.toString(), solicitorNotif.message, "visa_request_created");
+}
+
+
+    // 🔄 -------------------------------------------------
 
     res.status(200).json({
       success: true,
-      message: "Solicitor service request approved successfully"
+      message: "Solicitor service request approved successfully & visa request auto-created",
     });
 
   } catch (error) {
@@ -160,6 +222,62 @@ exports.approveSolicitorRequest = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+
+// exports.approveSolicitorRequest = async (req, res) => {
+//   try {
+//     const solicitorId = req.user.id;
+//     const { applicationId } = req.params;
+
+//     // Validate applicationId
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ success: false, message: "Invalid application ID" });
+//     }
+
+//     // Find solicitor and verify this application is assigned to them
+//     const solicitor = await Solicitor.findById(solicitorId);
+//     if (!solicitor || !solicitor.assignedSolicitorRequests.includes(applicationId)) {
+//       return res.status(404).json({ success: false, message: "This request is not assigned to this solicitor" });
+//     }
+
+//     // Fetch application with student details
+//     const application = await Application.findById(applicationId).populate("student");
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: "Application not found" });
+//     }
+
+//     const student = application.student;
+
+//     // Assign solicitor to this application
+//     application.assignedSolicitor = solicitorId;
+//     application.status = "Accepted";
+//     await application.save();
+
+//     // Remove applicationId from solicitor's assignedSolicitorRequests (optional, if it should be cleared post approval)
+//     solicitor.assignedSolicitorRequests.pull(applicationId);
+//      solicitor.completedSolicitorRequests.push(applicationId);
+//     await solicitor.save();
+
+//     // Send confirmation email to student
+//     await sendSolicitorAssignedEmail(student, solicitor);
+
+//     // Create in-app notification for student
+//     await Notification.create({
+//       user: student._id,
+//       message: "Your solicitor service request has been approved. Your assigned solicitor will be reaching out to you shortly to assist with your visa application process.",
+//       type: "General"
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Solicitor service request approved successfully"
+//     });
+
+//   } catch (error) {
+//     console.error("Error approving solicitor request:", error);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// };
 
 
 

@@ -28,112 +28,112 @@ async function uploadFileToStorage(fileBuffer, originalName, mimeType) {
 /**
  * 1️⃣ Student creates visa request
  */
-exports.createVisaRequest = async (req, res) => {
-  try {
-    const { applicationId } = req.params;
-    const studentId = req.user.id;
+// exports.createVisaRequest = async (req, res) => {
+//   try {
+//     const { applicationId } = req.params;
+//     const studentId = req.user.id;
 
-    if (!applicationId) {
-      return res.status(400).json({ success: false, message: "applicationId required" });
-    }
+//     if (!applicationId) {
+//       return res.status(400).json({ success: false, message: "applicationId required" });
+//     }
 
-    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ success: false, message: "Invalid applicationId format" });
-    }
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ success: false, message: "Invalid applicationId format" });
+//     }
 
-    const application = await Application.findById(applicationId)
-      .populate("agency", "name visaRequests")
-      .populate("assignedSolicitor", "name visaRequests")
-      .populate("university", "name")
-      .populate("course", "name")
-      .populate("student", "firstName email");
+//     const application = await Application.findById(applicationId)
+//       .populate("agency", "name visaRequests")
+//       .populate("assignedSolicitor", "name visaRequests")
+//       .populate("university", "name")
+//       .populate("course", "name")
+//       .populate("student", "firstName email");
 
-    if (!application) {
-      return res.status(404).json({ success: false, message: "Application not found" });
-    }
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: "Application not found" });
+//     }
 
-    if (String(application.student._id) !== String(studentId)) {
-      return res.status(403).json({ success: false, message: "Not your application" });
-    }
+//     if (String(application.student._id) !== String(studentId)) {
+//       return res.status(403).json({ success: false, message: "Not your application" });
+//     }
 
-    const agency = application.agency ? await Agency.findById(application.agency._id) : null;
-    const solicitor = application.assignedSolicitor
-      ? await Solicitor.findById(application.assignedSolicitor._id)
-      : null;
+//     const agency = application.agency ? await Agency.findById(application.agency._id) : null;
+//     const solicitor = application.assignedSolicitor
+//       ? await Solicitor.findById(application.assignedSolicitor._id)
+//       : null;
 
-    // 🚫 Check if request already exists
-    if (agency && agency.visaRequests.includes(application._id)) {
-      return res.status(400).json({ success: false, message: "Visa request already created for this application" });
-    }
+//     // 🚫 Check if request already exists
+//     if (agency && agency.visaRequests.includes(application._id)) {
+//       return res.status(400).json({ success: false, message: "Visa request already created for this application" });
+//     }
 
-    if (solicitor && solicitor.visaRequests.includes(application._id)) {
-      return res.status(400).json({ success: false, message: "Visa request already created for this application" });
-    }
+//     if (solicitor && solicitor.visaRequests.includes(application._id)) {
+//       return res.status(400).json({ success: false, message: "Visa request already created for this application" });
+//     }
 
-    // ✅ Add to agency
-    if (agency) {
-      agency.visaRequests.push(application._id);
-      await agency.save();
-    }
+//     // ✅ Add to agency
+//     if (agency) {
+//       agency.visaRequests.push(application._id);
+//       await agency.save();
+//     }
 
-    // ✅ Add to solicitor
-    if (solicitor) {
-      solicitor.visaRequests.push(application._id);
-      await solicitor.save();
-    }
+//     // ✅ Add to solicitor
+//     if (solicitor) {
+//       solicitor.visaRequests.push(application._id);
+//       await solicitor.save();
+//     }
 
-    // ✅ Update application
-    application.notes = (application.notes || "") + " | Visa request created by student.";
-    await application.save();
+//     // ✅ Update application
+//     application.notes = (application.notes || "") + " | Visa request created by student.";
+//     await application.save();
 
-    const student = application.student;
+//     const student = application.student;
 
-    // ✅ Email student
-    if (student?.email) {
-      await emailService
-        .sendVisaRequestCreatedEmail(student, application)
-        .catch(() => {});
-    }
+//     // ✅ Email student
+//     if (student?.email) {
+//       await emailService
+//         .sendVisaRequestCreatedEmail(student, application)
+//         .catch(() => {});
+//     }
 
-    // ✅ Notifications
-    const notificationMessage = `Visa request created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`;
+//     // ✅ Notifications
+//     const notificationMessage = `Visa request created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`;
 
-    // Student
-    const studentNotification = await Notification.create({
-      user: student._id,
-      message: notificationMessage,
-      type: "Application",
-      additionalData: { applicationId },
-    });
-    sendNotification(student._id.toString(), studentNotification.message, "visa_request_created");
+//     // Student
+//     const studentNotification = await Notification.create({
+//       user: student._id,
+//       message: notificationMessage,
+//       type: "Application",
+//       additionalData: { applicationId },
+//     });
+//     sendNotification(student._id.toString(), studentNotification.message, "visa_request_created");
 
-    // Agency
-    if (agency) {
-      const agencyNotification = await Notification.create({
-        user: agency._id,
-        message: `A student created a visa request for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
-        type: "Application",
-        additionalData: { applicationId },
-      });
-      sendNotification(agency._id.toString(), agencyNotification.message, "visa_request_created");
-    }
+//     // Agency
+//     if (agency) {
+//       const agencyNotification = await Notification.create({
+//         user: agency._id,
+//         message: `A student created a visa request for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
+//         type: "Application",
+//         additionalData: { applicationId },
+//       });
+//       sendNotification(agency._id.toString(), agencyNotification.message, "visa_request_created");
+//     }
 
-    // Solicitor
-    if (solicitor) {
-      const solicitorNotification = await Notification.create({
-        user: solicitor._id,
-        message: `A new visa request was created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
-        type: "Application",
-        additionalData: { applicationId },
-      });
-      sendNotification(solicitor._id.toString(), solicitorNotification.message, "visa_request_created");
-    }
+//     // Solicitor
+//     if (solicitor) {
+//       const solicitorNotification = await Notification.create({
+//         user: solicitor._id,
+//         message: `A new visa request was created for ${application.course?.name || "a course"} at ${application.university?.name || "a university"}.`,
+//         type: "Application",
+//         additionalData: { applicationId },
+//       });
+//       sendNotification(solicitor._id.toString(), solicitorNotification.message, "visa_request_created");
+//     }
 
-    return res.json({ success: true, message: "Visa request created" });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
-  }
-};
+//     return res.json({ success: true, message: "Visa request created" });
+//   } catch (err) {
+//     return res.status(500).json({ success: false, error: err.message });
+//   }
+// };
 
 
 /**
