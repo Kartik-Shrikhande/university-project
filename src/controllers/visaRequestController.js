@@ -668,6 +668,7 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
 
+    // Find solicitor and check across all three arrays
     const solicitor = await Solicitor.findById(solicitorId)
       .populate({
         path: "visaRequests",
@@ -678,13 +679,46 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
           { path: "university", select: "name" },
           { path: "course", select: "name" }
         ]
+      })
+      .populate({
+        path: "approvedvisaRequests",
+        match: { _id: applicationId },
+        populate: [
+          { path: "student", select: "firstName lastName email" },
+          { path: "agency", select: "name email" },
+          { path: "university", select: "name" },
+          { path: "course", select: "name" }
+        ]
+      })
+      .populate({
+        path: "rejectRequests",
+        match: { _id: applicationId },
+        populate: [
+          { path: "student", select: "firstName lastName email" },
+          { path: "agency", select: "name email" },
+          { path: "university", select: "name" },
+          { path: "course", select: "name" }
+        ]
       });
 
-    if (!solicitor || solicitor.visaRequests.length === 0) {
+    if (!solicitor) {
+      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    }
+
+    // Merge results (check across pending, approved, rejected)
+    const allRequests = [
+      ...solicitor.visaRequests,
+      ...solicitor.approvedvisaRequests,
+      ...solicitor.rejectRequests
+    ];
+
+    if (allRequests.length === 0) {
       return res.status(404).json({ success: false, message: "Visa Request not found" });
     }
 
-    res.status(200).json({ success: true, data: solicitor.visaRequests[0] });
+    // Return the single found request
+    res.status(200).json({ success: true, data: allRequests[0] });
+
   } catch (error) {
     console.error("Error fetching visa request by ID (solicitor):", error);
     res.status(500).json({ success: false, error: "Server error" });
