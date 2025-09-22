@@ -546,31 +546,59 @@ const generateWebPageTemplate = (title, message, color, actionButton = null) => 
   </html>
 `;
 
-// Web page template generator (matching your email style)
-// const generateWebPageTemplate = (title, message, color) => `
-//   <html>
-//     <head>
-//       <title>${title}</title>
-//     </head>
-//     <body style="font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;margin:0;padding:30px;">
-//       <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-//         <div style="text-align:center;padding:30px 20px 10px;">
-//           <img src="${process.env.SERVER_URL}/images/logo.png" alt="Connect2Uni" style="margin-bottom:20px;max-height:60px;">
-//           <h1 style="color:#004AAC;font-size:24px;font-weight:600;margin:0 0 10px;">${title}</h1>
-//         </div>
-//         <div style="padding:0 30px 30px;font-size:16px;color:#333;line-height:1.6;text-align:center;">
-//           <p style="color:${color}; font-size:18px; margin: 20px 0;">${message}</p>
-//           <p style="margin-top:40px;color:#888;font-size:14px;">&copy; ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
-//         </div>
-//       </div>
-//     </body>
-//   </html>
-// `;
+
 
 // 📌 Email verification API
+// exports.verifyEmail = async (req, res) => {
+//   try {
+//     const { token } = req.query;
+
+//     const student = await Students.findOne({ verificationToken: token });
+
+//     if (!student) {
+//       return res.status(400).send(
+//         generateWebPageTemplate(
+//           "Email Verification",
+//           "Invalid or expired verification link.",
+//           "red"
+//         )
+//       );
+//     }
+
+//     student.isVerified = true;
+//     student.verificationToken = null;
+//     await student.save();
+
+//     res.status(200).send(
+//       generateWebPageTemplate(
+//         "Email Verified!",
+//         "Your email has been successfully verified. You can now login to your Connect2Uni account.",
+//         "#00AA55",
+//            {
+//           text: "Go to Login",
+//           link: `${process.env.CLIENT_LOGIN_PAGE}`,
+//         }
+//       )
+//     );
+//   } catch (err) {
+//     console.error("Email verification error:", err);
+//     res.status(500).send(
+//       generateWebPageTemplate(
+//         "Something Went Wrong",
+//         "An error occurred while verifying your email. Please try again later.",
+//         "red"
+//       )
+//     );
+//   }
+// };
+//previous approach in use -08/02/2025
+
+
+
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
+    const userAgent = req.get('User-Agent') || '';
 
     const student = await Students.findOne({ verificationToken: token });
 
@@ -588,17 +616,65 @@ exports.verifyEmail = async (req, res) => {
     student.verificationToken = null;
     await student.save();
 
-    res.status(200).send(
-      generateWebPageTemplate(
-        "Email Verified!",
-        "Your email has been successfully verified. You can now login to your Connect2Uni account.",
-        "#00AA55",
-           {
-          text: "Go to Login",
-          link: `${process.env.CLIENT_LOGIN_PAGE}`,
-        }
-      )
-    );
+    // Check if it's a mobile device
+    const isMobile = isMobileDevice(userAgent);
+    
+    // For mobile devices, redirect to app deep link
+    // For desktop/tablet, redirect to web login
+    const loginUrl = isMobile 
+      ? `connect2uni://login?email=${encodeURIComponent(student.email)}&verified=true`
+      : `${process.env.CLIENT_LOGIN_PAGE}`;
+
+    // If it's a mobile device, try to redirect directly to the app
+    if (isMobile) {
+      // First try to redirect to the app
+      res.status(200).send(`
+        <html>
+          <head>
+            <title>Email Verified!</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family:'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:#f9f9f9;margin:0;padding:30px;">
+            <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.12);border:1px solid #ddd;">
+              <div style="text-align:center;padding:30px 20px 10px;">
+                <img src="${process.env.SERVER_URL}/images/logo.png" alt="Connect2Uni" style="margin-bottom:20px;max-height:60px;">
+                <h1 style="color:#004AAC;font-size:24px;font-weight:600;margin:0 0 10px;">Email Verified!</h1>
+              </div>
+              <div style="padding:0 30px 30px;font-size:16px;color:#333;line-height:1.6;text-align:center;">
+                <p style="color:#00AA55; font-size:18px; margin: 20px 0;">Your email has been successfully verified. Opening the app...</p>
+                <div style="margin-top:30px;">
+                  <a href="${loginUrl}" 
+                    style="background-color:#004AAC; color:#ffffff; padding:10px 40px; border-radius:5px; text-decoration:none; font-weight:400; display:inline-block;">
+                    Open App
+                  </a>
+                </div>
+                <p style="margin-top:20px;color:#888;font-size:14px;">If the app doesn't open, <a href="${process.env.CLIENT_LOGIN_PAGE}" style="color:#004AAC;">click here to login on web</a></p>
+                <p style="margin-top:40px;color:#888;font-size:14px;">&copy; ${new Date().getFullYear()} Connect2Uni. All rights reserved.</p>
+              </div>
+            </div>
+            <script>
+              // Try to open the app immediately
+              setTimeout(function() {
+                window.location.href = "${loginUrl}";
+              }, 1000);
+            </script>
+          </body>
+        </html>
+      `);
+    } else {
+      // For desktop/tablet, show the normal web page
+      res.status(200).send(
+        generateWebPageTemplate(
+          "Email Verified!",
+          "Your email has been successfully verified. You can now login to your Connect2Uni account.",
+          "#00AA55",
+          {
+            text: "Go to Login",
+            link: loginUrl,
+          }
+        )
+      );
+    }
   } catch (err) {
     console.error("Email verification error:", err);
     res.status(500).send(
@@ -610,7 +686,6 @@ exports.verifyEmail = async (req, res) => {
     );
   }
 };
-
 
 // Unsubscribe student from reminder emails
 exports.unsubscribeStudent = async (req, res) => {
