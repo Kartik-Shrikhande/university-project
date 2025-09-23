@@ -674,7 +674,7 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
         path: "visaRequests",
         match: { _id: applicationId },
         populate: [
-          { path: "student", select: "firstName lastName email" },
+          { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
@@ -694,7 +694,7 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
         path: "rejectRequests",
         match: { _id: applicationId },
         populate: [
-          { path: "student", select: "firstName lastName email" },
+          { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
