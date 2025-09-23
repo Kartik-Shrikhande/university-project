@@ -594,6 +594,10 @@ const generateWebPageTemplate = (title, message, color, actionButton = null) => 
 //previous approach in use -08/02/2025
 
 
+const isMobileDevice = (userAgent) => {
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  return mobileRegex.test(userAgent);
+};
 
 exports.verifyEmail = async (req, res) => {
   try {
