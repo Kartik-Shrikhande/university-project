@@ -326,7 +326,7 @@ function flattenAndDedupeApplications(arrays) {
  * GET /api/visa-requests/agency?status=pending|accepted|rejected
  * - If status is omitted, returns grouped { pending, accepted, rejected }.
  */
-exports.getAllVisaRequestsForAgency = async (req, res) => {
+exports.getVisaRequestByIdForAgency = async (req, res) => {
   try {
     const agencyId = req.user.id;
     const status = (req.query.status || '').toLowerCase();
