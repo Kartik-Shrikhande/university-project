@@ -27,6 +27,7 @@ router.get('/students/stats/country', statisticsControllers.getAllStudentsCountr
 router.get('/stats/receipt', statisticsControllers.getAllReceiptStats);
 
 
-
+//special API
+router.get('/dashboard-stats',statisticsControllers.getAgencyDashboardStats);
 
 module.exports = router;

@@ -208,6 +208,130 @@ exports.getAllReceiptStats = async (req, res) => {
 };
 
 
+//special API
+
+
+// controllers/statsController.js
+exports.getAgencyDashboardStats = async (req, res) => {
+  try {
+    const agencyId = req.user?.id || req.user?._id;
+    if (!agencyId) {
+      return res.status(401).json({ error: "Unauthorized: No agency ID found in request user." });
+    }
+
+    // ================== 1. Application Stats (for logged-in agency) ==================
+    const agency = await Agency.findById(agencyId).lean();
+    if (!agency) {
+      return res.status(404).json({ error: "Agency not found." });
+    }
+
+    const processingCount = agency.pendingApplications?.length || 0;
+    const sentToUniversityCount = agency.sentAppliactionsToUniversities?.length || 0;
+
+    const appCounts = await Application.aggregate([
+      {
+        $match: {
+          agency: agency._id,
+          status: { $in: ["Accepted", "Rejected", "Withdrawn"] },
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countsMap = appCounts.reduce((acc, cur) => {
+      acc[cur._id] = cur.count;
+      return acc;
+    }, {});
+
+    const applicationStats = {
+      Processing: processingCount,
+      "Sent to University": sentToUniversityCount,
+      Accepted: countsMap.Accepted || 0,
+      Rejected: countsMap.Rejected || 0,
+      Withdrawn: countsMap.Withdrawn || 0,
+    };
+
+    // ================== 2. Applications Stats Across Universities ==================
+    const universities = await University.find({ isDeleted: false }).lean();
+    const universityStats = [];
+    let grandTotals = { Processing: 0, Accepted: 0, Rejected: 0 };
+
+    for (const university of universities) {
+      const processingIds = university.pendingApplications?.map((i) => i.applicationId.toString()) || [];
+      const acceptedIds = university.approvedApplications?.map((id) => id.toString()) || [];
+      const rejectedIds = university.rejectedApplications?.map((id) => id.toString()) || [];
+
+      if (!processingIds.length && !acceptedIds.length && !rejectedIds.length) continue;
+
+      const counts = {
+        Processing: processingIds.length,
+        Accepted: acceptedIds.length,
+        Rejected: rejectedIds.length,
+      };
+
+      grandTotals.Processing += counts.Processing;
+      grandTotals.Accepted += counts.Accepted;
+      grandTotals.Rejected += counts.Rejected;
+
+      universityStats.push({
+        universityId: university._id,
+        universityName: university.name,
+        counts,
+      });
+    }
+
+    // ================== 3. Students by Country ==================
+    const students = await Students.find({ isDeleted: false }).select("address.country");
+    const countryStats = {};
+    students.forEach((student) => {
+      const country = student.address?.country?.trim() || "Unknown";
+      countryStats[country] = (countryStats[country] || 0) + 1;
+    });
+
+    const countryStatsArray = Object.entries(countryStats)
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // ================== 4. Receipt Stats ==================
+    const receipts = await Receipt.find({}, "status").lean();
+    const statusCounts = { Pending: 0, Accepted: 0, Rejected: 0 };
+    receipts.forEach((receipt) => {
+      if (statusCounts.hasOwnProperty(receipt.status)) {
+        statusCounts[receipt.status]++;
+      }
+    });
+
+    // ================== Final Response ==================
+    res.status(200).json({
+      message: "Agency dashboard statistics fetched successfully.",
+      applications: applicationStats,
+      universities: {
+        totalUniversities: universityStats.length,
+        grandTotals,
+        stats: universityStats,
+      },
+      students: {
+        totalStudents: students.length,
+        countryStats: countryStatsArray,
+      },
+      receipts: {
+        totalReceipts: receipts.length,
+        statusCounts,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching agency dashboard stats:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
+
+
 
 //UNIVERSITY STATS APIs
 
