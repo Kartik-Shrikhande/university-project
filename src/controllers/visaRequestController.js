@@ -408,6 +408,7 @@ exports.getAllVisaRequestsForAgency = async (req, res) => {
 // GET /api/agency/visa-requests/:id
 
 
+
 exports.getVisaRequestByIdForAgency = async (req, res) => {
   try {
     const agencyId = req.user.id; // logged-in agency ID
@@ -426,8 +427,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" },
-          { path: "solicitor", select: "firstName lastName email phoneNumber" }
+          { path: "course", select: "name" }
         ]
       })
       .populate({
@@ -437,8 +437,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" },
-          { path: "solicitor", select: "firstName lastName email phoneNumber" }
+          { path: "course", select: "name" }
         ]
       })
       .populate({
@@ -448,8 +447,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" },
-          { path: "solicitor", select: "firstName lastName email phoneNumber" }
+          { path: "course", select: "name" }
         ]
       });
 
@@ -457,27 +455,49 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
       return res.status(404).json({ success: false, message: "No solicitors found for this agency" });
     }
 
-    // Merge all requests from all solicitors (pending, approved, rejected)
-    let allRequests = [];
-    for (const solicitor of solicitors) {
-      allRequests = [
-        ...allRequests,
-        ...solicitor.visaRequests,
-        ...solicitor.approvedvisaRequests,
-        ...solicitor.rejectRequests,
-      ];
-    }
+    let foundRequest = null;
+    let status = null;
+    let foundSolicitor = null;
 
-    // Filter by requested application ID
-    const foundRequest = allRequests.find(
-      (reqObj) => reqObj._id.toString() === applicationId
-    );
+    for (const solicitor of solicitors) {
+      if (solicitor.visaRequests.length > 0) {
+        foundRequest = solicitor.visaRequests[0];
+        status = "pending";
+        foundSolicitor = solicitor;
+        break;
+      }
+      if (solicitor.approvedvisaRequests.length > 0) {
+        foundRequest = solicitor.approvedvisaRequests[0];
+        status = "approved";
+        foundSolicitor = solicitor;
+        break;
+      }
+      if (solicitor.rejectRequests.length > 0) {
+        foundRequest = solicitor.rejectRequests[0];
+        status = "rejected";
+        foundSolicitor = solicitor;
+        break;
+      }
+    }
 
     if (!foundRequest) {
       return res.status(404).json({ success: false, message: "Visa Request not found" });
     }
 
-    res.status(200).json({ success: true, data: foundRequest });
+    // Attach solicitor info manually
+    const response = {
+      ...foundRequest.toObject(),
+      solicitor: {
+        id: foundSolicitor._id,
+        firstName: foundSolicitor.firstName,
+        lastName: foundSolicitor.lastName,
+        email: foundSolicitor.email,
+        phoneNumber: foundSolicitor.phoneNumber,
+      },
+      status
+    };
+
+    res.status(200).json({ success: true, data: response });
 
   } catch (error) {
     console.error("Error fetching visa request by ID (agency):", error);
