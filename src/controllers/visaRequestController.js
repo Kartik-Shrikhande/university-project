@@ -421,18 +421,49 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
         path: "visaRequests",
         match: { _id: applicationId },
         populate: [
-          { path: "student", select: "firstName lastName email" },
-          { path: "assignedSolicitor", select: "name email" },
+          { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
+          { path: "assignedSolicitor", select: "firstName lastName email" },
+          { path: "university", select: "name" },
+          { path: "course", select: "name" }
+        ]
+      })
+      .populate({
+        path: "approvedVisaRequests",
+        match: { _id: applicationId },
+        populate: [
+          { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
+          { path: "assignedSolicitor", select: "firstName lastName email" },
+          { path: "university", select: "name" },
+          { path: "course", select: "name" }
+        ]
+      })
+      .populate({
+        path: "rejectRequests",
+        match: { _id: applicationId },
+        populate: [
+          { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
+          { path: "assignedSolicitor", select: "firstName lastName email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
         ]
       });
 
-    if (!agency || agency.visaRequests.length === 0) {
+    if (!agency) {
+      return res.status(404).json({ success: false, message: "Agency not found" });
+    }
+
+    // Merge results from all three lists
+    const allRequests = [
+      ...agency.visaRequests,
+      ...agency.approvedVisaRequests,
+      ...agency.rejectRequests
+    ];
+
+    if (allRequests.length === 0) {
       return res.status(404).json({ success: false, message: "Visa Request not found" });
     }
 
-    res.status(200).json({ success: true, data: agency.visaRequests[0] });
+    res.status(200).json({ success: true, data: allRequests[0] });
   } catch (error) {
     console.error("Error fetching visa request by ID (agency):", error);
     res.status(500).json({ success: false, error: "Server error" });
