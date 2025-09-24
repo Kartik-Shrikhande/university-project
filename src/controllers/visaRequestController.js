@@ -455,7 +455,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
     // Merge results from all three lists
     const allRequests = [
       ...agency.visaRequests,
-      ...agency.approvedVisaRequests,
+      ...agency.approvedvisaRequests,
       ...agency.rejectRequests
     ];
 
