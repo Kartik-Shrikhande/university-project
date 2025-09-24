@@ -407,22 +407,25 @@ exports.getAllVisaRequestsForAgency = async (req, res) => {
 
 // GET /api/agency/visa-requests/:id
 // GET /api/agency/visa-requests/:id
-exports.getVisaRequestByIdForAgency = async (req, res) => {
+
+
+exports.getVisaRequestByIdForSolicitor = async (req, res) => {
   try {
-    const agencyId = req.user.id;
+    const solicitorId = req.user.id;
     const { id: applicationId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
 
-    const agency = await Agency.findById(agencyId)
+    // Find solicitor and check across ALL three fields
+    const solicitor = await Solicitor.findById(solicitorId)
       .populate({
         path: "visaRequests",
         match: { _id: applicationId },
         populate: [
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
-          { path: "assignedSolicitor", select: "firstName lastName email" },
+          { path: "agency", select: "name email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
         ]
@@ -432,7 +435,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
         match: { _id: applicationId },
         populate: [
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
-          { path: "assignedSolicitor", select: "firstName lastName email" },
+          { path: "agency", select: "name email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
         ]
@@ -442,33 +445,36 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
         match: { _id: applicationId },
         populate: [
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
-          { path: "assignedSolicitor", select: "firstName lastName email" },
+          { path: "agency", select: "name email" },
           { path: "university", select: "name" },
           { path: "course", select: "name" }
         ]
       });
 
-    if (!agency) {
-      return res.status(404).json({ success: false, message: "Agency not found" });
+    if (!solicitor) {
+      return res.status(404).json({ success: false, message: "Solicitor not found" });
     }
 
-    // Merge results from all three lists
+    // Merge results (pending + approved + rejected)
     const allRequests = [
-      ...agency.visaRequests,
-      ...agency.approvedvisaRequests,
-      ...agency.rejectRequests
+      ...solicitor.visaRequests,
+      ...solicitor.approvedvisaRequests,
+      ...solicitor.rejectRequests,
     ];
 
     if (allRequests.length === 0) {
       return res.status(404).json({ success: false, message: "Visa Request not found" });
     }
 
+    // ✅ Return the found request (always the first since we query by ID)
     res.status(200).json({ success: true, data: allRequests[0] });
+
   } catch (error) {
-    console.error("Error fetching visa request by ID (agency):", error);
+    console.error("Error fetching visa request by ID (solicitor):", error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 };
+
 
 
 
