@@ -326,7 +326,7 @@ function flattenAndDedupeApplications(arrays) {
  * GET /api/visa-requests/agency?status=pending|accepted|rejected
  * - If status is omitted, returns grouped { pending, accepted, rejected }.
  */
-exports.getVisaRequestByIdForAgency = async (req, res) => {
+exports.getAllVisaRequestsForAgency = async (req, res) => {
   try {
     const agencyId = req.user.id;
     const status = (req.query.status || '').toLowerCase();
@@ -406,20 +406,19 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
 
 
 // GET /api/agency/visa-requests/:id
-// GET /api/agency/visa-requests/:id
 
 
-exports.getVisaRequestByIdForSolicitor = async (req, res) => {
+exports.getVisaRequestByIdForAgency = async (req, res) => {
   try {
-    const solicitorId = req.user.id;
+    const agencyId = req.user.id; // logged-in agency ID
     const { id: applicationId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return res.status(400).json({ success: false, message: "Invalid Application ID" });
     }
 
-    // Find solicitor and check across ALL three fields
-    const solicitor = await Solicitor.findById(solicitorId)
+    // Find solicitors under this agency and search across their arrays
+    const solicitors = await Solicitor.find({ agency: agencyId })
       .populate({
         path: "visaRequests",
         match: { _id: applicationId },
@@ -427,7 +426,8 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" }
+          { path: "course", select: "name" },
+          { path: "solicitor", select: "firstName lastName email phoneNumber" }
         ]
       })
       .populate({
@@ -437,7 +437,8 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" }
+          { path: "course", select: "name" },
+          { path: "solicitor", select: "firstName lastName email phoneNumber" }
         ]
       })
       .populate({
@@ -447,35 +448,42 @@ exports.getVisaRequestByIdForSolicitor = async (req, res) => {
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
           { path: "agency", select: "name email" },
           { path: "university", select: "name" },
-          { path: "course", select: "name" }
+          { path: "course", select: "name" },
+          { path: "solicitor", select: "firstName lastName email phoneNumber" }
         ]
       });
 
-    if (!solicitor) {
-      return res.status(404).json({ success: false, message: "Solicitor not found" });
+    if (!solicitors || solicitors.length === 0) {
+      return res.status(404).json({ success: false, message: "No solicitors found for this agency" });
     }
 
-    // Merge results (pending + approved + rejected)
-    const allRequests = [
-      ...solicitor.visaRequests,
-      ...solicitor.approvedvisaRequests,
-      ...solicitor.rejectRequests,
-    ];
+    // Merge all requests from all solicitors (pending, approved, rejected)
+    let allRequests = [];
+    for (const solicitor of solicitors) {
+      allRequests = [
+        ...allRequests,
+        ...solicitor.visaRequests,
+        ...solicitor.approvedvisaRequests,
+        ...solicitor.rejectRequests,
+      ];
+    }
 
-    if (allRequests.length === 0) {
+    // Filter by requested application ID
+    const foundRequest = allRequests.find(
+      (reqObj) => reqObj._id.toString() === applicationId
+    );
+
+    if (!foundRequest) {
       return res.status(404).json({ success: false, message: "Visa Request not found" });
     }
 
-    // ✅ Return the found request (always the first since we query by ID)
-    res.status(200).json({ success: true, data: allRequests[0] });
+    res.status(200).json({ success: true, data: foundRequest });
 
   } catch (error) {
-    console.error("Error fetching visa request by ID (solicitor):", error);
+    console.error("Error fetching visa request by ID (agency):", error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 };
-
-
 
 
 
