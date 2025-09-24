@@ -428,7 +428,7 @@ exports.getVisaRequestByIdForAgency = async (req, res) => {
         ]
       })
       .populate({
-        path: "approvedVisaRequests",
+        path: "approvedvisaRequests",
         match: { _id: applicationId },
         populate: [
           { path: "student", select: "firstName lastName email countryCode telephoneNumber" },
