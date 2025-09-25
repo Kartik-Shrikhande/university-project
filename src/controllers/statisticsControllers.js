@@ -212,6 +212,7 @@ exports.getAllReceiptStats = async (req, res) => {
 
 
 // controllers/statsController.js
+// controllers/statsController.js
 exports.getAgencyDashboardStats = async (req, res) => {
   try {
     const agencyId = req.user?.id || req.user?._id;
@@ -307,6 +308,20 @@ exports.getAgencyDashboardStats = async (req, res) => {
       }
     });
 
+    // ================== 5. Visa Request Stats ==================
+    const solicitors = await Solicitor.find({ agency: agencyId })
+      .select("visaRequests approvedvisaRequests rejectRequests")
+      .lean();
+
+    let visaStats = { totalApproved: 0, totalRejected: 0, totalPending: 0 };
+    if (solicitors?.length) {
+      solicitors.forEach((solicitor) => {
+        visaStats.totalApproved += solicitor.approvedvisaRequests?.length || 0;
+        visaStats.totalRejected += solicitor.rejectRequests?.length || 0;
+        visaStats.totalPending += solicitor.visaRequests?.length || 0;
+      });
+    }
+
     // ================== Final Response ==================
     res.status(200).json({
       message: "Agency dashboard statistics fetched successfully.",
@@ -324,12 +339,14 @@ exports.getAgencyDashboardStats = async (req, res) => {
         totalReceipts: receipts.length,
         statusCounts,
       },
+      visaRequests: visaStats,
     });
   } catch (error) {
     console.error("Error fetching agency dashboard stats:", error);
     res.status(500).json({ error: "Internal server error." });
   }
 };
+
 
 
 
