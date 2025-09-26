@@ -21,8 +21,4 @@ router.get('/applications/:applicationId',agentController.getAgentApplicationByI
 // Send Application to University by Agent
 router.post('/send/application/:applicationId',agentController.agentSendApplicationToUniversity);
 
-
-// router.post('/applications/:applicationId/accept', authenticateAgent, agentController.agentAcceptApplication);
-// router.post('/applications/:applicationId/reject', authenticateAgent, agentController.agentRejectApplication);
-
 module.exports = router;

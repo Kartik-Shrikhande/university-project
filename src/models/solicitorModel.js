@@ -13,7 +13,6 @@ const SolicitorSchema = new mongoose.Schema(
    agency: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Agency', 
-        // default: '677f6b7c701bc85481046b64', // Default agency ID
       },
     studentAssigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Array of student IDs
     assignedSolicitorRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application',default:null}],

@@ -38,7 +38,6 @@ router.post("/contact/create", contactController.createContact);
 // Create Agency
 router.post('/create', agencyController.createAgency);
 // Get All Agencies
-// router.get('/agencies', agencyController.getAllAgencies);
 router.use(
   authenticationMiddleware.authenticateUser,
   authenticationMiddleware.authorizeRoles(['admin', 'agent']),
@@ -64,11 +63,9 @@ router.get('/solicitor/:id',agencyController.getSolicitorById);
 router.delete('/solicitor/delete/:id',agencyController.deleteSolicitor);
 
 
-
 //RECEIPT 
 router.get('/receipts', receiptController.getAllReceipts);
 router.get('/receipt/:id',receiptController.getReceiptById);
-
 
 
 //NOTIFICATION 
@@ -126,24 +123,6 @@ router.put('/agents/:agentId', agencyController.updateAgent); // Update an agent
 router.get('/agents/:agentId',  agencyController.getAgentById); // Get an agent by ID
 router.delete('/agents/:agentId',  agencyController.deleteAgent); // Delete an agent 
 router.delete('/agent/delete/:agentId',  agencyController.hardDeleteAgent); // Delete an agent 
-
-
-// // Create Agent
-// router.post('/create-agent', verifyAgency, agentController.createAgent);
-
-// // Update Agent
-// router.put('/update-agent/:agentId', verifyAgency, agentController.updateAgent);
-
-// // Delete Agent (Soft Delete)
-// router.delete('/delete-agent/:agentId', verifyAgency, agentController.deleteAgent);
-
-// // Get all agents for agency
-// router.get('/agents', verifyAgency, agentController.getAllAgents);
-
-// // Get single agent by ID for agency
-// router.get('/agent/:agentId', verifyAgency, agentController.getAgentById);
-
-
 
 
 //APPLICATION RELATED APIS 

@@ -16,7 +16,6 @@ const agentSchema = new mongoose.Schema(
     agency: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'Agency', 
-      // default: '677f6b7c701bc85481046b64', // Optional default agency ID
     }, // The agency they belong to
       isActive:{
       type: Boolean, 
@@ -27,7 +26,7 @@ const agentSchema = new mongoose.Schema(
     isDeleted: { 
       type: Boolean, 
       default: false, // Default value is false
-      // required: true  // Ensures it is always present
+     
     },
   },
   { timestamps: true } // Automatically adds createdAt and updatedAt timestamps

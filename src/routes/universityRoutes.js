@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const universityController= require('../controllers/universityControllers')
-// const CourseController = require('../controllers/coursesControllers');
 const authenticationMiddleware = require('../middlewares/authenticationRoleBased')
 const receiptController = require('../controllers/receiptController');
 const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
@@ -81,7 +80,6 @@ router.get('/application/:applicationId', universityController.getApplicationDet
 
 
 // ✅ Accept an application
-// router.put('/application/accept/:applicationId', universityController.acceptApplication);
 //NOTE IMP :- acceptance letter is stored in extraDocuments of application model (database) 
 router.post('/application/accept/:applicationId', upload.single('acceptanceLetter'), universityController.acceptApplication);
 
@@ -144,47 +142,3 @@ router.use('*', (req, res) => {
 
 module.exports = router;
 
-
-
-
-
-
-////////////////////////////////////////////////////////
-// const { authenticateUniversity, authorizeUniversityRole } = authenticationMiddleware;
-
-// // Routes
-
-// // Public routes (no authentication required)
-
-// // Protected routes (requires authentication and authorization)
-// router.use(authenticateUniversity, authorizeUniversityRole);
-
-
-
-
-// // Get all courses for the authenticated university
-
-// // Get a specific course by ID for the authenticated university
-
-
-// // Get all inactive courses for the authenticated university
-// router.get('/inactive-courses', universityController.getAllInactiveCourses);
-
-// // Get an inactive course by ID for the authenticated university
-// router.get('/inactive-course/:courseId', validateCourseId, universityController.getInactiveCourseById);
-
-// // Inactivate an active course
-// router.patch('/courses/:courseId/inactivate', validateCourseId, universityController.inactivateCourse);
-
-// // Activate an inactive course
-// router.patch('/courses/:courseId/activate', validateCourseId, universityController.activateCourse);
-
-// // 404 handler for unmatched routes
-// router.use('*', (req, res) => {
-//   res.status(404).json({
-//     error: 'Invalid URL path',
-//     message: `The requested URL not found on this server.`,
-//   });
-// });
-
-// module.exports = router;

@@ -224,65 +224,6 @@ if (agency?.visaRequests.includes(application._id) || solicitor.visaRequests.inc
 };
 
 
-// exports.approveSolicitorRequest = async (req, res) => {
-//   try {
-//     const solicitorId = req.user.id;
-//     const { applicationId } = req.params;
-
-//     // Validate applicationId
-//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-//       return res.status(400).json({ success: false, message: "Invalid application ID" });
-//     }
-
-//     // Find solicitor and verify this application is assigned to them
-//     const solicitor = await Solicitor.findById(solicitorId);
-//     if (!solicitor || !solicitor.assignedSolicitorRequests.includes(applicationId)) {
-//       return res.status(404).json({ success: false, message: "This request is not assigned to this solicitor" });
-//     }
-
-//     // Fetch application with student details
-//     const application = await Application.findById(applicationId).populate("student");
-//     if (!application) {
-//       return res.status(404).json({ success: false, message: "Application not found" });
-//     }
-
-//     const student = application.student;
-
-//     // Assign solicitor to this application
-//     application.assignedSolicitor = solicitorId;
-//     application.status = "Accepted";
-//     await application.save();
-
-//     // Remove applicationId from solicitor's assignedSolicitorRequests (optional, if it should be cleared post approval)
-//     solicitor.assignedSolicitorRequests.pull(applicationId);
-//      solicitor.completedSolicitorRequests.push(applicationId);
-//     await solicitor.save();
-
-//     // Send confirmation email to student
-//     await sendSolicitorAssignedEmail(student, solicitor);
-
-//     // Create in-app notification for student
-//     await Notification.create({
-//       user: student._id,
-//       message: "Your solicitor service request has been approved. Your assigned solicitor will be reaching out to you shortly to assist with your visa application process.",
-//       type: "General"
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Solicitor service request approved successfully"
-//     });
-
-//   } catch (error) {
-//     console.error("Error approving solicitor request:", error);
-//     res.status(500).json({ success: false, message: "Internal Server Error" });
-//   }
-// };
-
-
-
-
-
 //PROFILE 
 
 exports.solicitorUpdatePassword = async (req, res) => {

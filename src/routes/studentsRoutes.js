@@ -21,15 +21,6 @@ const{ uploadFilesToS3} = require('../utils/s3Upload'); // Import updated upload
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Middleware to validate requests
-// const validate = (req, res, next) => {
-//   const errors = validationResult(req);
-//   if (!errors.isEmpty()) {
-//     return res.status(400).json({ errors: errors.array()});
-//   }
-//   next();
-// };
-
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -156,20 +147,14 @@ router.delete('/notification/delete/:id', studentController.deleteStudentNotific
 router.post('/apply/solicitor/:applicationId', studentController.applyForSolicitor);
 router.get("/solicitor/status/:applicationId", studentController.checkSolicitorStatus);
 
-// router.post('/resend-verification-automated',studentController.resendVerificationEmailAutomated);
+
 
 // Apply for a course (Authenticated User)
-
 
 const uploadFields = uploadImage.fields([
   { name: 'latestdegreeCertificates', maxCount: 5 },
   { name: 'englishTest', maxCount: 5 },
   { name: 'proofOfAddress', maxCount: 5 },
-  // { name: 'statementOfPurpose', maxCount: 5 },
-  // { name: 'resumeCV', maxCount: 5 },
-  // { name: 'passportSizePhotographs', maxCount: 5 },
-  // { name: 'financialStatements', maxCount: 5 },
-  // { name: 'additionalDocuments', maxCount: 5 },
 ]);
 
 
@@ -177,11 +162,6 @@ const uploadFields = uploadImage.fields([
 router.get('/status',studentController.verifyStudentStatus);
 
  //PAYMENT 
-// router.post('/create-payment-intent', paymentController.createPaymentIntent);
-// router.post('/stripe-webhook', express.raw({ type: 'application/json' }),paymentController.handleStripeWebhook);
-
-
-
 
 router.get('/profile',studentController.seeStudentProfile);
 
@@ -211,8 +191,6 @@ router.delete('/delete',
 
   router.get(
     '/api/universities/:universityId',
-    // authenticationMiddleware1.authenticateUser, 
-    // authenticationMiddleware1.authorizeRoles(['student']),
     paymentMiddleware.checkPaymentStatus,
     userActivity.updateLastActivity,
     userControllers.getUniversityById
@@ -245,8 +223,6 @@ router.get('/courses/:universityId',
 router.get('/filters/course',
    
   paymentMiddleware.checkPaymentStatus,
-  // studentValidations.validateCourseFilters,
-  // validate,
   userActivity.updateLastActivity,
    userControllers.getCoursesWithFilters); //n
 

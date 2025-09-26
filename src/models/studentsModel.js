@@ -61,10 +61,7 @@ const studentSchema = new mongoose.Schema(
     otherProgramName: { type: String },
     discipline: { type: String, enum: ['Computers', 'Business', 'Marketing', 'Other'] },
     otherDisciplineName: { type: String },
-    // countryApplyingFrom: { type: String,
-    //   enum: ['India', 'UK', 'Other'],
-    //    required: true },
-    // countryName: { type: String },
+  
     preferredUniversity: { type: String,
       enum: ['Yes', 'No'],
       required: true
@@ -108,12 +105,6 @@ const studentSchema = new mongoose.Schema(
       }
     }],
     
-    // languageTestName: { type: String }, // Added from input model
-    // languageTestScore: { type: String }, // Added from input model
-    // preferredCommunicationMethod:{ 
-    //   type: String,
-    //   required:true 
-    // },
     // Application Details
    
     applications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }],
@@ -123,8 +114,6 @@ const studentSchema = new mongoose.Schema(
        // Payment Integration
    payments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }], // Store payment history
     referralSource: { type: String, 
-      // enum: ['Social Media','Online Search/Google', 'Referral from friend/family member',
-      //  'Education fair/exhibition','Advertisement(online/offline)','Other'],
        required: true
       },
     visitedCourses: { type: [mongoose.Schema.Types.ObjectId], ref: 'Course', default: [] },
@@ -164,18 +153,6 @@ loginOtpAttempts: { type: Number, default: 0 },
 
      // **New Fields for Response Structure**
 
-    // // Documents to track status
-    // documents: {
-    //   passport: {
-    //     url: { type: String },  // URL for passport file
-    //     status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
-    //   },
-    //   english_test: {
-    //     url: { type: String },  // URL for English test file
-    //     status: { type: String, enum: ['pending_verification', 'verified'], default: 'pending_verification' }
-    //   }
-    // },
-
     // Payment status
     payment_status: {
       platform_fee: {
@@ -214,6 +191,4 @@ currentToken: { type: String, default: null },
   { timestamps: true }
 );
 
-
-// module.exports = mongoose.model('Student', studentSchema);
 module.exports = mongoose.model('Student', studentSchema);

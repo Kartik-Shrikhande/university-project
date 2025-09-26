@@ -23,34 +23,13 @@ router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.au
 router.get('/students/:id', associateController.getStudentById); // Get student by ID
 
 
-
 //ASSOCIATE - PROFILE
 router.put('/update',validateAssociateUpdate,validate, associateController.updateAssociate);
 router.get('/profile', associateController.getAssociateById);
 router.put('/update/password', associateController.associateUpdatePassword)
 
 
-
-//ASSOCIATE - SOLICITORS
-// Route to create a new solicitor
-// router.post('/solicitor/create', validateCreateSolicitor,validate,associateController.createSolicitor);
-// Route to update a solicitor by ID
-// router.put('/solicitor/update/:id',validateUpdateSolicitor,validate,associateController.updateSolicitorById);
-
-// // Route to get all solicitors
-// router.get('/solicitors',associateController.getAllSolicitors);
-
-// // Route to get a solicitor by ID
-// router.get('/solicitor/:id',associateController.getSolicitorById);
-// // Route to delete a solicitor by ID
-// router.delete('/solicitor/delete/:id',associateController.deleteSolicitor);
-
-
-
-
 //ASSOCIATE - SOLICITORS REQUESTS 
-
-
 // Get all assigned requests
 router.get('/solicitor-requests', associateController.getAllAssignedSolicitorRequests);
 // Get assigned request by studentId

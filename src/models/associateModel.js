@@ -7,8 +7,6 @@ const AssociateSolicitorSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   address: {
     country: { type: String,required :true, maxlength: 50 },
-    // zip_postalCode: { type: String, maxlength: 15 },
-    // state_province_region: { type: String, maxlength: 50 }, // Updated field
     city: { type: String,required :true, maxlength: 50 },
     addressLine: { type: String,required :true, maxlength: 100 } // Updated field
 },
@@ -33,13 +31,6 @@ bankDetails: {
     default: false,
   },
 },{timestamps:true});
-
-
-//documents: [{ type: String }], // URLs for uploaded certifications, licenses
-  
-//   solicitors :[],
-  //status: { type: String, enum: ["Active", "Inactive"], default: "Active" }, // Account status
-
 
 
 

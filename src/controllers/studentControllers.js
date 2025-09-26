@@ -254,9 +254,6 @@ exports.deleteStudentNotificationById = async (req, res) => {
   }
 };
 
-
-// routes/studentRoutes.js
-// router.get("/check-email", async 
   
 exports.checkMailStudent = async (req, res) => {
   try {
@@ -480,16 +477,7 @@ if (existingRole) {
 
 exports.verifyStudentStatus = async (req, res) => {
   try {
-    // const token = req.cookies.refreshtoken || req.header('Authorization').replace('Bearer ', '');
-    // if (!token) {
-    //   return res.status(401).json({ status: false, message: 'Unauthorized: No token provided' });
-    // }
 
-    // const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    // const student = await Students.findById(decoded.id);
-    // if (!student) {
-    //   return res.status(404).json({ status: false, message: 'Student not found' });
-    // }
     const studentId = req.user.id;
 
     // Fetch student details from the database
@@ -546,52 +534,6 @@ const generateWebPageTemplate = (title, message, color, actionButton = null) => 
   </html>
 `;
 
-
-
-// 📌 Email verification API
-// exports.verifyEmail = async (req, res) => {
-//   try {
-//     const { token } = req.query;
-
-//     const student = await Students.findOne({ verificationToken: token });
-
-//     if (!student) {
-//       return res.status(400).send(
-//         generateWebPageTemplate(
-//           "Email Verification",
-//           "Invalid or expired verification link.",
-//           "red"
-//         )
-//       );
-//     }
-
-//     student.isVerified = true;
-//     student.verificationToken = null;
-//     await student.save();
-
-//     res.status(200).send(
-//       generateWebPageTemplate(
-//         "Email Verified!",
-//         "Your email has been successfully verified. You can now login to your Connect2Uni account.",
-//         "#00AA55",
-//            {
-//           text: "Go to Login",
-//           link: `${process.env.CLIENT_LOGIN_PAGE}`,
-//         }
-//       )
-//     );
-//   } catch (err) {
-//     console.error("Email verification error:", err);
-//     res.status(500).send(
-//       generateWebPageTemplate(
-//         "Something Went Wrong",
-//         "An error occurred while verifying your email. Please try again later.",
-//         "red"
-//       )
-//     );
-//   }
-// };
-//previous approach in use -08/02/2025
 
 
 const isMobileDevice = (userAgent) => {
@@ -841,16 +783,12 @@ exports.login = async (req, res) => {
     }
 
     //  // Check if email is verified
-    //  if (!user.isVerified) {
-    //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-    // }
+   
       // **Enforce Email Verification ONLY for Students**
       if (role === "student" && !user.isVerified) {
         return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
       }
-  
 
- 
 
     // Generate JWT Token
     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
@@ -913,52 +851,6 @@ if (role === "student") {
   });
 }
 
-  //  **Custom Response for Students**
-    // if (role === "student") {
-    //   return res.status(200).json({
-    //     message: 'Login successful.',
-    //     role: role,
-    //     token: token,
-    //     // userDetail:user,
-    //     user: {
-    //       id: user._id,
-    //       email: user.email,
-    //       // role: role,
-    //       is_active: true, // Assuming all logged-in users are active
-    //       email_verified: user.isVerified || false,
-    //       platform_fee_paid: user.isPaid || false,
-    //       created_at: user.createdAt,
-    //       // loginCompleted: user.loginCompleted // Now guaranteed to be true if it was false
-    //     },
-    //     platform_access: {
-    //       courses_visible: user.isPaid || false, // Allow course visibility if fee is paid
-    //       payment_required: !user.isPaid, // If not paid, payment is required
-    //       message: user.isPaid
-    //         ? "You have full access to to view universities and courses."
-    //         : "Pay the platform fee to view universities and courses."
-    //     },
-    //     notifications: [
-    //       {
-    //         id: "NOTIF-001",
-    //         type: "system",
-    //         title: "Welcome to Connect2Uni!",
-    //         content: "Complete your profile and pay the platform fee to proceed.",
-    //         is_read: false,
-    //         timestamp: new Date().toISOString()
-    //       }
-    //     ],
-    //     applications: user.applications || [],
-    //     visa_status: null, // You can modify this based on actual visa status logic
-    //     payment_prompt: !user.isPaid
-    //       ? {
-    //           type: "platform_fee",
-    //           amount: 20,
-    //           currency: "GBP",
-    //           payment_url: "/api/payments/platform-fee"
-    //         }
-    //       : null
-    //   });
-    // }
  // **Custom Response for Agent Role**
 if (role === "agent") {
   const token = jwt.sign(
@@ -1032,31 +924,6 @@ if (role === 'solicitor') {
           address: user.address || '',
           created_at: user.createdAt
         },
-        // platform_access: {
-        //   allowed_actions: [
-        //     "review_applications",
-        //     "approve_documents",
-        //     "validate_legal_requirements"
-        //   ],
-        //   blocked_actions: [
-        //     "edit_profile",
-        //     "apply_to_courses"
-        //   ]
-        // },
-        // notifications: [
-        //   {
-        //     id: "NOTIF-001",
-        //     type: "system",
-        //     title: "Welcome to Connect2Uni!",
-        //     content: "You have new applications assigned for review.",
-        //     is_read: false,
-        //     timestamp: new Date().toISOString()
-        //   }
-        // ],
-        // metadata: {
-        //   total_applications_reviewed: user.applicationsReviewed?.length || 0,
-        //   pending_reviews: user.pendingReviews?.length || 0
-        // }
       });
     }
 
@@ -1086,16 +953,7 @@ if (role === 'solicitor') {
             "apply_to_courses" // Agencies cannot apply to courses
           ]
         },
-        // notifications: [
-        //   {
-        //     id: "NOTIF-001",
-        //     type: "system",
-        //     title: "New Agent Created",
-        //     content: "A new agent has been created.",
-        //     is_read: false,
-        //     timestamp: new Date().toISOString()
-        //   }
-        // ],
+      
         metadata: {
           total_agents: user?.agents?.length || 0,
           total_students: user?.students?.length || 0,
@@ -1135,16 +993,7 @@ if (role === 'solicitor') {
         "apply_to_courses"
       ]
     },
-    // "notifications": [
-    //   {
-    //     "id": "NOTIF-001",
-    //     "type": "system",
-    //     "title": "New Application Received",
-    //     "content": "A new application has been submitted by John Doe.",
-    //     "is_read": false,
-    //     "timestamp": "2025-02-04T09:34:29.082Z"
-    //   }],
-
+   
     metadata: {
       total_applications: (user.pendingApplications?.length || 0) + (user.sentApplicationsToUniversities?.length || 0),
       pending_applications: user.pendingApplications?.length || 0,
@@ -1326,76 +1175,6 @@ exports.resendLoginOtp = async (req, res) => {
 
 ///////////////////////////////////////////////////
 
-// exports.appLogin = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-//     let user = null;
-//     let role = null;
-
-//     // Role collections for login
-//     const roleCollections = [
-//       { model: University, roleName: 'University' },
-//       { model: Students, roleName: 'student' },
-//       { model: Agents, roleName: 'agent' },
-//       { model: Solicitors, roleName: 'solicitor' },
-//       { model: Agency, roleName: 'admin' } // Updated to match Agency model
-//     ];
-
-//     // Check each role collection
-//     for (const { model, roleName } of roleCollections) {
-//       user = await model.findOne({ email });
-//       if (user) {
-//         role = roleName;
-//         break;
-//       }
-//     }
-
-//     if (!user) {
-//       return res.status(400).json({ message: 'Invalid email or password.' });
-//     }
-//        // Compare password
-//     const isPasswordValid = await bcrypt.compare(password, user.password);
-//     if (!isPasswordValid) {
-//       return res.status(400).json({ message: 'Invalid email or password.' });
-//     }
-//     //  // Check if email is verified
-//     //  if (!user.isVerified) {
-//     //   return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-//     // }
-//       // **Enforce Email Verification ONLY for Students**
-//       if (role === "student" && !user.isVerified) {
-//         return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-//       }
-
-//     // Generate JWT Token
-//     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
-
-//     // Set token in HTTP-only cookie
-//     res.cookie('refreshtoken', token, {
-//       httpOnly: true,
-//       secure: true,
-//       sameSite: 'None',
-//       maxAge: 604800000, // 7 days in milliseconds
-//       path: '/'
-//     });
-
-
-//     // Send JWT in Response Headers
-//     res.setHeader('Authorization', `Bearer ${token}`);
-
-//     // **Default Response for Other Roles**
-//     return res.status(200).json({ message: 'Login successful.', role: role, token ,userId: user._id,user:user});
-
-//   } catch (error) {
-//     console.error('Login Error:', error);
-//     return res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// };
-
-
-
-
-
 // @desc    Check if a student is verified
 // @route   GET /api/students/verify-status/:id
 // @access  Public
@@ -1494,34 +1273,6 @@ exports.resendVerificationEmail = async (req, res) => {
   }
 };
 
-//
-// exports.resendVerificationEmailAutomated = async (req, res) => {
-//   try {
-//     // Extract user ID from JWT token
-//     const userId = req.user.id;
-
-//     // Find the student in the database
-//     const student = await Students.findById(userId);
-//     if (!student) return res.status(404).json({ message: 'Student not found.' });
-
-//     if (student.isVerified) return res.status(400).json({ message: 'Email already verified.' });
-
-//     // Generate a new verification token and update expiry
-//     const newVerificationToken = crypto.randomBytes(32).toString('hex');
-//     student.verificationToken = newVerificationToken;
-//     student.verificationTokenExpiry = Date.now() + 15 * 60 * 1000;
-
-//     await student.save();
-
-//     // Send verification email
-//     sendVerificationEmail(student.email, newVerificationToken);
-
-//     res.status(200).json({ message: 'Verification email resent successfully.' });
-
-//   } catch (error) {
-//     res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 //P
 exports.seeStudentProfile = async (req, res) => {
@@ -1716,133 +1467,6 @@ exports.updateStudent = async (req, res) => {
 };
 
 
-
-// exports.updateStudent = async (req, res) => {
-//   let session;
-//   try {
-//     const studentId = req.user.id;
-//     let updates = req.body;
-
-//     // Remove fields that are empty strings
-//     updates = Object.fromEntries(
-//       Object.entries(updates).filter(([_, value]) => value !== '')
-//     );
-
-    
-//     // Restricted fields that cannot be updated
-//     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
-
-//     // Check if any restricted field is being updated
-//     const invalidFields = Object.keys(updates).filter(field => restrictedFields.includes(field));
-//     if (invalidFields.length > 0) {
-//       return res.status(400).json({ message: `Fields ${invalidFields.join(', ')} cannot be updated directly.` });
-//     }
-
-//     // Check if there are any valid fields left to update
-//  // Check if there are any valid fields left to update
-//  if (
-//   Object.keys(updates).length === 0 &&
-//   (!req.files || (!req.files['document'] && !req.files['documentUpload']))
-// ) {
-//   return res.status(400).json({ message: 'No valid fields to update.' });
-// }
-
-//     // Start session only if using transactions
-//     session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     // Update student details
-//     const updatedStudent = await Students.findByIdAndUpdate(
-//       studentId,
-//       { $set: updates }, // Using $set to update only specific fields
-//       { new: true, runValidators: true, session }
-//     );
-
-//   // Handle document uploads
-// // Handle document uploads
-// let uploadedDocuments = [];
-// if (req.files && req.files['document']) {
-//   uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
-// }
-// // console.log(req.files); // Log the incoming file fields
-
-
-// let uploadedDocumentUploads = [];
-// if (req.files && req.files['documentUpload']) {
-//   uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
-// }
-
-
-//     if (!updatedStudent) {
-//       await session.abortTransaction();
-//       return res.status(404).json({ message: 'Student not found.' });
-//     }
-
-//     // Commit transaction only if the update was successful
-//     await session.commitTransaction();
-
-//     return res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent,new:true});
-
-//   } catch (error) {
-//     console.error('Error updating student:', error);
-//     if (session) {
-//       await session.abortTransaction();
-//     }
-//     return res.status(500).json({ message: 'Internal server error.', error: error.message });
-//   } finally {
-//     if (session) {
-//       session.endSession();
-//     }
-//   }
-// };
-
-
-
-
-
-// exports.updateStudent = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const studentId = req.user.id;
-//     const updates = req.body;
-
-//     // Disallow updates to restricted fields
-//     const restrictedFields = ['email', 'password', 'visitedUniversities', 'visitedCourses', 'enrolledCourses'];
-//     for (const field of restrictedFields) {
-//       if (updates[field]) {
-//         return res.status(400).json({ message: `Field "${field}" cannot be updated directly.` });
-//       }
-//     }
-
-//     // Update student details
-//     const updatedStudent = await Students.findByIdAndUpdate(studentId, updates, {
-//       new: true,
-//       runValidators: true,
-//       session,
-//     });
-
-//     if (!updatedStudent) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(404).json({ message: 'Student not found.' });
-//     }
-
-//     // Commit transaction
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return res.status(200).json({ message: 'Student updated successfully.', updatedStudent });
-//   } catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     console.error('Error updating student:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
-
 exports.updatePassword = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1899,36 +1523,9 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
-// exports.updateStudent = async (req, res) => {
-//   try {
-//     const id  = req.studentId;
-//     const updates = req.body;
-
-//     // Prevent updating password directly
-//     if (updates.password) {
-//       updates.password = await bcrypt.hash(updates.password, 10);
-//     }
-
-//     const updatedStudent = await Students.findByIdAndUpdate(id, updates, { new: true });
-//     if (!updatedStudent) {
-//       return res.status(404).json({ message: 'Student not found.' });
-//     }
-
-//     return res.status(200).json({ message: 'Student updated successfully.', updatedStudent });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
-
 
 
 // Delete Student
-
-
-
 exports.deleteStudent = async (req, res) => {
   try {
     const id  = req.studentId;
@@ -2010,41 +1607,6 @@ exports.getUniversities = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-// Create Payment
-// exports.createPayment = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-//   try {
-//     const studentId = req.user.id;
-
-//     // Fetch the student
-//     const student = await Students.findById(studentId).session(session);
-//     if (!student) {
-//       return res.status(404).json({ message: 'Student not found.' });
-//     }
-//     // if(student.isPaid) res.status(200).json({message: 'Payment already done for this user'});
-
-//     // Simulate payment (mark as paid)
-//     student.isPaid = true;
-//     await student.save({ session });
-
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return res.status(200).json({
-//       message: 'Payment successful, you can now access the dashboard.',
-//       // student,
-//     });
-//   } catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     console.error('Error processing payment:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
 
 
 //COURSES 
@@ -2236,81 +1798,6 @@ exports.getCoursesWithFilters = async (req, res) => {
 
 
 
-// exports.getCoursesWithFilters = async (req, res) => {
-//   try {
-//     const { minPrice, maxPrice, country, courseName, universityName } = req.query;
-
-//     // Build the filter object dynamically
-//     const filter = {};
-
-//     // Filter by fees (minPrice and maxPrice)
-//     if (minPrice || maxPrice) {
-//       filter.fees = {};
-//       if (minPrice) filter.fees.$gte = Number(minPrice);
-//       if (maxPrice) filter.fees.$lte = Number(maxPrice);
-//     }
-
-//     // Filter by country (for universities)
-//     if (country) {
-//       const universitiesInCountry = await university
-//         .find({ country: new RegExp(country, 'i') })
-//         .select('_id');
-      
-//       if (universitiesInCountry.length) {
-//         filter.university = { $in: universitiesInCountry.map((uni) => uni._id) };
-//       } else {
-//         return res.status(404).json({ message: 'No universities found in the specified country.' });
-//       }
-//     }
-
-//     // Filter by university name
-//     if (universityName) {
-//       const universitiesWithName = await university
-//         .find({ name: new RegExp(universityName, 'i') })
-//         .select('_id');
-      
-//       if (universitiesWithName.length) {
-//         if (filter.university && filter.university.$in) {
-//           filter.university.$in = filter.university.$in.filter((id) =>
-//             universitiesWithName.map((uni) => uni._id.toString()).includes(id.toString())
-//           );
-
-//           if (!filter.university.$in.length) {
-//             return res.status(404).json({ message: 'No universities found matching both country and name criteria.' });
-//           }
-//         } else {
-//           filter.university = { $in: universitiesWithName.map((uni) => uni._id) };
-//         }
-//       } else {
-//         return res.status(404).json({ message: 'No universities found with the specified name.' });
-//       }
-//     }
-
-//     // Filter by course name
-//     if (courseName) {
-//       filter.name = new RegExp(courseName, 'i'); // Case-insensitive search for course name
-//     }
-
-//     // Fetch the filtered courses
-//     const courses = await Course.find(filter)
-//       .populate('university', 'name country') // Include university details
-//       .sort({ applicationDate: -1 }); // Sort by application date (newest first)
-
-//     // Check if any courses are found
-//     if (!courses.length) {
-//       return res.status(404).json({ message: 'No courses found matching the criteria.' });
-//     }
-
-//     // Send response
-//     return res.status(200).json({ total: courses.length, coursesList: courses });
-//   } catch (error) {
-//     console.error('Error fetching courses with filters:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
-
-
-
 exports.getCourseById = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -2402,59 +1889,6 @@ exports.enrollCourse = async (req, res) => {
   }
 };
 
-
-
-
-//Application 
-
-// exports.getStudentApplications = async (req, res) => {
-//   try {
-//     const studentId = req.studentId; // Retrieved from authentication middleware
-
-//     // Validate `studentId`
-//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-//       return res.status(400).json({ message: 'Invalid student ID provided.' });
-//     }
-
-//     // Fetch student applications with populated data
-//     const student = await Students.findById(studentId)
-//       .populate({
-//         path: 'applications.applicationId',
-//         select: 'university course status submissionDate financialAid',
-//         populate: [
-//           { path: 'university', select: 'name country' },
-//           { path: 'course', select: 'name fees' },
-//           { path: 'agency', select: 'name contactEmail' },
-//           { path: 'assignedAgent', select: 'name email' },
-//         ],
-//       })
-//       .select('firstName lastName email applications');
-
-//     if (!student) {
-//       return res.status(404).json({ message: 'Student not found.' });
-//     }
-
-//     // Check if applications exist
-//     if (!student.applications || student.applications.length === 0) {
-//       return res.status(404).json({ message: 'No applications found for this student.' });
-//     }
-
-//     // Directly return populated applications
-//     return res.status(200).json({
-//       message: 'Successfully fetched student applications.',
-//       total:student.applications.length,
-//       student: {
-//         id: student._id,
-//         name: `${student.firstName} ${student.lastName}`,
-//         email: student.email,
-//       },
-//       applications: student.applications.map((app) => app.applicationId), // Directly include the populated application data
-//     });
-//   } catch (error) {
-//     console.error('Error fetching student applications:', error);
-//     return res.status(500).json({ message: 'Internal server error.' });
-//   }
-// };
 
 
 

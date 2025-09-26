@@ -35,16 +35,6 @@ exports.googleCallback = async (req, res) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   };
-// // Google Login Success Callback
-// exports.googleCallback = async (req, res) => {
-//   try {
-//     const token = generateToken(req.user);
-//     return res.status(200).json({ message: 'Google login successful', token });
-//   } catch (error) {
-//     console.error('Error in Google callback:', error);
-//     return res.status(500).json({ message: 'Internal server error' });
-//   }
-// };
 
 // Apple Login Success Callback
 exports.appleCallback = async (req, res) => {
