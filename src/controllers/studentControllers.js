@@ -1533,10 +1533,7 @@ exports.sendDeleteAccountOtp = async (req, res) => {
     const student = await Students.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
-     if (student.isDeleted) {
-      return res.status(400).json({ success: false, message: "Account already deleted." });
-    }
-
+  
 
     // Generate 6-digit OTP
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -1568,9 +1565,7 @@ exports.resendDeleteAccountOtp = async (req, res) => {
     const student = await Students.findById(studentId);
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
-     if (student.isDeleted) {
-      return res.status(400).json({ success: false, message: "Account already deleted." });
-    }
+  
 
 
     // If existing OTP still valid, deny resend
@@ -1623,11 +1618,8 @@ exports.verifyDeleteAccountOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: "OTP expired" });
     }
 
-    // Soft delete
-    student.isDeleted = true;
-    student.loginOtp = null;
-    student.loginOtpExpiry = null;
-    await student.save();
+    // ✅ Hard delete
+    await Students.findByIdAndDelete(studentId);
 
     return res.status(200).json({ success: true, message: "Your profile has been deleted successfully." });
   } catch (error) {
