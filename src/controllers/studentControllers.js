@@ -25,7 +25,7 @@ const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
-const { generateEmailTemplate, sendEmail,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
+const { generateEmailTemplate, sendEmail,sendAccountDeletionOtpEmail ,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
 
 const path = require("path");
 const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to logo
@@ -1524,24 +1524,135 @@ exports.updatePassword = async (req, res) => {
 };
 
 
-
-// Delete Student
-exports.deleteStudent = async (req, res) => {
+/**
+ * 1️⃣ Send OTP for account deletion
+ */
+exports.sendDeleteAccountOtp = async (req, res) => {
   try {
-    const id  = req.studentId;
-    const deletedStudent = await Students.findByIdAndDelete(id);
+    const studentId = req.user.id; // assuming authenticated student
+    const student = await Students.findById(studentId);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
-    if (!deletedStudent) {
-      return res.status(404).json({ message: 'Student not found.' });
+     if (student.isDeleted) {
+      return res.status(400).json({ success: false, message: "Account already deleted." });
     }
 
-    return res.status(200).json({ message: 'Student deleted successfully.' });
-  } 
-  catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Internal server error.' });
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    student.loginOtp = otp;
+    student.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins validity
+    await student.save();
+
+    // Send email
+    await sendAccountDeletionOtpEmail(student.email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent to your registered email address.",
+      expiresIn: "5 minutes",
+    });
+  } catch (error) {
+    console.error("Error sending delete OTP:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+/**
+ * 2️⃣ Resend OTP (only if expired)
+ */
+exports.resendDeleteAccountOtp = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const student = await Students.findById(studentId);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+     if (student.isDeleted) {
+      return res.status(400).json({ success: false, message: "Account already deleted." });
+    }
+
+
+    // If existing OTP still valid, deny resend
+    if (student.loginOtpExpiry && student.loginOtpExpiry > Date.now()) {
+      const remainingMs = student.loginOtpExpiry - Date.now();
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${remainingSec} seconds before requesting a new OTP.`,
+      });
+    }
+
+    // Generate new OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    student.loginOtp = otp;
+    student.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    await student.save();
+
+    await sendAccountDeletionOtpEmail(student.email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: "New OTP sent successfully to your email.",
+      expiresIn: "5 minutes",
+    });
+  } catch (error) {
+    console.error("Error resending delete OTP:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * 3️⃣ Verify OTP & Soft Delete Account
+ */
+exports.verifyDeleteAccountOtp = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { otp } = req.body;
+
+    if (!otp) return res.status(400).json({ success: false, message: "OTP is required" });
+
+    const student = await Students.findById(studentId);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    if (!student.loginOtp || student.loginOtp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+
+    if (student.loginOtpExpiry < Date.now()) {
+      return res.status(400).json({ success: false, message: "OTP expired" });
+    }
+
+    // Soft delete
+    student.isDeleted = true;
+    student.loginOtp = null;
+    student.loginOtpExpiry = null;
+    await student.save();
+
+    return res.status(200).json({ success: true, message: "Your profile has been deleted successfully." });
+  } catch (error) {
+    console.error("Error verifying delete OTP:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// // Delete Student
+// exports.deleteStudent = async (req, res) => {
+//   try {
+//     const id  = req.studentId;
+//     const deletedStudent = await Students.findByIdAndDelete(id);
+
+//     if (!deletedStudent) {
+//       return res.status(404).json({ message: 'Student not found.' });
+//     }
+
+//     return res.status(200).json({ message: 'Student deleted successfully.' });
+//   } 
+//   catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: 'Internal server error.' });
+//   }
+// };
 
 
 // Get University by ID

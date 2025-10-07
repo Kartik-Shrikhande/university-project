@@ -182,12 +182,17 @@ router.put('/update/password',
   userControllers.updatePassword)
    
 
-router.delete('/delete',
+// router.delete('/delete',
  
-  userActivity.updateLastActivity,
-  userControllers.deleteStudent);
+//   userActivity.updateLastActivity,
+//   userControllers.deleteStudent);
+
+// Request OTP for deletion
 
 
+router.post('/send-delete-otp', userControllers.sendDeleteAccountOtp);
+router.post('/resend-delete-otp', userControllers.resendDeleteAccountOtp);
+router.post('/verify-delete-otp', userControllers.verifyDeleteAccountOtp);
 
   router.get(
     '/api/universities/:universityId',

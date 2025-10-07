@@ -186,6 +186,12 @@ loginOtpAttempts: { type: Number, default: 0 },
         suspicious_activity: { type: Boolean, default: false }
       }
     },
+
+    //otp for delete account
+    loginOtp: { type: String, default: null },
+loginOtpExpiry: { type: Date, default: null },
+loginOtpAttempts: { type: Number, default: 0 },
+
 currentToken: { type: String, default: null },
   },
   { timestamps: true }

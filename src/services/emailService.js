@@ -786,6 +786,31 @@ const sendVisaRequestCreatedEmail = async (student, application) => {
   });
 };
 
+const sendAccountDeletionOtpEmail = async (to, otp) => {
+  const html = generateEmailTemplate(
+    "Account Deletion OTP",
+    "#dc3545", // red theme for deletion/critical action
+    `
+      <p style="font-size:16px;color:#333;">Dear User,</p>
+      <p style="font-size:16px;color:#555;">
+        You requested to delete your Connect2Uni account. Please use the OTP below to confirm this action:
+      </p>
+      <div style="text-align:center; margin:20px 0;">
+        <div style="font-size:28px; font-weight:bold; letter-spacing:4px; color:#dc3545;">${otp}</div>
+      </div>
+      <p style="font-size:16px;color:#555;">
+        This OTP is valid for <strong>5 minutes</strong>. If you did not request this, please ignore this email.
+      </p>
+    `
+  );
+
+  await sendEmail({
+    to,
+    subject: "Confirm Your Account Deletion - OTP",
+    html,
+  });
+};
+
 
 
 // Optional: a generic helper compatible with your old name, now Graph-backed
@@ -819,6 +844,7 @@ module.exports = {
    sendRequestAcceptedEmail,
   sendRequestRejectedEmail,
   sendResetPasswordEmail,
+    sendAccountDeletionOtpEmail
 };
 
 
