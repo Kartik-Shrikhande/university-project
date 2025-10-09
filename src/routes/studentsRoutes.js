@@ -117,7 +117,6 @@ router.get("/payment-history",paymentController.getPaymentHistory);
 
 
 
-
 //PAYMENT-RECEIPT 
 router.post('/upload/receipt', upload.single('uploadPaymentReceipt'), receiptController.uploadReceipt);
 router.get('/receipts', receiptController.getAllReceiptswithFilteration);

@@ -2,50 +2,45 @@ const mongoose = require('mongoose');
 const { isValidObjectId } = require('mongoose');
 const Stripe = require("stripe");
 const Application = require('../models/applicationModel');
+const PaymentConfig = require("../models/paymentConfigModel");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../models/paymentModel");
 const Student = require("../models/studentsModel");
 const nodemailer = require('nodemailer');
 const { sendPaymentSuccessEmail,sendSolicitorPaymentEmail } = require("../services/emailService");
 
-//PLATFORM PAYMENT 
-// Fixed payment amount (in smallest currency unit, e.g., 2000 = £20.00)
 
-const PAYMENT_AMOUNT = 500;
-// const PAYMENT_AMOUNT = 2000;
-const CURRENCY = "GBP";
+
 
 exports.createPaymentIntent = async (req, res) => {
   const studentId = req.user.id;
 
   try {
+    const config = await PaymentConfig.findOne();
+    const PLATFORM_AMOUNT = config?.platformFee || 500; // fallback
+    const CURRENCY = config?.currency || "GBP";
+
     const student = await Student.findById(studentId);
     if (!student) return res.status(404).json({ error: "Student not found" });
 
     if (student.isPaid) {
-        return res.status(400).json({ error: "Payment already completed." });
-      }
-
- // ✅ Validate amount is at least 30 pence (Stripe minimum for GBP)
-    if (PAYMENT_AMOUNT < 30) {
-      return res.status(400).json({ error: "Amount must be at least £0.30 GBP." });
+      return res.status(400).json({ error: "Payment already completed." });
     }
-  
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: PAYMENT_AMOUNT,
+      amount: PLATFORM_AMOUNT,
       currency: CURRENCY,
       payment_method_types: ["card"],
-      description: `Payment for Student ID: ${studentId}`,
+      description: `Platform fee for Student ID: ${studentId}`,
     });
 
-    // Save to DB with pending status
     await Payment.create({
       student: studentId,
-      amount: PAYMENT_AMOUNT,
+      amount: PLATFORM_AMOUNT,
       currency: CURRENCY,
       status: "pending",
       stripePaymentIntentId: paymentIntent.id,
-      description: `Payment for Student ID: ${studentId}`,
+      description: `Platform fee for Student ID: ${studentId}`,
     });
 
     res.send({ clientSecret: paymentIntent.client_secret });
@@ -54,6 +49,56 @@ exports.createPaymentIntent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
+
+//PLATFORM PAYMENT 
+// Fixed payment amount (in smallest currency unit, e.g., 2000 = £20.00)
+
+// const PAYMENT_AMOUNT = 500;
+// // const PAYMENT_AMOUNT = 2000;
+// const CURRENCY = "GBP";
+
+// exports.createPaymentIntent = async (req, res) => {
+//   const studentId = req.user.id;
+
+//   try {
+//     const student = await Student.findById(studentId);
+//     if (!student) return res.status(404).json({ error: "Student not found" });
+
+//     if (student.isPaid) {
+//         return res.status(400).json({ error: "Payment already completed." });
+//       }
+
+//  // ✅ Validate amount is at least 30 pence (Stripe minimum for GBP)
+//     if (PAYMENT_AMOUNT < 30) {
+//       return res.status(400).json({ error: "Amount must be at least £0.30 GBP." });
+//     }
+  
+//     const paymentIntent = await stripe.paymentIntents.create({
+//       amount: PAYMENT_AMOUNT,
+//       currency: CURRENCY,
+//       payment_method_types: ["card"],
+//       description: `Payment for Student ID: ${studentId}`,
+//     });
+
+//     // Save to DB with pending status
+//     await Payment.create({
+//       student: studentId,
+//       amount: PAYMENT_AMOUNT,
+//       currency: CURRENCY,
+//       status: "pending",
+//       stripePaymentIntentId: paymentIntent.id,
+//       description: `Payment for Student ID: ${studentId}`,
+//     });
+
+//     res.send({ clientSecret: paymentIntent.client_secret });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 exports.confirmPayment = async (req, res) => {
   const { paymentIntentId } = req.body;
@@ -93,9 +138,53 @@ exports.confirmPayment = async (req, res) => {
 };
 
 
-//SOLICITOR PAYMENT
-const SOLICITOR_PAYMENT_AMOUNT = 50000; // 
+// //SOLICITOR PAYMENT
+// const SOLICITOR_PAYMENT_AMOUNT = 50000; // 
 
+
+// exports.createSolicitorPaymentIntent = async (req, res) => {
+//   const studentId = req.user.id;
+//   const { applicationId } = req.params;
+
+//   if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//     return res.status(400).json({ success: false, message: "Invalid application ID" });
+//   }
+
+//   try {
+//     const application = await Application.findOne({ _id: applicationId, student: studentId });
+//     if (!application) {
+//       return res.status(404).json({ error: "Application not found or does not belong to the student." });
+//     }
+
+//     if (application.solicitorPaid) {
+//       return res.status(400).json({ error: "Solicitor service already paid for this application." });
+//     }
+
+//     const paymentIntent = await stripe.paymentIntents.create({
+//       amount: SOLICITOR_PAYMENT_AMOUNT,
+//       currency: CURRENCY,
+//       payment_method_types: ["card"],
+//       description: `Solicitor service payment for Application ID: ${applicationId}`,
+//     });
+
+//     await Payment.create({
+//       student: studentId,
+//       application: applicationId, // ✅ store it now
+//       amount: SOLICITOR_PAYMENT_AMOUNT,
+//       currency: CURRENCY,
+//       status: "pending",
+//       stripePaymentIntentId: paymentIntent.id,
+//       description: `Solicitor service payment for Application ID: ${applicationId}`,
+//     });
+
+//     res.send({ clientSecret: paymentIntent.client_secret });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// SOLICITOR PAYMENT (dynamic)
 
 exports.createSolicitorPaymentIntent = async (req, res) => {
   const studentId = req.user.id;
@@ -106,6 +195,10 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
   }
 
   try {
+    const config = await PaymentConfig.findOne();
+    const SOLICITOR_AMOUNT = config?.solicitorFee || 50000; // fallback
+    const CURRENCY = config?.currency || "GBP";
+
     const application = await Application.findOne({ _id: applicationId, student: studentId });
     if (!application) {
       return res.status(404).json({ error: "Application not found or does not belong to the student." });
@@ -116,7 +209,7 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: SOLICITOR_PAYMENT_AMOUNT,
+      amount: SOLICITOR_AMOUNT,
       currency: CURRENCY,
       payment_method_types: ["card"],
       description: `Solicitor service payment for Application ID: ${applicationId}`,
@@ -124,8 +217,8 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
 
     await Payment.create({
       student: studentId,
-      application: applicationId, // ✅ store it now
-      amount: SOLICITOR_PAYMENT_AMOUNT,
+      application: applicationId,
+      amount: SOLICITOR_AMOUNT,
       currency: CURRENCY,
       status: "pending",
       stripePaymentIntentId: paymentIntent.id,
@@ -138,6 +231,7 @@ exports.createSolicitorPaymentIntent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 exports.confirmSolicitorPayment = async (req, res) => {
@@ -232,3 +326,4 @@ exports.getPaymentHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch payment history" });
   }
 };
+

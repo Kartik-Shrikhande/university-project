@@ -28,7 +28,7 @@ const solicitorRoutes = require('../src/routes/solicitorRoutes')
 const statisticsRoutes = require('../src/routes/statisticsRoutes')
 const statisticUniversitysRoutes = require('../src/routes/statisticsUniversityRoutes')
 const visaRoutes = require('../src/routes/visaRoutes');
-
+const paymentConfig = require('./routes/paymentConfigRoutes');
 
 const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // import
 // const applicationRoutes = require('../src/routes/applicationRoutes');
@@ -99,6 +99,8 @@ app.use('/solicitor', solicitorRoutes);
 app.use('/statistics',statisticsRoutes);
 app.use('/stats/university',statisticUniversitysRoutes);
 app.use('/visa', visaRoutes);
+app.use('/payment-config', paymentConfig);
+
 
 app.use(globalErrorHandler);
 
