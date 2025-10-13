@@ -281,26 +281,38 @@ exports.confirmSolicitorPayment = async (req, res) => {
 };
 
 
-
 exports.getPaymentHistory = async (req, res) => {
   const studentId = req.user.id;
 
   try {
-    const payments = await Payment.find({ 
+    // ✅ Fetch latest payment config to identify payment types dynamically
+    const config = await PaymentConfig.findOne();
+    const PLATFORM_AMOUNT = config?.platformFee || 500;
+    const SOLICITOR_AMOUNT = config?.solicitorFee || 50000;
+
+    // ✅ Fetch succeeded payments
+    const payments = await Payment.find({
       student: studentId,
-      status: 'succeeded'  // only succeeded payments
-    })
-    .sort({ createdAt: -1 });
+      status: "succeeded",
+    }).sort({ createdAt: -1 });
 
-    // Derive paymentType in response
-    const paymentHistory = payments.map(payment => {
-      let paymentType = 'unknown';
+    if (!payments.length) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        payments: [],
+        message: "No payment history found.",
+      });
+    }
 
-      // Derive type based on amount (or description if you prefer)
-      if (payment.amount === 2000) {
-        paymentType = 'platform_fee';
-      } else if (payment.amount === 5000) {
-        paymentType = 'solicitor_payment';
+    // ✅ Map each payment and identify type dynamically
+    const paymentHistory = payments.map((payment) => {
+      let paymentType = "unknown";
+
+      if (payment.amount === PLATFORM_AMOUNT) {
+        paymentType = "platform_fee";
+      } else if (payment.amount === SOLICITOR_AMOUNT) {
+        paymentType = "solicitor_payment";
       }
 
       return {
@@ -309,9 +321,9 @@ exports.getPaymentHistory = async (req, res) => {
         currency: payment.currency,
         status: payment.status,
         description: payment.description,
-        paymentType, // derived field
+        paymentType,
         createdAt: payment.createdAt,
-        updatedAt: payment.updatedAt
+        updatedAt: payment.updatedAt,
       };
     });
 
@@ -320,10 +332,54 @@ exports.getPaymentHistory = async (req, res) => {
       count: paymentHistory.length,
       payments: paymentHistory,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch payment history" });
   }
 };
+
+// exports.getPaymentHistory = async (req, res) => {
+//   const studentId = req.user.id;
+
+//   try {
+//     const payments = await Payment.find({ 
+//       student: studentId,
+//       status: 'succeeded'  // only succeeded payments
+//     })
+//     .sort({ createdAt: -1 });
+
+//     // Derive paymentType in response
+//     const paymentHistory = payments.map(payment => {
+//       let paymentType = 'unknown';
+
+//       // Derive type based on amount (or description if you prefer)
+//       if (payment.amount === 2000) {
+//         paymentType = 'platform_fee';
+//       } else if (payment.amount === 5000) {
+//         paymentType = 'solicitor_payment';
+//       }
+
+//       return {
+//         id: payment._id,
+//         amount: payment.amount,
+//         currency: payment.currency,
+//         status: payment.status,
+//         description: payment.description,
+//         paymentType, // derived field
+//         createdAt: payment.createdAt,
+//         updatedAt: payment.updatedAt
+//       };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       count: paymentHistory.length,
+//       payments: paymentHistory,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Failed to fetch payment history" });
+//   }
+// };
 
