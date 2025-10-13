@@ -5,6 +5,7 @@ const Solicitor = require("../models/solicitorModel");
 const AssociateSolicitor = require('../models/associateModel');
 const Agency = require('../models/agencyModel');
 const University = require('../models/universityModel');
+const PaymentConfig = require('../models/paymentConfigModel');
 
 //Previouse approach - in use
 exports.authenticateUser = (req, res, next) => {
@@ -221,6 +222,11 @@ exports.verifyToken = async (req, res) => {
         return res.status(401).json({ message: 'Session expired. Please login again.' });
       }
 
+       // ✅ Fetch current payment configuration dynamically
+      const config = await PaymentConfig.findOne();
+      const platformFee = config?.platformFee || 500; // fallback to 500 if not set
+      const currency = config?.currency || 'GBP';
+
       // **Custom Response for Student Role**
       if (role === 'student') {
         return res.status(200).json({
@@ -254,12 +260,11 @@ exports.verifyToken = async (req, res) => {
           ],
           applications: user.applications || [],
           visa_status: null,
-          payment_prompt: !user.isPaid
+        payment_prompt: !user.isPaid
             ? {
-                type: 'platform_fee',
-                amount: 100.0,
-                currency: 'GBP',
-                payment_url: '/api/payments/platform-fee'
+                type: 'platform_fee',       // ✅ added type field
+                amount: platformFee,         // ✅ dynamically fetched
+                currency,                    // ✅ dynamically fetched
               }
             : null
         });

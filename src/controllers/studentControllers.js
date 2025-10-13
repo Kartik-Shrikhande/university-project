@@ -26,7 +26,7 @@ const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
 const { generateEmailTemplate, sendEmail,sendAccountDeletionOtpEmail ,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
-
+const PaymentConfig = require("../models/paymentConfigModel");
 const path = require("path");
 const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to logo
 
@@ -1049,6 +1049,13 @@ exports.verifyLoginOtp = async (req, res) => {
     student.loginOtpAttempts = 0;
     await student.save();
 
+    // Get current platform payment configuration
+    const config = await PaymentConfig.findOne();
+    const platformFee = config?.platformFee || 500; // fallback to 500 if not set
+    const currency = config?.currency || "GBP";
+
+
+
     // ✅ Generate JWT & store token
     const token = jwt.sign(
       { id: student._id, role: "student" },
@@ -1110,10 +1117,9 @@ exports.verifyLoginOtp = async (req, res) => {
       visa_status: null,
       payment_prompt: !user.isPaid
         ? {
-            type: "platform_fee",
-            amount: 20,
-            currency: "GBP",
-            payment_url: "/api/payments/platform-fee"
+          type: "platform_fee",     // ✅ Added fee type
+        platformFee,              // Dynamic from admin config
+        currency,  
           }
         : null
     });
