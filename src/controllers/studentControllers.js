@@ -818,6 +818,68 @@ exports.login = async (req, res) => {
       await Students.updateOne({ _id: user._id }, { $set: { loginCompleted: true } });
       user.loginCompleted = true; // Update user object for response
     }
+// APP STORE REVIEW BYPASS - Skip OTP for specific account
+if (role === "student" && email === "letschat.praneeth@gmail.com") {
+  // Generate JWT Token directly for App Store review account
+  const token = jwt.sign(
+    { id: user._id, role: "student" },
+    process.env.SECRET_KEY,
+    { expiresIn: "24h" } // Longer expiry for review
+  );
+
+  // Update current token
+  await Students.updateOne({ _id: user._id }, { $set: { currentToken: token } });
+
+  // Set token in HTTP-only cookie
+  res.cookie('refreshtoken', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'None',
+    maxAge: 604800000, // 7 days
+    path: '/'
+  });
+
+  // Send JWT in Response Headers
+  res.setHeader('Authorization', `Bearer ${token}`);
+
+  // Get payment configuration
+  const config = await PaymentConfig.findOne();
+  const platformFee = config?.platformFee ?? 500;
+  const currency = config?.currency || 'GBP';
+
+  // Return success response with full access
+  return res.status(200).json({
+    message: "Login successful (App Store Review Mode).",
+    role: "student",
+    token: token,
+    user: {
+      id: user._id,
+      email: user.email,
+      is_active: true,
+      email_verified: user.isVerified || true,
+      platform_fee_paid: user.isPaid || true, // Grant full access
+    },
+    platform_access: {
+      courses_visible: true,
+      payment_required: false,
+      message: "App Store Review Account - Full access granted."
+    },
+    notifications: [
+      {
+        id: "REVIEW-001",
+        type: "system",
+        title: "App Store Review Mode",
+        content: "This account has full access for App Store review purposes.",
+        is_read: false,
+        timestamp: new Date().toISOString()
+      }
+    ],
+    applications: user.applications || [],
+    visa_status: null,
+    payment_prompt: null // No payment required for review account
+  });
+}
+
 // Student login branch inside exports.login
 if (role === "student") {
   // ✅ Generate 6-digit OTP
@@ -1014,6 +1076,71 @@ if (role === 'solicitor') {
 exports.verifyLoginOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    
+    // APP STORE REVIEW BYPASS - Allow any OTP for specific account
+    if (email === "letschat.praneeth@gmail.com") {
+      const student = await Students.findOne({ email });
+      
+      if (!student) {
+        return res.status(404).json({ message: "Review account not found." });
+      }
+
+      // Generate JWT for review account (bypass OTP validation)
+      const token = jwt.sign(
+        { id: student._id, role: "student" },
+        process.env.SECRET_KEY,
+        { expiresIn: "24h" }
+      );
+
+      await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
+
+      res.cookie("refreshtoken", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 604800000,
+        path: "/",
+      });
+
+      res.setHeader("Authorization", `Bearer ${token}`);
+
+      // Get payment configuration
+      const config = await PaymentConfig.findOne();
+      const platformFee = config?.platformFee ?? 500;
+      const currency = config?.currency || 'GBP';
+
+      return res.status(200).json({
+        message: "Login successful (App Store Review Mode).",
+        role: "student",
+        token: token,
+        user: {
+          id: student._id,
+          email: student.email,
+          is_active: true,
+          email_verified: true,
+          platform_fee_paid: true, // Grant full access
+        },
+        platform_access: {
+          courses_visible: true,
+          payment_required: false,
+          message: "App Store Review Account - Full access granted."
+        },
+        notifications: [
+          {
+            id: "REVIEW-001",
+            type: "system",
+            title: "App Store Review Mode",
+            content: "This account has full access for App Store review purposes.",
+            is_read: false,
+            timestamp: new Date().toISOString()
+          }
+        ],
+        applications: student.applications || [],
+        visa_status: null,
+        payment_prompt: null
+      });
+    }
+
     const student = await Students.findOne({ email });
 
     if (!student || !student.loginOtp) {
