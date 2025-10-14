@@ -265,7 +265,7 @@ exports.verifyToken = async (req, res) => {
         payment_prompt: !user.isPaid
             ? {
                 type: 'platform_fee',       // ✅ added type field
-                amount: platformFee,         // ✅ dynamically fetched
+                platformFee: platformFee,         // ✅ dynamically fetched
                 currency,                    // ✅ dynamically fetched
               }
             : null

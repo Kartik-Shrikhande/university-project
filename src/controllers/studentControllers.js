@@ -1121,7 +1121,7 @@ exports.verifyLoginOtp = async (req, res) => {
         payment_prompt: !user.isPaid
             ? {
                 type: 'platform_fee',
-                amount: platformFee,  // ✅ raw value from admin (no conversion)
+                platformFee: platformFee,  // ✅ raw value from admin (no conversion)
                 currency              // ✅ directly from config
               }
             : null
@@ -1132,6 +1132,8 @@ exports.verifyLoginOtp = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
 
 exports.resendLoginOtp = async (req, res) => {
   try {
