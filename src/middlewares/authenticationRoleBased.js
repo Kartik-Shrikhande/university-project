@@ -222,10 +222,12 @@ exports.verifyToken = async (req, res) => {
         return res.status(401).json({ message: 'Session expired. Please login again.' });
       }
 
-       // ✅ Fetch current payment configuration dynamically
+    // ✅ Fetch current payment configuration dynamically
+   // ✅ Get latest payment configuration
       const config = await PaymentConfig.findOne();
-      const platformFee = config?.platformFee || 500; // fallback to 500 if not set
+      const platformFee = config?.platformFee ?? 500; // use stored value directly
       const currency = config?.currency || 'GBP';
+
 
       // **Custom Response for Student Role**
       if (role === 'student') {

@@ -1049,14 +1049,7 @@ exports.verifyLoginOtp = async (req, res) => {
     student.loginOtpAttempts = 0;
     await student.save();
 
-    // Get current platform payment configuration
-    const config = await PaymentConfig.findOne();
-    const platformFee = config?.platformFee || 500; // fallback to 500 if not set
-    const currency = config?.currency || "GBP";
-
-
-
-    // ✅ Generate JWT & store token
+    // ✅ Generate JWT
     const token = jwt.sign(
       { id: student._id, role: "student" },
       process.env.SECRET_KEY,
@@ -1074,7 +1067,17 @@ exports.verifyLoginOtp = async (req, res) => {
 
     res.setHeader("Authorization", `Bearer ${token}`);
 
-    // ✅ Map student to user like verifyToken middleware does
+    // // ✅ Fetch current payment configuration
+    // const paymentConfig = await PaymentConfig.findOne();
+    // const platformFee = paymentConfig?.platformFee ? paymentConfig.platformFee / 100 : 5; // convert pence → GBP
+    // const currency = paymentConfig?.currency || "GBP";
+
+
+     // ✅ Get latest payment configuration
+      const config = await PaymentConfig.findOne();
+      const platformFee = config?.platformFee ?? 500; // use stored value directly
+      const currency = config?.currency || 'GBP';
+    // ✅ Map student to user object
     const user = {
       _id: student._id,
       email: student.email,
@@ -1100,7 +1103,7 @@ exports.verifyLoginOtp = async (req, res) => {
         courses_visible: user.isPaid,
         payment_required: !user.isPaid,
         message: user.isPaid
-          ? "You have full access to to view universities and courses."
+          ? "You have full access to view universities and courses."
           : "Pay the platform fee to view universities and courses."
       },
       notifications: [
@@ -1115,21 +1118,20 @@ exports.verifyLoginOtp = async (req, res) => {
       ],
       applications: user.applications,
       visa_status: null,
-      payment_prompt: !user.isPaid
-        ? {
-          type: "platform_fee",     // ✅ Added fee type
-        platformFee,              // Dynamic from admin config
-        currency,  
-          }
-        : null
-    });
+        payment_prompt: !user.isPaid
+            ? {
+                type: 'platform_fee',
+                amount: platformFee,  // ✅ raw value from admin (no conversion)
+                currency              // ✅ directly from config
+              }
+            : null
+        });
 
   } catch (error) {
     console.error("OTP Verification Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 exports.resendLoginOtp = async (req, res) => {
   try {
