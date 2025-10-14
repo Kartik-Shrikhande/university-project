@@ -889,7 +889,7 @@ if (role === "student") {
   user.loginOtp = otp;
   user.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
   user.loginOtpAttempts = 0;
-  await user.save();
+  await user.save();  
 
   // ✅ Send OTP email using your existing email template + sendEmail()
   const html = generateEmailTemplate(
