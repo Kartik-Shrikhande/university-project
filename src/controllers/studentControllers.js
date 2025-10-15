@@ -86,6 +86,96 @@ exports.applyForSolicitor = async (req, res) => {
   }
 };
 
+// exports.checkSolicitorStatus = async (req, res) => {
+//   try {
+//     const { applicationId } = req.params;
+//     const studentId = req.user.id;
+
+//     // Validate applicationId
+//     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+//       return res.status(400).json({ success: false, message: "Invalid application ID" });
+//     }
+
+//     // Find application
+//     const application = await Application.findById(applicationId)
+//       .populate("assignedSolicitor", "firstName lastName email phoneNumber");
+
+//     if (!application) {
+//       return res.status(404).json({ success: false, message: "Application not found" });
+//     }
+
+//     // Check if this application belongs to the logged-in student
+//     if (application.student.toString() !== studentId) {
+//       return res.status(403).json({ success: false, message: "You are not authorized to access this application" });
+//     }
+
+//     // Check if solicitor service is purchased
+//     const student = await Students.findById(studentId);
+//     if (!student) {
+//       return res.status(404).json({ success: false, message: "Student not found" });
+//     }
+
+//     if (!application.solicitorPaid) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "You have not enrolled for solicitor service.",
+//         status: null,
+//         isAssigned: false,
+//         solicitor: null
+//       });
+//     }
+
+    
+
+//     // If solicitor is already assigned to this application
+//     if (application.assignedSolicitor) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "Solicitor has been assigned.",
+//         status: "Accepted",
+//         isAssigned: true,
+//         solicitor: application.assignedSolicitor
+//       });
+//     }
+
+//     // Check if request is being processed by agency
+//     const agencyWithRequest = await Agency.findOne({ solicitorRequests: applicationId });
+//     if (agencyWithRequest) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "Your solicitor request is being processed by the agency.",
+//         status: "Processing",
+//         isAssigned: false,
+//         solicitor: null
+//       });
+//     }
+
+//     // Check if request is being processed by a solicitor (but not yet assigned)
+//     const solicitorWithRequest = await Solicitor.findOne({ assignedSolicitorRequests: applicationId });
+//     if (solicitorWithRequest) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "Your solicitor request is being processed by the solicitor.",
+//         status: "Processing",
+//         isAssigned: false,
+//         solicitor: null
+//       });
+//     }
+
+//     // Fallback if no one has it and solicitor not assigned
+//     return res.status(200).json({
+//       success: true,
+//       message: "You have not requested for solicitor service.",
+//       status: null,
+//       isAssigned: false,
+//       solicitor: null
+//     });
+
+//   } catch (error) {
+//     console.error("Error checking solicitor assignment status:", error);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// };
 exports.checkSolicitorStatus = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -109,6 +199,11 @@ exports.checkSolicitorStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: "You are not authorized to access this application" });
     }
 
+    // Fetch dynamic solicitor fee and currency
+    const config = await PaymentConfig.findOne();
+    const solicitorFee = config ? config.solicitorFee / 100 : 500;
+    const currency = config ? config.currency : "GBP";
+
     // Check if solicitor service is purchased
     const student = await Students.findById(studentId);
     if (!student) {
@@ -121,11 +216,13 @@ exports.checkSolicitorStatus = async (req, res) => {
         message: "You have not enrolled for solicitor service.",
         status: null,
         isAssigned: false,
-        solicitor: null
+        solicitor: null,
+        fee: {
+          solicitorFee,
+          currency,
+        },
       });
     }
-
-    
 
     // If solicitor is already assigned to this application
     if (application.assignedSolicitor) {
@@ -134,7 +231,11 @@ exports.checkSolicitorStatus = async (req, res) => {
         message: "Solicitor has been assigned.",
         status: "Accepted",
         isAssigned: true,
-        solicitor: application.assignedSolicitor
+        solicitor: application.assignedSolicitor,
+        fee: {
+          solicitorFee,
+          currency,
+        },
       });
     }
 
@@ -146,7 +247,11 @@ exports.checkSolicitorStatus = async (req, res) => {
         message: "Your solicitor request is being processed by the agency.",
         status: "Processing",
         isAssigned: false,
-        solicitor: null
+        solicitor: null,
+        fee: {
+          solicitorFee,
+          currency,
+        },
       });
     }
 
@@ -158,17 +263,25 @@ exports.checkSolicitorStatus = async (req, res) => {
         message: "Your solicitor request is being processed by the solicitor.",
         status: "Processing",
         isAssigned: false,
-        solicitor: null
+        solicitor: null,
+        fee: {
+          solicitorFee,
+          currency,
+        },
       });
     }
 
-    // Fallback if no one has it and solicitor not assigned
+    // Fallback if no request or solicitor assigned
     return res.status(200).json({
       success: true,
       message: "You have not requested for solicitor service.",
       status: null,
       isAssigned: false,
-      solicitor: null
+      solicitor: null,
+      fee: {
+        solicitorFee,
+        currency,
+      },
     });
 
   } catch (error) {
