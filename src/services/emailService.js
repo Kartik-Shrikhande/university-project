@@ -5,6 +5,7 @@ const crypto = require("crypto");
 require("dotenv").config({ path: ".env" });
 const fs = require("fs");
 const path = require("path");
+const PaymentConfig = require("../models/paymentConfigModel");
 
 // If you actually use these models elsewhere, import them here as needed
 // const student = require("../models/studentsModel");
@@ -237,18 +238,77 @@ apply for a different university.</p>
   });
 };
 
+// // 📧 Send Payment Success Email
+// const sendPaymentSuccessEmail = async (student) => {
+//   const html = generateEmailTemplate(
+//     "Payment Confirmation",
+//     "#28a745",
+//     `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${
+//       student.firstName
+//     }</strong>,</p>
+//      <p style="font-size:16px;color:#555555;line-height:1.6;">We've successfully processed your payment of <strong>20 GBP</strong>.</p>
+//      <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+//        <h4 style="margin:0 0 10px 0;color:#28a745;">Payment Details</h4>
+//        <p style="margin:5px 0;color:#555555;"><strong>Amount:</strong> 20 GBP</p>
+//        <p style="margin:5px 0;color:#555555;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+//        <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#28a745;">Completed</span></p>
+//      </div>
+//      <p style="font-size:16px;color:#555555;line-height:1.6;">You now have full access to the student portal. If you have any questions about your payment, please contact our support team - admin@connect2uni.com</p>`,
+//     {
+//       text: "Access Student Portal",
+//       link: `${process.env.DASHBOARD_BASE_URL}`,
+//     }
+//   );
+
+//   await sendEmail({
+//     to: student.email,
+//     subject: "Payment Successful - Thank You!",
+//     html,
+//   });
+// };
+
+// // 📧 Solicitor Service Payment Email
+// const sendSolicitorPaymentEmail = async (student) => {
+//   const html = generateEmailTemplate(
+//     "Solicitor Service Confirmation",
+//     "#28a745",
+//     `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
+//      <p style="font-size:16px;color:#555555;line-height:1.6;">Thank you for purchasing our solicitor service package. Your payment has been processed successfully.</p>
+//      <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
+//        <h4 style="margin:0 0 10px 0;color:#28a745;">Next Steps</h4>
+//        <p style="margin:5px 0;color:#555555;">1. Complete your solicitor service request form</p>
+//        <p style="margin:5px 0;color:#555555;">2. Our team will review your requirements</p>
+//        <p style="margin:5px 0;color:#555555;">3. A qualified solicitor will be assigned to your case</p>
+//      </div>
+//      <p style="font-size:16px;color:#555555;line-height:1.6;">You can now apply for solicitor services through your student portal.</p>`,
+//     {
+//       text: "Request Solicitor Service",
+//       link: "https://yourwebsite.com/solicitor-services",
+//     }
+//   );
+
+//   await sendEmail({
+//     to: student.email,
+//     subject: "Solicitor Service Payment Confirmation",
+//     html,
+//   });
+// };
 // 📧 Send Payment Success Email
 const sendPaymentSuccessEmail = async (student) => {
+  const config = await PaymentConfig.findOne();
+  const platformFee = config ? config.platformFee / 100 : 20;
+  const currency = config ? config.currency : "GBP";
+
   const html = generateEmailTemplate(
     "Payment Confirmation",
     "#28a745",
     `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${
       student.firstName
     }</strong>,</p>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">We've successfully processed your payment of <strong>20 GBP</strong>.</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">We've successfully processed your payment of <strong>${platformFee} ${currency}</strong>.</p>
      <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
        <h4 style="margin:0 0 10px 0;color:#28a745;">Payment Details</h4>
-       <p style="margin:5px 0;color:#555555;"><strong>Amount:</strong> 20 GBP</p>
+       <p style="margin:5px 0;color:#555555;"><strong>Amount:</strong> ${platformFee} ${currency}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
        <p style="margin:5px 0;color:#555555;"><strong>Status:</strong> <span style="color:#28a745;">Completed</span></p>
      </div>
@@ -268,11 +328,15 @@ const sendPaymentSuccessEmail = async (student) => {
 
 // 📧 Solicitor Service Payment Email
 const sendSolicitorPaymentEmail = async (student) => {
+  const config = await PaymentConfig.findOne();
+  const solicitorFee = config ? config.solicitorFee / 100 : 500;
+  const currency = config ? config.currency : "GBP";
+
   const html = generateEmailTemplate(
     "Solicitor Service Confirmation",
     "#28a745",
     `<p style="font-size:16px;color:#333333;line-height:1.6;">Hi <strong>${student.firstName}</strong>,</p>
-     <p style="font-size:16px;color:#555555;line-height:1.6;">Thank you for purchasing our solicitor service package. Your payment has been processed successfully.</p>
+     <p style="font-size:16px;color:#555555;line-height:1.6;">Thank you for purchasing our solicitor service package. Your payment of <strong>${solicitorFee} ${currency}</strong> has been processed successfully.</p>
      <div style="background-color:#f8f9fa;border-radius:4px;padding:15px;margin:20px 0;">
        <h4 style="margin:0 0 10px 0;color:#28a745;">Next Steps</h4>
        <p style="margin:5px 0;color:#555555;">1. Complete your solicitor service request form</p>
@@ -292,6 +356,7 @@ const sendSolicitorPaymentEmail = async (student) => {
     html,
   });
 };
+
 
 // 📧 Application Acceptance Email (with attachment link)
 const sendAcceptanceEmail = async (email, courseName, universityName) => {
