@@ -435,6 +435,9 @@ exports.registerStudent = async (req, res) => {
       solicitorService
     } = req.body;
 
+// Always lowercase email fields
+    const normalizedEmail = email?.toLowerCase();
+    const normalizedConfirmEmail = confirmEmail?.toLowerCase();
 
     const isEnglishTestRequired = englishLanguageRequirement.toLowerCase() === 'yes';
 
@@ -495,8 +498,8 @@ if (existingRole) {
       lastName,
       dateOfBirth,
       gender,
-      email,
-      confirmEmail,
+      email: normalizedEmail,
+confirmEmail: normalizedConfirmEmail,
       password: hashedPassword,
       countryCode,
       telephoneNumber,
