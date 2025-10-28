@@ -866,6 +866,7 @@ exports.logout = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.toLowerCase();
     let user = null;
     let role = null;
 
@@ -881,7 +882,7 @@ exports.login = async (req, res) => {
 
     // Check each role collection
     for (const { model, roleName } of roleCollections) {
-      user = await model.findOne({ email });
+      user = await model.findOne({ email:normalizedEmail  });
       if (user) {
         role = roleName;
         break;
@@ -944,7 +945,16 @@ if (role === "student" && email === "letschat.praneeth@gmail.com") {
   );
 
   // Update current token
-  await Students.updateOne({ _id: user._id }, { $set: { currentToken: token } });
+ await Students.updateOne(
+    { _id: user._id }, 
+    { 
+      $set: { 
+        currentToken: token,
+        isVerified: true,  // Mark as verified in database
+        isPaid: true       // Mark as paid in database
+      }
+    }
+  );
 
   // Set token in HTTP-only cookie
   res.cookie('refreshtoken', token, {
@@ -972,8 +982,8 @@ if (role === "student" && email === "letschat.praneeth@gmail.com") {
       id: user._id,
       email: user.email,
       is_active: true,
-      email_verified: user.isVerified || true,
-      platform_fee_paid: user.isPaid || true, // Grant full access
+      email_verified: true,
+      platform_fee_paid: true, // Grant full access
     },
     platform_access: {
       courses_visible: true,
