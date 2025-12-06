@@ -44,6 +44,11 @@ router.use(
   authenticationMiddleware.resolveAgencyContext // <-- New middleware here
 );
 
+//ENABLE /DISABLE PLATFORM PAYMENT
+router.put('/platform-payment/:status',agencyController.togglePlatformPayment);
+router.get('/get-platform-payment/status',agencyController.getPlatformPaymentStatus);
+
+
 //RESET PASSWORD FOR ALL ROLES
 router.post('/roles/reset-password', agencyController.resetUserPasswordByAdmin);
 

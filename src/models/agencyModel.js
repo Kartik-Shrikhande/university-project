@@ -30,6 +30,10 @@ const agencySchema = new mongoose.Schema(
     role:{type: String, default: 'admin'},
     lastAssignedAgentIndex: { type: Number, default: 0 }, // <--- new field
     currentToken: { type: String, default: null },
+      platformPaymentEnabled: {
+    type: Boolean,
+    default: true, // Payment is ON by default
+  },
     isDeleted: { 
       type: Boolean, 
       default: false,

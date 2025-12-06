@@ -877,6 +877,45 @@ const sendAccountDeletionOtpEmail = async (to, otp) => {
 };
 
 
+const sendPlatformFeeWaivedEmail = async (student) => {
+  const html = generateEmailTemplate(
+    "Congratulations! You've Received Free Access 🎉",
+    "#28a745",
+    `
+      <div style="display: flex;">
+        <span style="font-size:16px;font-weight: normal; margin-right: 5px;">Hi</span>
+        <span style="font-size:16px;font-weight: bold;">${student.firstName}</span>
+      </div>
+
+      <p style="font-size:16px;color:#555555;line-height:1.6;">
+        🎉 <strong>Congratulations!</strong><br/>
+        You logged in during our special promotional period, and you’ve been 
+        <strong style="color:#28a745;">granted FREE access</strong> to Connect2Uni!
+      </p>
+
+      <p style="font-size:16px;color:#555555;line-height:1.6;">
+        This means your <strong>platform fee has been fully waived</strong> — no payment required.
+      </p>
+
+      <p style="font-size:16px;color:#555555;line-height:1.6;">
+        We’re excited to have you continue your study journey with us.<br/>
+        If you need any assistance, feel free to reach out at 
+        <strong>admin@connect2uni.com</strong>.
+      </p>
+    `,
+    {
+      text: "Go to Student Portal",
+      link: `${process.env.DASHBOARD_BASE_URL}`,
+    }
+  );
+
+  await sendEmail({
+    to: student.email,
+    subject: "Congratulations! You’ve Received Free Access to Connect2Uni 🎉",
+    html,
+  });
+};
+
 
 // Optional: a generic helper compatible with your old name, now Graph-backed
 const sendEmailWithLogo = async ({ to, subject, html }) => {
@@ -909,7 +948,8 @@ module.exports = {
    sendRequestAcceptedEmail,
   sendRequestRejectedEmail,
   sendResetPasswordEmail,
-    sendAccountDeletionOtpEmail
+    sendAccountDeletionOtpEmail,
+    sendPlatformFeeWaivedEmail
 };
 
 

@@ -25,7 +25,7 @@ const AssociateSolicitor =require('../models/associateModel')
 const Notification = require('../models/notificationModel');
 const checkEmailExists = require('../utils/checkEmailExists');
 const { sendVerificationEmail } = require('../services/emailService');
-const { generateEmailTemplate, sendEmail,sendAccountDeletionOtpEmail ,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
+const { generateEmailTemplate, sendEmail,sendAccountDeletionOtpEmail ,sendPlatformFeeWaivedEmail ,sendEmailWithLogo,sendLoginOtpEmail} = require('../services/emailService');
 const PaymentConfig = require("../models/paymentConfigModel");
 const path = require("path");
 const logoPath = path.join(__dirname, "../images/logo.png"); // Adjusted path to logo
@@ -863,26 +863,27 @@ exports.logout = async (req, res) => {
 
 
 
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = email?.toLowerCase();
+
     let user = null;
     let role = null;
 
-    // Role collections for login
     const roleCollections = [
       { model: University, roleName: 'University' },
       { model: Students, roleName: 'student' },
       { model: Agents, roleName: 'agent' },
       { model: Solicitor, roleName: 'solicitor' },
-      { model: Agency, roleName: 'admin' } ,// Updated to match Agency model
-      { model: AssociateSolicitor, roleName: 'Associate' } // Added Associate Role
+      { model: Agency, roleName: 'admin' },
+      { model: AssociateSolicitor, roleName: 'Associate' }
     ];
 
-    // Check each role collection
+    // FIND USER IN ANY ROLE
     for (const { model, roleName } of roleCollections) {
-      user = await model.findOne({ email:normalizedEmail  });
+      user = await model.findOne({ email: normalizedEmail });
       if (user) {
         role = roleName;
         break;
@@ -893,344 +894,77 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-       // Compare password
+    // PASSWORD CHECK
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-    //  // Check if email is verified
-   
-      // **Enforce Email Verification ONLY for Students**
-      if (role === "student" && !user.isVerified) {
-        return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
-      }
+    // STUDENT EMAIL VERIFICATION CHECK
+    if (role === "student" && !user.isVerified) {
+      return res.status(403).json({
+        message: 'Email not verified. Please verify your email before logging in.'
+      });
+    }
 
+    // JWT for non-students (students use OTP)
+    const token = jwt.sign(
+      { id: user._id, role: role },
+      process.env.SECRET_KEY,
+      { expiresIn: '1h' }
+    );
 
-    // Generate JWT Token
-    const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
-
-    // Invalidate previous session: Remove old token
+    // STORE TOKEN
     await roleCollections.find(r => r.roleName === role).model.updateOne(
       { _id: user._id },
       { $set: { currentToken: token } }
     );
 
-    // Set token in HTTP-only cookie
+    // COOKIE (same for all roles)
     res.cookie('refreshtoken', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'None',
-      maxAge: 604800000, // 7 days in milliseconds
+      maxAge: 604800000,
       path: '/'
     });
 
-
-    // Send JWT in Response Headers
     res.setHeader('Authorization', `Bearer ${token}`);
-    
- // **Always Update `loginCompleted` to `true` for Students if it is false**
-   // **Ensure `loginCompleted` is Set to `true` for Students Whenever It’s False**
+
+    // STUDENT LOGIN-COMPLETED FLAG
     if (role === "student" && user.loginCompleted === false) {
-      await Students.updateOne({ _id: user._id }, { $set: { loginCompleted: true } });
-      user.loginCompleted = true; // Update user object for response
-    }
-// APP STORE REVIEW BYPASS - Skip OTP for specific account
-if (role === "student" && email === "letschat.praneeth@gmail.com") {
-  // Generate JWT Token directly for App Store review account
-  const token = jwt.sign(
-    { id: user._id, role: "student" },
-    process.env.SECRET_KEY,
-    { expiresIn: "24h" } // Longer expiry for review
-  );
-
-  // Update current token
- await Students.updateOne(
-    { _id: user._id }, 
-    { 
-      $set: { 
-        currentToken: token,
-        isVerified: true,  // Mark as verified in database
-        isPaid: true       // Mark as paid in database
-      }
-    }
-  );
-
-  // Set token in HTTP-only cookie
-  res.cookie('refreshtoken', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'None',
-    maxAge: 604800000, // 7 days
-    path: '/'
-  });
-
-  // Send JWT in Response Headers
-  res.setHeader('Authorization', `Bearer ${token}`);
-
-  // Get payment configuration
-  const config = await PaymentConfig.findOne();
-  const platformFee = config?.platformFee ?? 500;
-  const currency = config?.currency || 'GBP';
-
-  // Return success response with full access
-  return res.status(200).json({
-    message: "Login successful (App Store Review Mode).",
-    role: "student",
-    token: token,
-    user: {
-      id: user._id,
-      email: user.email,
-      is_active: true,
-      email_verified: true,
-      platform_fee_paid: true, // Grant full access
-    },
-    platform_access: {
-      courses_visible: true,
-      payment_required: false,
-      message: "App Store Review Account - Full access granted."
-    },
-    notifications: [
-      {
-        id: "REVIEW-001",
-        type: "system",
-        title: "App Store Review Mode",
-        content: "This account has full access for App Store review purposes.",
-        is_read: false,
-        timestamp: new Date().toISOString()
-      }
-    ],
-    applications: user.applications || [],
-    visa_status: null,
-    payment_prompt: null // No payment required for review account
-  });
-}
-
-// Student login branch inside exports.login
-if (role === "student") {
-  // ✅ Generate 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // ✅ Save OTP & expiry (5 min)
-  user.loginOtp = otp;
-  user.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-  user.loginOtpAttempts = 0;
-  await user.save();  
-
-  // ✅ Send OTP email using your existing email template + sendEmail()
-  const html = generateEmailTemplate(
-    "Your Login OTP",
-    "#004AAC",
-    `<p style="font-size:16px;color:#333;">Hi ${user.firstName || "there"},</p>
-    <p style="font-size:16px;color:#555;">Your Connect2Uni login OTP is:</p>
-    <h2 style="text-align:center; font-size:28px; margin:20px 0;">${otp}</h2>
-    <p style="font-size:14px;color:#888;">This OTP will expire in 5 minutes.</p>`
-  );
-
-  await sendEmail({
-    to: user.email,
-    subject: "Your Connect2Uni Login OTP",
-    html,
-  });
-
-  return res.status(200).json({
-    message: "OTP sent to your email. Please verify to complete login.",
-    step: "OTP_REQUIRED",
-  });
-}
-
- // **Custom Response for Agent Role**
-if (role === "agent") {
-  const token = jwt.sign(
-    { id: user._id, role: role, agency: user.agency,email: user.email },
-    process.env.SECRET_KEY,
-    { expiresIn: '1h' }
-  );
-
-  await roleCollections.find(r => r.roleName === role).model.updateOne(
-    { _id: user._id },
-    { $set: { currentToken: token } }
-  );
-
-  res.cookie('refreshtoken', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'None',
-    maxAge: 604800000, // 7 days
-    path: '/'
-  });
-
-  res.setHeader('Authorization', `Bearer ${token}`);
-
-  return res.status(200).json({
-    message: 'Login successful.',
-    role: role,
-    token: token,
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phoneNumber: user.phoneNumber || '',
-      agencyId: user.agency || '',
-      created_at: user.createdAt
-    }
-  });
-}
-
-if (role === 'solicitor') {
-  return res.status(200).json({
-    message: 'Login successful.',
-    role: role,
-    token: token,
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      address: user.address,
-      visaRequestStatus: user.visaRequestStatus,
-      completedVisa: user.completedVisa
-    }
-  });
-}
-
-
- // **Custom Response for Associate Solicitor Role**
-    if (role === 'Associate') {
-      return res.status(200).json({
-        message: 'Login successful.',
-        role: role,
-        token: token,
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          address: user.address || '',
-          created_at: user.createdAt
-        },
-      });
+      await Students.updateOne(
+        { _id: user._id },
+        { $set: { loginCompleted: true } }
+      );
+      user.loginCompleted = true;
     }
 
-    // **Custom Response for Agency Role**
-    if (role === 'admin') {
-      const agencyResponse = {
-        message: 'Login successful.',
-        role: role,
-        token: token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          contactNumber: user.contactPhone || '',
-          address: user.address || '',
-          created_at: user.createdAt
-        },
-        platform_access: {
-          allowed_actions: [
-            "create_agents",
-            "view_agents",
-            "view_student_applications",
-            "assign_associates"
-          ],
-          blocked_actions: [
-            "edit_profile",
-            "apply_to_courses" // Agencies cannot apply to courses
-          ]
-        },
-      
-        metadata: {
-          total_agents: user?.agents?.length || 0,
-          total_students: user?.students?.length || 0,
-          pending_applications: user?.pendingApplications?.length || 0,
-          approved_applications: user?.sentApplicationsToUniversities?.length || 0
-        }
-      };
-      return res.status(200).json(agencyResponse);
-    }
-
-
- // **Custom Response for University Role**
- if (role === 'University') {
-  return res.status(200).json({
-    message: 'Login successful.',
-    role: role,
-    token: token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      contactNumber: user.contactPhone || '',
-      address: user.address || '',
-      created_at: user.createdAt
-    },
-  
-  
-    platform_access: {
-      allowed_actions: [
-        "view_applications",
-        "approve_applications",
-        "reject_applications",
-        "validate_payments"
-      ],
-      blocked_actions: [
-        "edit_profile",
-        "apply_to_courses"
-      ]
-    },
-   
-    metadata: {
-      total_applications: (user.pendingApplications?.length || 0) + (user.sentApplicationsToUniversities?.length || 0),
-      pending_applications: user.pendingApplications?.length || 0,
-      approved_applications: user.approvedApplications?.length || 0
-    }
-  });
-}
-
-    // **Default Response for Other Roles**
-    return res.status(200).json({ message: 'Login successful.', role: role, token });
-
-  } catch (error) {
-    console.error('Login Error:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
-
-exports.verifyLoginOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    
-    // APP STORE REVIEW BYPASS - Allow any OTP for specific account
-    if (email === "letschat.praneeth@gmail.com") {
-      const student = await Students.findOne({ email });
-      
-      if (!student) {
-        return res.status(404).json({ message: "Review account not found." });
-      }
-
-      // Generate JWT for review account (bypass OTP validation)
-      const token = jwt.sign(
-        { id: student._id, role: "student" },
+    // ===============================
+    // 🔥 APP STORE REVIEW ACCOUNT BYPASS
+    // ===============================
+    if (role === "student" && email === "letschat.praneeth@gmail.com") {
+      const reviewToken = jwt.sign(
+        { id: user._id, role: "student" },
         process.env.SECRET_KEY,
         { expiresIn: "24h" }
       );
 
-      await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
+      await Students.updateOne(
+        { _id: user._id },
+        { $set: { currentToken: reviewToken, isVerified: true, isPaid: true } }
+      );
 
-      res.cookie("refreshtoken", token, {
+      res.cookie('refreshtoken', reviewToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "None",
+        sameSite: 'None',
         maxAge: 604800000,
-        path: "/",
+        path: '/'
       });
 
-      res.setHeader("Authorization", `Bearer ${token}`);
+      res.setHeader('Authorization', `Bearer ${reviewToken}`);
 
-      // Get payment configuration
       const config = await PaymentConfig.findOne();
       const platformFee = config?.platformFee ?? 500;
       const currency = config?.currency || 'GBP';
@@ -1238,13 +972,13 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.status(200).json({
         message: "Login successful (App Store Review Mode).",
         role: "student",
-        token: token,
+        token: reviewToken,
         user: {
-          id: student._id,
-          email: student.email,
+          id: user._id,
+          email: user.email,
           is_active: true,
           email_verified: true,
-          platform_fee_paid: true, // Grant full access
+          platform_fee_paid: true
         },
         platform_access: {
           courses_visible: true,
@@ -1261,130 +995,790 @@ exports.verifyLoginOtp = async (req, res) => {
             timestamp: new Date().toISOString()
           }
         ],
-        applications: student.applications || [],
-        visa_status: null,
-        payment_prompt: null
+        applications: user.applications || []
       });
     }
 
-    const student = await Students.findOne({ email });
+    // ==================================================
+    // 🔥 STUDENT LOGIN → SEND OTP FOR MFA (no marking here)
+    // ==================================================
+    if (role === "student") {
+      // Generate OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    if (!student || !student.loginOtp) {
-      return res.status(400).json({ message: "OTP not found. Please login again." });
+      user.loginOtp = otp;
+      user.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+      user.loginOtpAttempts = 0;
+      await user.save();
+
+      const html = generateEmailTemplate(
+        "Your Login OTP",
+        "#004AAC",
+        `<p style="font-size:16px;color:#333;">Hi ${user.firstName || "there"},</p>
+         <p style="font-size:16px;color:#555;">Your Connect2Uni login OTP is:</p>
+         <h2 style="text-align:center; font-size:28px; margin:20px 0;">${otp}</h2>
+         <p style="font-size:14px;color:#888;">This OTP will expire in 5 minutes.</p>`
+      );
+
+      await sendEmail({
+        to: user.email,
+        subject: "Your Connect2Uni Login OTP",
+        html
+      });
+
+      return res.status(200).json({
+        message: "OTP sent to your email. Please verify to complete login.",
+        step: "OTP_REQUIRED"
+      });
     }
 
-    // Check OTP expiry
-    if (student.loginOtpExpiry < new Date()) {
-      student.loginOtp = null;
-      student.loginOtpExpiry = null;
-      await student.save();
-      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    // ===============================
+    // OTHER ROLES → RETURN NORMAL LOGIN (NO CHANGE)
+    // ===============================
+
+    // AGENT
+    if (role === "agent") {
+      const agentToken = jwt.sign(
+        { id: user._id, role, agency: user.agency, email: user.email },
+        process.env.SECRET_KEY,
+        { expiresIn: '1h' }
+      );
+
+      await Agents.updateOne(
+        { _id: user._id },
+        { $set: { currentToken: agentToken } }
+      );
+
+      res.cookie('refreshtoken', agentToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+        maxAge: 604800000,
+        path: '/'
+      });
+
+      res.setHeader('Authorization', `Bearer ${agentToken}`);
+
+      return res.status(200).json({
+        message: "Login successful.",
+        role,
+        token: agentToken,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber || '',
+          agencyId: user.agency || '',
+          created_at: user.createdAt
+        }
+      });
     }
 
-    // Validate OTP
+    // SOLICITOR
+    if (role === 'solicitor') {
+      return res.status(200).json({
+        message: 'Login successful.',
+        role,
+        token,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+          visaRequestStatus: user.visaRequestStatus,
+          completedVisa: user.completedVisa
+        }
+      });
+    }
+
+    // ASSOCIATE
+    if (role === 'Associate') {
+      return res.status(200).json({
+        message: 'Login successful.',
+        role,
+        token,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          address: user.address || '',
+          created_at: user.createdAt
+        }
+      });
+    }
+
+    // ADMIN (AGENCY)
+    if (role === 'admin') {
+      return res.status(200).json({
+        message: 'Login successful.',
+        role,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          contactNumber: user.contactPhone || '',
+          address: user.address || '',
+          created_at: user.createdAt
+        }
+      });
+    }
+
+    // UNIVERSITY
+    if (role === 'University') {
+      return res.status(200).json({
+        message: 'Login successful.',
+        role,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          contactNumber: user.contactPhone || '',
+          address: user.address || '',
+          created_at: user.createdAt
+        }
+      });
+    }
+
+    return res.status(200).json({ message: "Login successful.", role, token });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+// ===============================
+// VERIFY LOGIN OTP (single-agency system)
+// ===============================
+exports.verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    let student = await Students.findOne({ email: email.toLowerCase() });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    // Deleted account check
+    if (student.isDeleted) {
+      return res.status(400).json({
+        success: false,
+        message: "Account is deleted",
+      });
+    }
+
+    // OTP expiration
+    if (!student.loginOtp || !student.loginOtpExpiry || student.loginOtpExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired. Please request a new one.",
+      });
+    }
+
+    // OTP mismatch
     if (student.loginOtp !== otp) {
       student.loginOtpAttempts += 1;
       await student.save();
 
-      if (student.loginOtpAttempts >= 3) {
-        student.loginOtp = null;
-        student.loginOtpExpiry = null;
-        await student.save();
-        return res.status(400).json({ message: "Too many wrong attempts. Please login again." });
-      }
-
-      return res.status(400).json({ message: "Invalid OTP. Try again." });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
     }
 
-    // ✅ OTP verified — clear OTP & reset attempts
+    // ================================================
+    // FETCH THE ONLY AGENCY (GLOBAL PLATFORM SETTINGS)
+    // ================================================
+    const agency = await Agency.findOne(); // single agency system
+
+    // If agency is present and payment flag is false => platform disabled
+    const platformDisabled = !!(agency && agency.platformPaymentEnabled === false);
+
+    // =========================================================
+    // AUTO-MARK STUDENT AS PAID IF PLATFORM PAYMENT IS DISABLED
+    // Send email ONCE when flipping from unpaid -> paid
+    // =========================================================
+    if (!student.isPaid && platformDisabled) {
+      // mark paid and try to send email (best-effort)
+      student.isPaid = true;
+      try {
+        // call the helper that sends the "platform fee waived" email
+        // signature you've used earlier: sendPlatformFeeWaivedEmail(email, firstName)
+      await sendPlatformFeeWaivedEmail(student);
+
+      } catch (emailErr) {
+        // log email error but do not prevent login
+        console.error("sendPlatformFeeWaivedEmail error:", emailErr);
+      }
+    }
+
+    // Clear OTP fields
     student.loginOtp = null;
     student.loginOtpExpiry = null;
     student.loginOtpAttempts = 0;
-    await student.save();
 
-    // ✅ Generate JWT
+    // Generate token for student final session
     const token = jwt.sign(
       { id: student._id, role: "student" },
       process.env.SECRET_KEY,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
-    await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
 
-    res.cookie("refreshtoken", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 604800000,
-      path: "/",
-    });
-
-    res.setHeader("Authorization", `Bearer ${token}`);
-
-    // // ✅ Fetch current payment configuration
-    // const paymentConfig = await PaymentConfig.findOne();
-    // const platformFee = paymentConfig?.platformFee ? paymentConfig.platformFee / 100 : 5; // convert pence → GBP
-    // const currency = paymentConfig?.currency || "GBP";
-
-
-     // ✅ Get latest payment configuration
-      const config = await PaymentConfig.findOne();
-      const platformFee = config?.platformFee ?? 500; // use stored value directly
-      const currency = config?.currency || 'GBP';
-    // ✅ Map student to user object
-    const user = {
-      _id: student._id,
-      email: student.email,
-      isVerified: student.isVerified || false,
-      isPaid: student.isPaid || false,
-      createdAt: student.createdAt,
-      applications: student.applications || []
-    };
+    student.currentToken = token;
+    await student.save();
 
     return res.status(200).json({
-      message: "Login successful.",
-      role: "student",
-      token: token,
-      user: {
-        id: user._id,
-        email: user.email,
-        is_active: true,
-        email_verified: user.isVerified,
-        platform_fee_paid: user.isPaid,
-        created_at: user.createdAt,
-      },
-      platform_access: {
-        courses_visible: user.isPaid,
-        payment_required: !user.isPaid,
-        message: user.isPaid
-          ? "You have full access to view universities and courses."
-          : "Pay the platform fee to view universities and courses."
-      },
-      notifications: [
-        {
-          id: "NOTIF-001",
-          type: "system",
-          title: "Welcome to Connect2Uni!",
-          content: "Complete your profile and pay the platform fee to proceed.",
-          is_read: false,
-          timestamp: new Date().toISOString()
-        }
-      ],
-      applications: user.applications,
-      visa_status: null,
-        payment_prompt: !user.isPaid
-            ? {
-                type: 'platform_fee',
-                platformFee: platformFee,  // ✅ raw value from admin (no conversion)
-                currency              // ✅ directly from config
-              }
-            : null
-        });
+      success: true,
+      message: "OTP verified successfully",
+      token,
+      student,
+    });
 
   } catch (error) {
-    console.error("OTP Verification Error:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    console.log("Verify OTP Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
+
+
+
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     const normalizedEmail = email?.toLowerCase();
+//     let user = null;
+//     let role = null;
+
+//     // Role collections for login
+//     const roleCollections = [
+//       { model: University, roleName: 'University' },
+//       { model: Students, roleName: 'student' },
+//       { model: Agents, roleName: 'agent' },
+//       { model: Solicitor, roleName: 'solicitor' },
+//       { model: Agency, roleName: 'admin' } ,// Updated to match Agency model
+//       { model: AssociateSolicitor, roleName: 'Associate' } // Added Associate Role
+//     ];
+
+//     // Check each role collection
+//     for (const { model, roleName } of roleCollections) {
+//       user = await model.findOne({ email:normalizedEmail  });
+//       if (user) {
+//         role = roleName;
+//         break;
+//       }
+//     }
+
+//     if (!user) {
+//       return res.status(400).json({ message: 'Invalid email or password.' });
+//     }
+
+//        // Compare password
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ message: 'Invalid email or password.' });
+//     }
+
+//     //  // Check if email is verified
+   
+//       // **Enforce Email Verification ONLY for Students**
+//       if (role === "student" && !user.isVerified) {
+//         return res.status(403).json({ message: 'Email not verified. Please verify your email before logging in.' });
+//       }
+
+
+//     // Generate JWT Token
+//     const token = jwt.sign({ id: user._id, role: role }, process.env.SECRET_KEY, { expiresIn: '1h' });
+
+//     // Invalidate previous session: Remove old token
+//     await roleCollections.find(r => r.roleName === role).model.updateOne(
+//       { _id: user._id },
+//       { $set: { currentToken: token } }
+//     );
+
+//     // Set token in HTTP-only cookie
+//     res.cookie('refreshtoken', token, {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: 'None',
+//       maxAge: 604800000, // 7 days in milliseconds
+//       path: '/'
+//     });
+
+
+//     // Send JWT in Response Headers
+//     res.setHeader('Authorization', `Bearer ${token}`);
+    
+//  // **Always Update `loginCompleted` to `true` for Students if it is false**
+//    // **Ensure `loginCompleted` is Set to `true` for Students Whenever It’s False**
+//     if (role === "student" && user.loginCompleted === false) {
+//       await Students.updateOne({ _id: user._id }, { $set: { loginCompleted: true } });
+//       user.loginCompleted = true; // Update user object for response
+//     }
+// // APP STORE REVIEW BYPASS - Skip OTP for specific account
+// if (role === "student" && email === "letschat.praneeth@gmail.com") {
+//   // Generate JWT Token directly for App Store review account
+//   const token = jwt.sign(
+//     { id: user._id, role: "student" },
+//     process.env.SECRET_KEY,
+//     { expiresIn: "24h" } // Longer expiry for review
+//   );
+
+//   // Update current token
+//  await Students.updateOne(
+//     { _id: user._id }, 
+//     { 
+//       $set: { 
+//         currentToken: token,
+//         isVerified: true,  // Mark as verified in database
+//         isPaid: true       // Mark as paid in database
+//       }
+//     }
+//   );
+
+//   // Set token in HTTP-only cookie
+//   res.cookie('refreshtoken', token, {
+//     httpOnly: true,
+//     secure: true,
+//     sameSite: 'None',
+//     maxAge: 604800000, // 7 days
+//     path: '/'
+//   });
+
+//   // Send JWT in Response Headers
+//   res.setHeader('Authorization', `Bearer ${token}`);
+
+//   // Get payment configuration
+//   const config = await PaymentConfig.findOne();
+//   const platformFee = config?.platformFee ?? 500;
+//   const currency = config?.currency || 'GBP';
+
+//   // Return success response with full access
+//   return res.status(200).json({
+//     message: "Login successful (App Store Review Mode).",
+//     role: "student",
+//     token: token,
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       is_active: true,
+//       email_verified: true,
+//       platform_fee_paid: true, // Grant full access
+//     },
+//     platform_access: {
+//       courses_visible: true,
+//       payment_required: false,
+//       message: "App Store Review Account - Full access granted."
+//     },
+//     notifications: [
+//       {
+//         id: "REVIEW-001",
+//         type: "system",
+//         title: "App Store Review Mode",
+//         content: "This account has full access for App Store review purposes.",
+//         is_read: false,
+//         timestamp: new Date().toISOString()
+//       }
+//     ],
+//     applications: user.applications || [],
+//     visa_status: null,
+//     payment_prompt: null // No payment required for review account
+//   });
+// }
+
+// // Student login branch inside exports.login
+// if (role === "student") {
+//   // ✅ Generate 6-digit OTP
+//   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+//   // ✅ Save OTP & expiry (5 min)
+//   user.loginOtp = otp;
+//   user.loginOtpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+//   user.loginOtpAttempts = 0;
+//   await user.save();  
+
+//   // ✅ Send OTP email using your existing email template + sendEmail()
+//   const html = generateEmailTemplate(
+//     "Your Login OTP",
+//     "#004AAC",
+//     `<p style="font-size:16px;color:#333;">Hi ${user.firstName || "there"},</p>
+//     <p style="font-size:16px;color:#555;">Your Connect2Uni login OTP is:</p>
+//     <h2 style="text-align:center; font-size:28px; margin:20px 0;">${otp}</h2>
+//     <p style="font-size:14px;color:#888;">This OTP will expire in 5 minutes.</p>`
+//   );
+
+//   await sendEmail({
+//     to: user.email,
+//     subject: "Your Connect2Uni Login OTP",
+//     html,
+//   });
+
+//   return res.status(200).json({
+//     message: "OTP sent to your email. Please verify to complete login.",
+//     step: "OTP_REQUIRED",
+//   });
+// }
+
+//  // **Custom Response for Agent Role**
+// if (role === "agent") {
+//   const token = jwt.sign(
+//     { id: user._id, role: role, agency: user.agency,email: user.email },
+//     process.env.SECRET_KEY,
+//     { expiresIn: '1h' }
+//   );
+
+//   await roleCollections.find(r => r.roleName === role).model.updateOne(
+//     { _id: user._id },
+//     { $set: { currentToken: token } }
+//   );
+
+//   res.cookie('refreshtoken', token, {
+//     httpOnly: true,
+//     secure: true,
+//     sameSite: 'None',
+//     maxAge: 604800000, // 7 days
+//     path: '/'
+//   });
+
+//   res.setHeader('Authorization', `Bearer ${token}`);
+
+//   return res.status(200).json({
+//     message: 'Login successful.',
+//     role: role,
+//     token: token,
+//     user: {
+//       id: user._id,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       email: user.email,
+//       phoneNumber: user.phoneNumber || '',
+//       agencyId: user.agency || '',
+//       created_at: user.createdAt
+//     }
+//   });
+// }
+
+// if (role === 'solicitor') {
+//   return res.status(200).json({
+//     message: 'Login successful.',
+//     role: role,
+//     token: token,
+//     user: {
+//       id: user._id,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       email: user.email,
+//       phoneNumber: user.phoneNumber,
+//       address: user.address,
+//       visaRequestStatus: user.visaRequestStatus,
+//       completedVisa: user.completedVisa
+//     }
+//   });
+// }
+
+
+//  // **Custom Response for Associate Solicitor Role**
+//     if (role === 'Associate') {
+//       return res.status(200).json({
+//         message: 'Login successful.',
+//         role: role,
+//         token: token,
+//         user: {
+//           id: user._id,
+//           firstName: user.firstName,
+//           lastName: user.lastName,
+//           email: user.email,
+//           phoneNumber: user.phoneNumber,
+//           address: user.address || '',
+//           created_at: user.createdAt
+//         },
+//       });
+//     }
+
+//     // **Custom Response for Agency Role**
+//     if (role === 'admin') {
+//       const agencyResponse = {
+//         message: 'Login successful.',
+//         role: role,
+//         token: token,
+//         user: {
+//           id: user._id,
+//           name: user.name,
+//           email: user.email,
+//           contactNumber: user.contactPhone || '',
+//           address: user.address || '',
+//           created_at: user.createdAt
+//         },
+//         platform_access: {
+//           allowed_actions: [
+//             "create_agents",
+//             "view_agents",
+//             "view_student_applications",
+//             "assign_associates"
+//           ],
+//           blocked_actions: [
+//             "edit_profile",
+//             "apply_to_courses" // Agencies cannot apply to courses
+//           ]
+//         },
+      
+//         metadata: {
+//           total_agents: user?.agents?.length || 0,
+//           total_students: user?.students?.length || 0,
+//           pending_applications: user?.pendingApplications?.length || 0,
+//           approved_applications: user?.sentApplicationsToUniversities?.length || 0
+//         }
+//       };
+//       return res.status(200).json(agencyResponse);
+//     }
+
+
+//  // **Custom Response for University Role**
+//  if (role === 'University') {
+//   return res.status(200).json({
+//     message: 'Login successful.',
+//     role: role,
+//     token: token,
+//     user: {
+//       id: user._id,
+//       name: user.name,
+//       email: user.email,
+//       contactNumber: user.contactPhone || '',
+//       address: user.address || '',
+//       created_at: user.createdAt
+//     },
+  
+  
+//     platform_access: {
+//       allowed_actions: [
+//         "view_applications",
+//         "approve_applications",
+//         "reject_applications",
+//         "validate_payments"
+//       ],
+//       blocked_actions: [
+//         "edit_profile",
+//         "apply_to_courses"
+//       ]
+//     },
+   
+//     metadata: {
+//       total_applications: (user.pendingApplications?.length || 0) + (user.sentApplicationsToUniversities?.length || 0),
+//       pending_applications: user.pendingApplications?.length || 0,
+//       approved_applications: user.approvedApplications?.length || 0
+//     }
+//   });
+// }
+
+//     // **Default Response for Other Roles**
+//     return res.status(200).json({ message: 'Login successful.', role: role, token });
+
+//   } catch (error) {
+//     console.error('Login Error:', error);
+//     return res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// };
+
+// exports.verifyLoginOtp = async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
+    
+//     // APP STORE REVIEW BYPASS - Allow any OTP for specific account
+//     if (email === "letschat.praneeth@gmail.com") {
+//       const student = await Students.findOne({ email });
+      
+//       if (!student) {
+//         return res.status(404).json({ message: "Review account not found." });
+//       }
+
+//       // Generate JWT for review account (bypass OTP validation)
+//       const token = jwt.sign(
+//         { id: student._id, role: "student" },
+//         process.env.SECRET_KEY,
+//         { expiresIn: "24h" }
+//       );
+
+//       await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
+
+//       res.cookie("refreshtoken", token, {
+//         httpOnly: true,
+//         secure: true,
+//         sameSite: "None",
+//         maxAge: 604800000,
+//         path: "/",
+//       });
+
+//       res.setHeader("Authorization", `Bearer ${token}`);
+
+//       // Get payment configuration
+//       const config = await PaymentConfig.findOne();
+//       const platformFee = config?.platformFee ?? 500;
+//       const currency = config?.currency || 'GBP';
+
+//       return res.status(200).json({
+//         message: "Login successful (App Store Review Mode).",
+//         role: "student",
+//         token: token,
+//         user: {
+//           id: student._id,
+//           email: student.email,
+//           is_active: true,
+//           email_verified: true,
+//           platform_fee_paid: true, // Grant full access
+//         },
+//         platform_access: {
+//           courses_visible: true,
+//           payment_required: false,
+//           message: "App Store Review Account - Full access granted."
+//         },
+//         notifications: [
+//           {
+//             id: "REVIEW-001",
+//             type: "system",
+//             title: "App Store Review Mode",
+//             content: "This account has full access for App Store review purposes.",
+//             is_read: false,
+//             timestamp: new Date().toISOString()
+//           }
+//         ],
+//         applications: student.applications || [],
+//         visa_status: null,
+//         payment_prompt: null
+//       });
+//     }
+
+//     const student = await Students.findOne({ email });
+
+//     if (!student || !student.loginOtp) {
+//       return res.status(400).json({ message: "OTP not found. Please login again." });
+//     }
+
+//     // Check OTP expiry
+//     if (student.loginOtpExpiry < new Date()) {
+//       student.loginOtp = null;
+//       student.loginOtpExpiry = null;
+//       await student.save();
+//       return res.status(400).json({ message: "OTP expired. Please request a new one." });
+//     }
+
+//     // Validate OTP
+//     if (student.loginOtp !== otp) {
+//       student.loginOtpAttempts += 1;
+//       await student.save();
+
+//       if (student.loginOtpAttempts >= 3) {
+//         student.loginOtp = null;
+//         student.loginOtpExpiry = null;
+//         await student.save();
+//         return res.status(400).json({ message: "Too many wrong attempts. Please login again." });
+//       }
+
+//       return res.status(400).json({ message: "Invalid OTP. Try again." });
+//     }
+
+//     // ✅ OTP verified — clear OTP & reset attempts
+//     student.loginOtp = null;
+//     student.loginOtpExpiry = null;
+//     student.loginOtpAttempts = 0;
+//     await student.save();
+
+//     // ✅ Generate JWT
+//     const token = jwt.sign(
+//       { id: student._id, role: "student" },
+//       process.env.SECRET_KEY,
+//       { expiresIn: "1h" }
+//     );
+//     await Students.updateOne({ _id: student._id }, { $set: { currentToken: token } });
+
+//     res.cookie("refreshtoken", token, {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: "None",
+//       maxAge: 604800000,
+//       path: "/",
+//     });
+
+//     res.setHeader("Authorization", `Bearer ${token}`);
+
+//     // // ✅ Fetch current payment configuration
+//     // const paymentConfig = await PaymentConfig.findOne();
+//     // const platformFee = paymentConfig?.platformFee ? paymentConfig.platformFee / 100 : 5; // convert pence → GBP
+//     // const currency = paymentConfig?.currency || "GBP";
+
+
+//      // ✅ Get latest payment configuration
+//       const config = await PaymentConfig.findOne();
+//       const platformFee = config?.platformFee ?? 500; // use stored value directly
+//       const currency = config?.currency || 'GBP';
+//     // ✅ Map student to user object
+//     const user = {
+//       _id: student._id,
+//       email: student.email,
+//       isVerified: student.isVerified || false,
+//       isPaid: student.isPaid || false,
+//       createdAt: student.createdAt,
+//       applications: student.applications || []
+//     };
+
+//     return res.status(200).json({
+//       message: "Login successful.",
+//       role: "student",
+//       token: token,
+//       user: {
+//         id: user._id,
+//         email: user.email,
+//         is_active: true,
+//         email_verified: user.isVerified,
+//         platform_fee_paid: user.isPaid,
+//         created_at: user.createdAt,
+//       },
+//       platform_access: {
+//         courses_visible: user.isPaid,
+//         payment_required: !user.isPaid,
+//         message: user.isPaid
+//           ? "You have full access to view universities and courses."
+//           : "Pay the platform fee to view universities and courses."
+//       },
+//       notifications: [
+//         {
+//           id: "NOTIF-001",
+//           type: "system",
+//           title: "Welcome to Connect2Uni!",
+//           content: "Complete your profile and pay the platform fee to proceed.",
+//           is_read: false,
+//           timestamp: new Date().toISOString()
+//         }
+//       ],
+//       applications: user.applications,
+//       visa_status: null,
+//         payment_prompt: !user.isPaid
+//             ? {
+//                 type: 'platform_fee',
+//                 platformFee: platformFee,  // ✅ raw value from admin (no conversion)
+//                 currency              // ✅ directly from config
+//               }
+//             : null
+//         });
+
+//   } catch (error) {
+//     console.error("OTP Verification Error:", error);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
 
 
 

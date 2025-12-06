@@ -22,6 +22,79 @@ const { isValidObjectId } = require('mongoose');
 require('dotenv').config()
 
 
+
+//Enable or Disable Platform Payment for student 
+// Toggle Platform Payment (Enable/Disable)
+exports.togglePlatformPayment = async (req, res) => {
+  try {
+    const agencyId = req.user.id; // logged-in agency
+    const { status } = req.params; // "true" or "false"
+
+    if (status !== "true" && status !== "false") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status. Use 'true' or 'false'."
+      });
+    }
+
+    const enabled = status === "true";
+
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      return res.status(404).json({
+        success: false,
+        message: "Agency not found",
+      });
+    }
+
+    agency.platformPaymentEnabled = enabled;
+    await agency.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Platform payment has been ${enabled ? "enabled" : "disabled"}.`,
+      platformPaymentEnabled: agency.platformPaymentEnabled,
+    });
+
+  } catch (error) {
+    console.log("Platform Payment Toggle Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Get current platform payment status
+exports.getPlatformPaymentStatus = async (req, res) => {
+  try {
+    const agencyId = req.user.id; // logged-in agency
+
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      return res.status(404).json({
+        success: false,
+        message: "Agency not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      platformPaymentEnabled: agency.platformPaymentEnabled,
+    });
+
+  } catch (error) {
+    console.log("Get Platform Payment Status Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+
+
+
 //reset password of all the roles 
 exports.resetUserPasswordByAdmin = async (req, res) => {
   try {
