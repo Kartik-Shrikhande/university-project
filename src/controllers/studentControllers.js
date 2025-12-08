@@ -863,7 +863,10 @@ exports.logout = async (req, res) => {
 
 
 
-
+//CURRENTLY USED 
+// ===============================
+// LOGIN CONTROLLER
+// ===============================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -1000,10 +1003,9 @@ exports.login = async (req, res) => {
     }
 
     // ==================================================
-    // 🔥 STUDENT LOGIN → SEND OTP FOR MFA (no marking here)
+    // STUDENT LOGIN → SEND OTP
     // ==================================================
     if (role === "student") {
-      // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
       user.loginOtp = otp;
@@ -1032,11 +1034,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ===============================
-    // OTHER ROLES → RETURN NORMAL LOGIN (NO CHANGE)
-    // ===============================
-
-    // AGENT
+    // Other roles continue normally...
     if (role === "agent") {
       const agentToken = jwt.sign(
         { id: user._id, role, agency: user.agency, email: user.email },
@@ -1075,7 +1073,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // SOLICITOR
     if (role === 'solicitor') {
       return res.status(200).json({
         message: 'Login successful.',
@@ -1094,7 +1091,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ASSOCIATE
     if (role === 'Associate') {
       return res.status(200).json({
         message: 'Login successful.',
@@ -1112,7 +1108,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ADMIN (AGENCY)
     if (role === 'admin') {
       return res.status(200).json({
         message: 'Login successful.',
@@ -1129,7 +1124,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // UNIVERSITY
     if (role === 'University') {
       return res.status(200).json({
         message: 'Login successful.',
@@ -1155,8 +1149,9 @@ exports.login = async (req, res) => {
 };
 
 
+
 // ===============================
-// VERIFY LOGIN OTP (single-agency system)
+// VERIFY LOGIN OTP (UPDATED RESPONSE FORMAT)
 // ===============================
 exports.verifyLoginOtp = async (req, res) => {
   try {
@@ -1171,7 +1166,6 @@ exports.verifyLoginOtp = async (req, res) => {
       });
     }
 
-    // Deleted account check
     if (student.isDeleted) {
       return res.status(400).json({
         success: false,
@@ -1179,7 +1173,6 @@ exports.verifyLoginOtp = async (req, res) => {
       });
     }
 
-    // OTP expiration
     if (!student.loginOtp || !student.loginOtpExpiry || student.loginOtpExpiry < Date.now()) {
       return res.status(400).json({
         success: false,
@@ -1187,7 +1180,6 @@ exports.verifyLoginOtp = async (req, res) => {
       });
     }
 
-    // OTP mismatch
     if (student.loginOtp !== otp) {
       student.loginOtpAttempts += 1;
       await student.save();
@@ -1198,38 +1190,22 @@ exports.verifyLoginOtp = async (req, res) => {
       });
     }
 
-    // ================================================
-    // FETCH THE ONLY AGENCY (GLOBAL PLATFORM SETTINGS)
-    // ================================================
-    const agency = await Agency.findOne(); // single agency system
-
-    // If agency is present and payment flag is false => platform disabled
+    const agency = await Agency.findOne();
     const platformDisabled = !!(agency && agency.platformPaymentEnabled === false);
 
-    // =========================================================
-    // AUTO-MARK STUDENT AS PAID IF PLATFORM PAYMENT IS DISABLED
-    // Send email ONCE when flipping from unpaid -> paid
-    // =========================================================
     if (!student.isPaid && platformDisabled) {
-      // mark paid and try to send email (best-effort)
       student.isPaid = true;
       try {
-        // call the helper that sends the "platform fee waived" email
-        // signature you've used earlier: sendPlatformFeeWaivedEmail(email, firstName)
-      await sendPlatformFeeWaivedEmail(student);
-
+        await sendPlatformFeeWaivedEmail(student);
       } catch (emailErr) {
-        // log email error but do not prevent login
         console.error("sendPlatformFeeWaivedEmail error:", emailErr);
       }
     }
 
-    // Clear OTP fields
     student.loginOtp = null;
     student.loginOtpExpiry = null;
     student.loginOtpAttempts = 0;
 
-    // Generate token for student final session
     const token = jwt.sign(
       { id: student._id, role: "student" },
       process.env.SECRET_KEY,
@@ -1239,11 +1215,79 @@ exports.verifyLoginOtp = async (req, res) => {
     student.currentToken = token;
     await student.save();
 
+    // =====================================================
+    // 🔥 YOUR REQUIRED STUDENT RESPONSE FORMAT BELOW
+    // =====================================================
+
+    const isPaid = student.isPaid === true;
+
+    const config = await PaymentConfig.findOne();
+    const platformFee = config?.platformFee ?? 500;
+    const currency = config?.currency || "GBP";
+
+    const notifications = [
+      {
+        id: "NOTIF-001",
+        type: "system",
+        title: "Welcome to Connect2Uni!",
+        content: "Complete your profile and pay the platform fee to proceed.",
+        is_read: false,
+        timestamp: new Date().toISOString(),
+      }
+    ];
+
+    // 👉 UNPAID STUDENT RESPONSE
+    if (!isPaid) {
+      return res.status(200).json({
+        message: "Login successful.",
+        role: "student",
+        token,
+        user: {
+          id: student._id,
+          email: student.email,
+          is_active: true,
+          email_verified: true,
+          platform_fee_paid: false,
+          created_at: student.createdAt
+        },
+        platform_access: {
+          courses_visible: false,
+          payment_required: true,
+          message: "Pay the platform fee to view universities and courses."
+        },
+        notifications,
+        applications: student.applications || [],
+        visa_status: null,
+        payment_prompt: {
+          type: "platform_fee",
+          platformFee,
+          currency
+        }
+      });
+    }
+
+    // 👉 PAID STUDENT RESPONSE
     return res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
+      message: "Login successful.",
+      role: "student",
       token,
-      student,
+      user: {
+        id: student._id,
+        email: student.email,
+        is_active: true,
+        email_verified: true,
+        platform_fee_paid: true,
+        created_at: student.createdAt
+      },
+      platform_access: {
+        courses_visible: true,
+        payment_required: false,
+        message: "You have full access to view universities and courses."
+      },
+      notifications,
+      applications: student.applications || [],
+      visa_status: null,
+      payment_prompt: null
     });
 
   } catch (error) {
@@ -1256,7 +1300,7 @@ exports.verifyLoginOtp = async (req, res) => {
 };
 
 
-
+//PREVIOUSE;LY USED
 // exports.login = async (req, res) => {
 //   try {
 //     const { email, password } = req.body;
