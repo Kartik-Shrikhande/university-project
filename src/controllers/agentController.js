@@ -255,6 +255,14 @@ exports.agentSendApplicationToUniversity = async (req, res) => {
     if (!university) {
       return res.status(404).json({ message: 'University not found' });
     }
+
+// Add to university pendingApplications
+university.pendingApplications.push({
+  student: application.student._id,
+  applicationId: application._id
+});
+
+
  // Update agent: remove from assignedApplications, add to approvedApplications
     agent.assignedApplications = agent.assignedApplications.filter(
       id => id.toString() !== applicationId
