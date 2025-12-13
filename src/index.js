@@ -29,6 +29,9 @@ const statisticsRoutes = require('../src/routes/statisticsRoutes')
 const statisticUniversitysRoutes = require('../src/routes/statisticsUniversityRoutes')
 const visaRoutes = require('../src/routes/visaRoutes');
 const paymentConfig = require('./routes/paymentConfigRoutes');
+const apiRateLimiter = require('../src/controllers/ratelimiter');
+const cache = require('../src/middlewares/cache');
+
 
 const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // import
 // const applicationRoutes = require('../src/routes/applicationRoutes');
@@ -36,6 +39,10 @@ const globalErrorHandler = require('../src/middlewares/multerErrorHandler'); // 
 const startCronJob = require('../src/controllers/inactivityMailController');
 const startCourseExpiryCron = require('../src/services/courseExpiryCheck'); // Course expiry cron
 
+
+// GLOBAL RATE LIMITER (30 req/min per IP)
+app.use(apiRateLimiter);
+app.use(cache);
 
 
 // Set up middleware
