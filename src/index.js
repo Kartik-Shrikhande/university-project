@@ -40,18 +40,6 @@ const startCronJob = require('../src/controllers/inactivityMailController');
 const startCourseExpiryCron = require('../src/services/courseExpiryCheck'); // Course expiry cron
 
 
-// GLOBAL RATE LIMITER (30 req/min per IP)
-app.use(apiRateLimiter);
-app.use(cache);
-
-
-// Set up middleware
-app.use(express.json({
-    verify: (req, res, buf) => { req.rawBody = buf.toString(); }
-}));
-app.use(cookieParser());
-
-
 
 //current in use
 const allowedOrigins = [
@@ -77,6 +65,18 @@ const allowedOrigins = [
     credentials: true
   }));
   
+// Set up middleware
+app.use(express.json({
+    verify: (req, res, buf) => { req.rawBody = buf.toString(); }
+}));
+app.use(cookieParser());
+
+
+// GLOBAL RATE LIMITER (30 req/min per IP)
+app.use(apiRateLimiter);
+app.use(cache);
+
+
 
 app.use("/images", express.static(path.join(__dirname, "images")));
 
