@@ -30,6 +30,7 @@ const statisticUniversitysRoutes = require('../src/routes/statisticsUniversityRo
 const visaRoutes = require('../src/routes/visaRoutes');
 const paymentConfig = require('./routes/paymentConfigRoutes');
 const apiRateLimiter = require('../src/controllers/ratelimiter');
+const userConsentRoutes = require('../src/routes/consentRoutes');
 const cache = require('../src/middlewares/cache');
 
 
@@ -107,7 +108,7 @@ app.use('/statistics',statisticsRoutes);
 app.use('/stats/university',statisticUniversitysRoutes);
 app.use('/visa', visaRoutes);
 app.use('/payment-config', paymentConfig);
-
+app.use('/consent', userConsentRoutes);
 
 app.use(globalErrorHandler);
 
