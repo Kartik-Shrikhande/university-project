@@ -75,7 +75,7 @@ app.use(cookieParser());
 
 // GLOBAL RATE LIMITER (30 req/min per IP)
 app.use(apiRateLimiter);
-app.use(cache);
+// app.use(cache);
 
 
 
