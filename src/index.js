@@ -82,12 +82,32 @@ app.use(apiRateLimiter);
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 // Set up express-session
+// ---------------- DB CONNECTION FIRST ----------------
+mongoose.connect(process.env.MONGODB_URL, {
+  connectTimeoutMS: 60000,
+  socketTimeoutMS: 60000
+})
+.then(() => console.log('MongoDB is connected'))
+.catch((error) => console.log(error));
+
+// ---------------- SESSION CONFIG (FIXED) ----------------
+const MongoStore = require("connect-mongo");
+
 app.use(
-    session({
-        secret: process.env.SESSION_SECRET || 'defaultSecret',
-        resave: false,
-        saveUninitialized: false,
-    })
+  session({
+    secret: process.env.SESSION_SECRET || "defaultSecret",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URL,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      secure: false,
+    },
+  })
 );
 
 // Initialize Passport for Google login
@@ -113,12 +133,12 @@ app.use('/consent', userConsentRoutes);
 app.use(globalErrorHandler);
 
 
-mongoose.connect(process.env.MONGODB_URL, { connectTimeoutMS: 60000, socketTimeoutMS: 60000 })
-    .then(() => {
-        console.log('MongoDB is connected')
+// mongoose.connect(process.env.MONGODB_URL, { connectTimeoutMS: 60000, socketTimeoutMS: 60000 })
+//     .then(() => {
+//         console.log('MongoDB is connected')
 
-    })
-    .catch((error) => { console.log(error); })
+//     })
+//     .catch((error) => { console.log(error); })
 
 
 
