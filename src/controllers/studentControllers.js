@@ -461,18 +461,56 @@ if (existingRole) {
     }
 
   // Handle document uploads
-  let uploadedDocuments = [];
+let uploadedDocuments = [];
+try {
   if (req.files && req.files['document']) {
-    uploadedDocuments = await uploadFilesToS3(req.files['document']);  // uploadFilesToS3 handles S3 upload logic for 'documents'
+    uploadedDocuments = await uploadFilesToS3(req.files['document']);
   }
-  // console.log(req.files); // Log the incoming file fields
+} catch (err) {
+  console.error("S3 document upload error:", err.message);
+
+  if (err.code === "InvalidAccessKeyId") {
+    return res.status(500).json({
+      message: "File upload failed: Invalid AWS credentials.",
+    });
+  }
+
+  if (err.code === "AccessDenied") {
+    return res.status(500).json({
+      message: "File upload failed: Access denied to S3 bucket.",
+    });
+  }
+
+  return res.status(500).json({
+    message: "File upload failed. Please try again.",
+  });
+}
 
 
-  let uploadedDocumentUploads = [];
+let uploadedDocumentUploads = [];
+try {
   if (req.files && req.files['documentUpload']) {
-    uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);  // uploadFilesToS3 handles S3 upload logic for 'documentUpload'
+    uploadedDocumentUploads = await uploadFilesToS3(req.files['documentUpload']);
+  }
+} catch (err) {
+  console.error("S3 passport upload error:", err.message);
+
+  if (err.code === "InvalidAccessKeyId") {
+    return res.status(500).json({
+      message: "File upload failed: Invalid AWS credentials.",
+    });
   }
 
+  if (err.code === "AccessDenied") {
+    return res.status(500).json({
+      message: "File upload failed: Access denied to S3 bucket.",
+    });
+  }
+
+  return res.status(500).json({
+    message: "File upload failed. Please try again.",
+  });
+}
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -583,8 +621,8 @@ confirmEmail: normalizedConfirmEmail,
   
   }
    catch (error) {
-  
-    console.error('Error during registration:', error);
+ console.error("FULL ERROR:", error);
+console.error("STACK:", error.stack);
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
