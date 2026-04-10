@@ -638,8 +638,6 @@ exports.getAllSolicitors = async (req, res) => {
   }
 };
 
-// @desc Get Solicitor by ID
-// @route GET /api/solicitors/:id
 exports.getSolicitorById = async (req, res) => {
   try {
    
@@ -665,13 +663,8 @@ exports.getSolicitorById = async (req, res) => {
     res.status(500).json({ error: "Error fetching solicitor" });
   }
 };
-// @desc Update Solicitor
-// @route PUT /api/solicitors/:id
 
 
-
-// @desc Delete Solicitor
-// @route DELETE /api/solicitors/:id
 exports.deleteSolicitor = async (req, res) => {
   try {
    
@@ -2017,80 +2010,6 @@ exports.getApplicationsByStatus = async (req, res) => {
 };
 
 
-//previouse 
-// Get Applications by Status for an Agency
-// exports.getApplicationsByStatus = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-//     const userRole = req.user.role;
-//     const { status } = req.query;
-
-//     // Validate status input
-//     const validStatuses = ['Processing', 'Accepted', 'Rejected', 'Withdrawn'];
-//     if (!status || !validStatuses.includes(status)) {
-//       return res.status(400).json({ error: 'Invalid or missing status query parameter.' });
-//     }
-
-//     let agencyId;
-
-//     if (userRole === 'admin') {
-//       agencyId = userId;
-//     } else if (userRole === 'agent') {
-//       const agent = await Agent.findById(userId);
-//       if (!agent) {
-//         return res.status(404).json({ error: 'Agent not found.' });
-//       }
-//       agencyId = agent.agency;
-//     } else {
-//       return res.status(403).json({ error: 'Unauthorized role.' });
-//     }
-
-//     const agency = await Agency.findById(agencyId).lean();
-//     if (!agency) {
-//       return res.status(404).json({ error: 'Agency not found.' });
-//     }
-
-//     let applicationIds = [];
-
-//     // Get application IDs based on agency record fields
-//     if (status === 'Processing') {
-//       applicationIds = agency.pendingApplications.map(id => id.toString());
-//     } else if (status === 'Accepted') {
-//       applicationIds = agency.sentAppliactionsToUniversities.map(id => id.toString());
-//     } else {
-//       // For Rejected / Withdrawn — query Application model by status field
-//       const apps = await Application.find({
-//         agency: agencyId,
-//         status: status,
-//         isDeleted: false
-//       }).select('_id');
-
-//       applicationIds = apps.map(app => app._id.toString());
-//     }
-
-//     // Fetch Applications based on these IDs
-//     const applications = await Application.find({
-//       _id: { $in: applicationIds },
-//       isDeleted: false
-//     })
-//       .populate('student', 'firstName lastName email')
-//       .populate('university', 'name')
-//       .populate('course', 'name')
-//       .populate('assignedAgent', 'name email')
-//       .populate('assignedSolicitor', 'name email');
-
-//     res.status(200).json({
-//       message: `Applications with status '${status}' fetched successfully.`,
-//       count: applications.length,
-//       applications
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching applications by status:', error);
-//     res.status(500).json({ error: 'Internal server error.' });
-//   }
-// };
-
 
 exports.getApplicationsStatusByAllUniversities = async (req, res) => {
   try {
@@ -2798,8 +2717,7 @@ exports.deleteUniversityByAgency = async (req, res) => {
 
 //COURSE
 // ===============================
-// Create Course by Agency
-// ===============================
+
 exports.createCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -2893,9 +2811,6 @@ exports.createCourseByAgency = async (req, res) => {
 };
 
 
-// ===============================
-// Update Course by Agency
-// ===============================
 exports.updateCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -3007,6 +2922,7 @@ exports.updateCourseByAgency = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 // Delete Course (Agency)
 exports.deleteCourseByAgency = async (req, res) => {
   const session = await mongoose.startSession();
@@ -3069,9 +2985,6 @@ exports.deleteCourseByAgency = async (req, res) => {
 
 
 // ASSOCIATES 
-
-// **CREATE Associate Solicitor**
-//ASSOCIATE
 
 exports.createAssociate = async (req, res) => {
   try {
@@ -3187,7 +3100,6 @@ exports.getAllAssociates = async (req, res) => {
   }
 };
 
-// **GET Associate By ID**
 exports.getAssociateById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -3227,9 +3139,6 @@ exports.getAssociateById = async (req, res) => {
   }
 };
 
-
-
-// **UPDATE Associate**
 exports.updateAssociate = async (req, res) => {
   try {
     const id = req.params.id;
@@ -3286,8 +3195,6 @@ exports.updateAssociate = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 // **SOFT DELETE Associate**
 exports.deleteAssociate = async (req, res) => {

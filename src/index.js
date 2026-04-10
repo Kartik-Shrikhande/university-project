@@ -129,18 +129,7 @@ app.use('/stats/university',statisticUniversitysRoutes);
 app.use('/visa', visaRoutes);
 app.use('/payment-config', paymentConfig);
 app.use('/consent', userConsentRoutes);
-
 app.use(globalErrorHandler);
-
-
-// mongoose.connect(process.env.MONGODB_URL, { connectTimeoutMS: 60000, socketTimeoutMS: 60000 })
-//     .then(() => {
-//         console.log('MongoDB is connected')
-
-//     })
-//     .catch((error) => { console.log(error); })
-
-
 
 
 try {

@@ -225,7 +225,6 @@ exports.getAllAssignedSolicitorRequests = async (req, res) => {
 };
 
 
-
 exports.getSolicitorRequestById = async (req, res) => {
   try {
     const associateId = req.user.id;
@@ -305,7 +304,6 @@ exports.rejectSolicitorRequest = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
 
 
 exports.assignRequestToSolicitor = async (req, res) => {

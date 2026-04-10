@@ -32,7 +32,6 @@ exports.getStudentDetailsForApplication = async (req, res) => {
 };
 
 
-
 exports.applyForCourse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

@@ -30,27 +30,5 @@ const checkEmailExists = async (email, session = null) => {
   return null;
 };
 
-// const checkEmailExists = async (email, session = null) => {
-//   const existingStudent = await Student.findOne({ email }).session(session);
-//   if (existingStudent) return 'student';
-
-//   const existingAgent = await Agent.findOne({ email }).session(session);
-//   if (existingAgent) return 'agent';
-
-//   const existingUniversity = await University.findOne({ email }).session(session);
-//   if (existingUniversity) return 'University';
-
-//   const existingSolicitor = await Solicitor.findOne({ email }).session(session);
-//   if (existingSolicitor) return 'solicitor';
-
-//   const existingAgency = await Agency.findOne({ email }).session(session);
-//   if (existingAgency) return 'admin';
-
-//   const existingAssociate = await AssociateSolicitor.findOne({ email }).session(session);
-//   if (existingAssociate) return 'Associate';
-
-//   // If no match found
-//   return null;
-// };
 
 module.exports = checkEmailExists;

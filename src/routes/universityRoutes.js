@@ -19,10 +19,6 @@ const {
 } = require('../validators/universityValidations');
 
 
-
-// Routes
-// router.use(authenticationMiddleware.authentication,authenticationMiddleware.authorization)
-
 router.post('/login',validateUniversityLogin, universityController.universityLogin);
 router.use(authenticationMiddleware.authenticateUser,authenticationMiddleware.authorizeRoles(['University']))
 

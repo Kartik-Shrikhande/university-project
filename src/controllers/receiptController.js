@@ -269,9 +269,7 @@ exports.getAllReceiptswithFilteration= async (req, res) => {
 
   
 //UNIVERSITY 
-
 //not checked
-
 
 // // Get all student receipts for a university
 exports.getAllStudentReceipts = async (req, res) => {
@@ -301,7 +299,6 @@ exports.getAllStudentReceipts = async (req, res) => {
 };
 
   
-
 // // Get single receipt by ID
 exports.getstudentReceiptById = async (req, res) => {
   try {

@@ -695,7 +695,7 @@ exports.updateUniversity = async (req, res) => {
       });
     }
 
-    // Handle Image Upload (if provided)
+  
    // Handle Image Upload (if provided)
    let bannerImage = null;
    if (req.file) {

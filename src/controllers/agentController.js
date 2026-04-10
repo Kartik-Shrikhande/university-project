@@ -200,7 +200,6 @@ exports.getAgentApplicationById = async (req, res) => {
 
 // //APPLICATION
 
-//latest but not tested 
 exports.agentSendApplicationToUniversity = async (req, res) => {
   try {
     const { applicationId } = req.params;
