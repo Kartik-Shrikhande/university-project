@@ -16,7 +16,7 @@
     "@aws-sdk/s3-request-presigner": "^3.734.0",
     "@azure/identity": "^4.11.1",
     "@microsoft/microsoft-graph-client": "^3.0.7",
-    "aws-sdk": "^1.18.0",
+    "aws-sdk": "^2.1693.0",
     "bcrypt": "^6.0.0",
     "connect-mongo": "^4.6.0",
     "cookie-parser": "^1.4.7",
