@@ -163,26 +163,44 @@ exports.createAgent = async (req, res) => {
       address
     } = req.body;
 
-    const agencyId = req.user.id; // Assuming agencyId is in req.user via your auth middleware
+    // ✅ Normalize email (IMPORTANT FIX)
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    const agencyId = req.user.id;
 
     if (!agencyId) {
-      return res.status(400).json({ success: false, message: "Agency ID not provided." });
+      return res.status(400).json({
+        success: false,
+        message: "Agency ID not provided."
+      });
     }
 
-    // Check if the email is already in use
-    const existingAgent = await Agent.findOne({ email });
+    // ✅ Check if email already exists across all roles
+    const existingRole = await checkEmailExists(normalizedEmail, null);
+    if (existingRole) {
+      return res.status(400).json({
+        success: false,
+        message: "This email is already in use."
+      });
+    }
 
-  const existingRole = await checkEmailExists(email, null);
-if (existingRole) {
-  return res.status(400).json({ message: `This email is already in use.` });
-}
+    // ✅ Check existing agent (including soft-deleted)
+    const existingAgent = await Agent.findOne({ email: normalizedEmail });
 
-    // Remove old deleted agent if exists
+    // If soft deleted → remove permanently
     if (existingAgent && existingAgent.isDeleted) {
-      await Agent.deleteOne({ email });
+      await Agent.deleteOne({ email: normalizedEmail });
     }
 
-    // Auto-generate password
+    // ❌ If already active → block
+    if (existingAgent && !existingAgent.isDeleted) {
+      return res.status(400).json({
+        success: false,
+        message: "Agent with this email already exists."
+      });
+    }
+
+    // ✅ Auto-generate password
     const password = generator.generate({
       length: 10,
       numbers: true,
@@ -192,13 +210,13 @@ if (existingRole) {
       exclude: `"'\\\``
     });
 
-    // Hash the password
+    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new agent
+    // ✅ Create agent
     const newAgent = new Agent({
       username,
-      email,
+      email: normalizedEmail, // ✅ FIXED
       password: hashedPassword,
       phoneNumber,
       address,
@@ -207,24 +225,27 @@ if (existingRole) {
 
     await newAgent.save();
 
-
-    // ✅ Add agent ID to agency.agents array
+    // ✅ Push agent into agency
     await Agency.findByIdAndUpdate(agencyId, {
       $push: { agents: newAgent._id }
     });
 
-     // ✅ Prepare HTML email using your styled template
+    // ✅ Email template
     const html = generateEmailTemplate(
       "Your Agent Account is Ready!",
       "#004AAC",
       `
       <p style="font-size:16px;color:#333;">Hi <strong>${username}</strong>,</p>
-      <p style="font-size:16px;color:#555;">Your agent account has been successfully created. Here are your login credentials:</p>
+      <p style="font-size:16px;color:#555;">
+        Your agent account has been successfully created. Here are your login credentials:
+      </p>
       <ul style="font-size:16px;color:#555;">
-        <li><strong>Email:</strong> ${email}</li>
+        <li><strong>Email:</strong> ${normalizedEmail}</li>
         <li><strong>Password:</strong> ${password}</li>
       </ul>
-      <p style="font-size:16px;color:#555;">Please log in and change your password immediately for security reasons.</p>
+      <p style="font-size:16px;color:#555;">
+        Please log in and change your password immediately for security reasons.
+      </p>
       `,
       {
         text: "Log In Now",
@@ -234,22 +255,33 @@ if (existingRole) {
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: email,
+      to: normalizedEmail,
       subject: "Your Agent Account Credentials",
       html,
     };
 
-    // ✅ Send using your common mailer utility
+    // ✅ Send email
     await sendEmailWithLogo(mailOptions);
 
-    res.status(201).json({
+    // ✅ Response (no password exposed)
+    return res.status(201).json({
       success: true,
-      message: "Agent created successfully. Credentials sent via email."
+      message: "Agent created successfully. Credentials sent via email.",
+      agent: {
+        id: newAgent._id,
+        username: newAgent.username,
+        email: newAgent.email,
+        phoneNumber: newAgent.phoneNumber,
+        agency: newAgent.agency
+      }
     });
 
   } catch (error) {
     console.error("Error creating agent:", error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error."
+    });
   }
 };
 
@@ -443,7 +475,6 @@ exports.hardDeleteAgent = async (req, res) => {
 
 //SOLICITOR 
 
-
 exports.createSolicitor = async (req, res) => {
   try {
     const {
@@ -451,68 +482,64 @@ exports.createSolicitor = async (req, res) => {
       lastName,
       email,
       address,
-      // countryCode,
       phoneNumber,
     } = req.body;
 
-    // Get associate ID from authenticated user
+    const normalizedEmail = email?.toLowerCase().trim(); // ✅ FIX
+
     const nameOfAssociate = req.user.id;
 
-    // Check if the email is already registered
-    const existingSolicitor = await Solicitor.findOne({ email });
-    
-     const existingRole = await checkEmailExists(email, null);
+    // Check email across roles
+    const existingRole = await checkEmailExists(normalizedEmail, null);
     if (existingRole) {
-  return res.status(400).json({ message: `This email is already in use.` });
-}
-    
-        // If the associate exists but isDeleted: true, remove the old record
-        if (existingSolicitor && existingSolicitor.isDeleted) {
-          await solicitorModel.deleteOne({ email });
-        }
-    
-    
-    // **Auto-generate a password**
+      return res.status(400).json({ message: "This email is already in use." });
+    }
+
+    const existingSolicitor = await Solicitor.findOne({ email: normalizedEmail });
+
+    if (existingSolicitor && existingSolicitor.isDeleted) {
+      await Solicitor.deleteOne({ email: normalizedEmail }); // ✅ FIXED
+    }
+
+    if (existingSolicitor && !existingSolicitor.isDeleted) {
+      return res.status(400).json({ message: "Solicitor already exists." });
+    }
+
+    // ✅ Password (no special chars)
     const password = generator.generate({
-      length: 12,
+      length: 8,
       numbers: true,
-      symbols: true,
+      symbols: false,
       uppercase: true,
-      excludeSimilarCharacters: true,
-      exclude: `"'\\\``  // excludes ", ', \, and `
+      lowercase: true,
+      strict: true
     });
 
-    // **Hash the generated password**
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create a new solicitor
     const newSolicitor = new Solicitor({
       firstName,
       lastName,
-      email,
-      password: hashedPassword, // Store hashed password
+      email: normalizedEmail, // ✅ FIX
+      password: hashedPassword,
       address,
-      // countryCode,
       phoneNumber,
       nameOfAssociate,
-       agency: process.env.DEFAULT_AGENCY_ID
+      agency: process.env.DEFAULT_AGENCY_ID
     });
 
-    // Save the solicitor to the database
     await newSolicitor.save();
 
-    // ✅ Styled HTML credentials email
     const html = generateEmailTemplate(
       "Your Solicitor Account is Ready!",
       "#004AAC",
       `
-      <p style="font-size:16px;color:#333;">Hi <strong>${firstName} ${lastName}</strong>,</p>
-      <p style="font-size:16px;color:#555;">Your solicitor account has been created. Here are your login credentials:</p>
-      <ul style="font-size:16px;color:#555;">
-        <li><strong>Email:</strong> ${email}</li>
+      <p>Hi <strong>${firstName} ${lastName}</strong>,</p>
+      <p>Your solicitor account has been created.</p>
+      <ul>
+        <li><strong>Email:</strong> ${normalizedEmail}</li>
         <li><strong>Password:</strong> ${password}</li>
       </ul>
-      <p style="font-size:16px;color:#555;">Please log in and change your password immediately.</p>
       `,
       {
         text: "Log In Now",
@@ -520,23 +547,21 @@ exports.createSolicitor = async (req, res) => {
       }
     );
 
-    const mailOptions = {
+    await sendEmailWithLogo({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: normalizedEmail,
       subject: "Your Solicitor Account Credentials",
       html
-    };
-
-    await sendEmailWithLogo(mailOptions);
-
-    // Return success response
-    res.status(201).json({
-      success: true,
-      message: 'Solicitor created successfully. Check your email for credentials.',
     });
+
+    return res.status(201).json({
+      success: true,
+      message: "Solicitor created successfully."
+    });
+
   } catch (error) {
-    console.error('Error creating solicitor:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error("Error creating solicitor:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -1532,28 +1557,33 @@ exports.createAgency = async (req, res) => {
   try {
     const { name, email, password, contactPhone, address } = req.body;
 
-  const existingRole = await checkEmailExists(email, null);
-if (existingRole) {
-  return res.status(400).json({ message: `This email is already in use.` });
-}
+    const normalizedEmail = email?.toLowerCase().trim(); // ✅ FIX
 
-    // Hash the password
+    const existingRole = await checkEmailExists(normalizedEmail, null);
+    if (existingRole) {
+      return res.status(400).json({ message: "This email is already in use." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new agency
     const newAgency = new Agency({
       name,
-      email,
+      email: normalizedEmail, // ✅ FIX
       password: hashedPassword,
       contactPhone,
       address,
     });
 
     const savedAgency = await newAgency.save();
-    return res.status(201).json({ message: 'Agency created successfully.', data: savedAgency });
+
+    return res.status(201).json({
+      message: "Agency created successfully.",
+      data: savedAgency
+    });
+
   } catch (error) {
-    console.error('Error creating agency:', error);
-    return res.status(500).json({ error: 'Error creating agency.' });
+    console.error("Error creating agency:", error);
+    return res.status(500).json({ error: "Error creating agency." });
   }
 };
 
@@ -2476,39 +2506,37 @@ exports.createUniversity = async (req, res) => {
       ratings,
     } = req.body;
 
-    // Check if the email is already in use
- const existingRole = await checkEmailExists(email, null);
-if (existingRole) {
-  return res.status(400).json({ message: `This email is already in use.` });
-}
+    const normalizedEmail = email?.toLowerCase().trim(); // ✅ FIX
 
-    // Auto-generate a password
-    const password = generator.generate({
-      length: 10, // Password length
-      numbers: true, // Include numbers
-      symbols: true, // Include symbols
-      uppercase: true, // Include uppercase letters
-      excludeSimilarCharacters: true, // Exclude similar characters like 'i' and 'l'
-      exclude: `"'\\\``  // excludes ", ', \, and `
-    });
-
-    // Hash the auto-generated password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Handle Image Upload (if provided)
-    let bannerImage = null;
-    if (req.file) {
-      const uploadedFiles = await uploadFilesToS3([req.file]); // Upload file to S3
-      bannerImage = uploadedFiles[0]; // Get the S3 URL
+    const existingRole = await checkEmailExists(normalizedEmail, null);
+    if (existingRole) {
+      return res.status(400).json({ message: "This email is already in use." });
     }
 
-    // Create a new university instance
+    // ✅ Password (clean)
+    const password = generator.generate({
+      length: 8,
+      numbers: true,
+      symbols: false,
+      uppercase: true,
+      lowercase: true,
+      strict: true
+    });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let bannerImage = null;
+    if (req.file) {
+      const uploadedFiles = await uploadFilesToS3([req.file]);
+      bannerImage = uploadedFiles[0];
+    }
+
     const newUniversity = new University({
       name,
-      email,
-      password: hashedPassword,  //hashedPassword,
+      email: normalizedEmail, // ✅ FIX
+      password: hashedPassword,
       description,
-      bannerImage, // Save the uploaded image URL
+      bannerImage,
       website,
       phoneNumber,
       address: {
@@ -2518,25 +2546,22 @@ if (existingRole) {
         state: address.state,
         zipCode: address.zipCode,
       },
-      isPromoted: req.body.isPromoted || 'NO', // Default to 'NO' if not provided
-      ratings: ratings || [], // Default to an empty array if not provided
+      isPromoted: req.body.isPromoted || "NO",
+      ratings: ratings || [],
     });
 
-    // Save the new university to the database
     await newUniversity.save();
 
-  // ✅ Styled HTML credentials email
     const html = generateEmailTemplate(
       "Your University Account is Ready!",
       "#004AAC",
       `
-      <p style="font-size:16px;color:#333;">Hi <strong>${name}</strong>,</p>
-      <p style="font-size:16px;color:#555;">Your university account has been created successfully. Here are your login credentials:</p>
-      <ul style="font-size:16px;color:#555;">
-        <li><strong>Email:</strong> ${email}</li>
+      <p>Hi <strong>${name}</strong>,</p>
+      <p>Your university account has been created.</p>
+      <ul>
+        <li><strong>Email:</strong> ${normalizedEmail}</li>
         <li><strong>Password:</strong> ${password}</li>
       </ul>
-      <p style="font-size:16px;color:#555;">Please log in and change your password immediately for security.</p>
       `,
       {
         text: "Log In Now",
@@ -2544,38 +2569,25 @@ if (existingRole) {
       }
     );
 
-    const mailOptions = {
+    await sendEmailWithLogo({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: normalizedEmail,
       subject: "University Account Credentials",
       html
-    };
+    });
 
-    await sendEmailWithLogo(mailOptions);
-
-
-
-
-    // Return the response with the auto-generated password (for testing purposes)
     return res.status(201).json({
-      message: 'University created successfully.',
+      message: "University created successfully.",
       university: {
         id: newUniversity._id,
         name: newUniversity.name,
-        email: newUniversity.email,
-        website: newUniversity.website,
-        phoneNumber: newUniversity.phoneNumber,
-        address: newUniversity.address,
-        role: newUniversity.role,
-        isPromoted: newUniversity.isPromoted,
-        ratings: newUniversity.ratings,
-        bannerImage: newUniversity.bannerImage,
-      },
-      autoGeneratedPassword: hashedPassword, // Return the auto-generated password (optional)
+        email: newUniversity.email
+      }
     });
+
   } catch (error) {
-    console.error('Error creating university:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
+    console.error("Error creating university:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
